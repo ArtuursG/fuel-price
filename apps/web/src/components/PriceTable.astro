@@ -1,0 +1,102 @@
+---
+import { AGE_LABELS, formatPrice, SAMPLE_PRODUCTS, type NetworkPrice } from "../lib/sample-data";
+
+// Sākotnējie dati sakārtoti pēc produkta; tabulai sakārtojam pēc tīkla.
+const networkIds = [...new Set(SAMPLE_PRODUCTS.flatMap((row) => row.prices.map((p) => p.networkId)))];
+
+interface NetworkRow {
+	networkId: string;
+	networkName: string;
+	cells: (NetworkPrice | null)[];
+}
+
+const rows: NetworkRow[] = networkIds.map((networkId) => {
+	const cells = SAMPLE_PRODUCTS.map((row) => row.prices.find((p) => p.networkId === networkId) ?? null);
+	const networkName = cells.find((c) => c !== null)?.networkName ?? networkId;
+	return { networkId, networkName, cells };
+});
+---
+
+<div class="table-wrap">
+	<table>
+		<caption class="sr-only">Visu tīklu degvielas cenas šodien, salīdzinājumā pa produktiem</caption>
+		<thead>
+			<tr>
+				<th scope="col">Tīkls</th>
+				{SAMPLE_PRODUCTS.map((row) => <th scope="col">{row.label}</th>)}
+				<th scope="col">Svaigums</th>
+			</tr>
+		</thead>
+		<tbody>
+			{rows.map((row) => (
+				<tr>
+					<th scope="row">{row.networkName}</th>
+					{row.cells.map((cell) => (
+						<td>
+							{cell ? (
+								<>
+									{formatPrice(cell.priceMilli)}&nbsp;&euro;
+									{cell.scope !== "network" && <span class="table-note"> ({cell.scope === "cheapest_riga" ? "Rīgā" : "lētākā"})</span>}
+								</>
+							) : (
+								<span class="table-dash" aria-label="nav datu">-</span>
+							)}
+						</td>
+					))}
+					<td>{AGE_LABELS[row.cells.find((c) => c !== null)?.age ?? "today"]}</td>
+				</tr>
+			))}
+		</tbody>
+	</table>
+</div>
+
+<style>
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+	}
+	table {
+		font-size: 0.95rem;
+	}
+	th,
+	td {
+		padding: 0.65rem 0.85rem;
+		text-align: left;
+		border-bottom: 1px solid var(--color-border);
+		white-space: nowrap;
+	}
+	thead th {
+		font-size: 0.8rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-ink-muted);
+		background: var(--color-surface);
+	}
+	tbody th {
+		font-weight: 600;
+	}
+	tbody tr:last-child td,
+	tbody tr:last-child th {
+		border-bottom: none;
+	}
+	td {
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
+	}
+	.table-note {
+		font-family: var(--font-body);
+		color: var(--color-ink-muted);
+		font-size: 0.75rem;
+	}
+	.table-dash {
+		color: var(--color-neutral);
+	}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+	}
+</style>

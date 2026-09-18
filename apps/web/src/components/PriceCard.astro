@@ -1,0 +1,95 @@
+---
+import { AGE_LABELS, ORIGIN_LABELS, formatPrice, type NetworkPrice, type Product } from "../lib/sample-data";
+
+interface Props {
+	product: Product;
+	label: string;
+	price: NetworkPrice;
+}
+
+const { label, price } = Astro.props as Props;
+
+const changeDirection = price.changeMilli < 0 ? "down" : price.changeMilli > 0 ? "up" : "same";
+const changeText =
+	changeDirection === "same"
+		? "nemainīga"
+		: `${changeDirection === "down" ? "↓" : "↑"} ${formatPrice(Math.abs(price.changeMilli))} €`;
+---
+
+<article class="pylon" data-change={changeDirection}>
+	<p class="pylon__label">{label}</p>
+	<p class="pylon__price">
+		{formatPrice(price.priceMilli)}<span class="pylon__unit">&euro;/l</span>
+	</p>
+	<p class="pylon__network">{price.networkName}</p>
+	<p class="pylon__change" data-change={changeDirection}>{changeText}</p>
+	<p class="pylon__meta">
+		<span class="badge badge--age" data-age={price.age}>{AGE_LABELS[price.age]}</span>
+		<span class="badge badge--origin">{ORIGIN_LABELS[price.origin]}</span>
+	</p>
+</article>
+
+<style>
+	.pylon {
+		background: var(--color-pylon);
+		color: var(--color-pylon-ink);
+		border-radius: 4px;
+		padding: 1.25rem 1.25rem 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		min-width: 0;
+	}
+	.pylon__label {
+		margin: 0;
+		font-size: 0.8rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: color-mix(in srgb, var(--color-pylon-ink) 70%, transparent);
+	}
+	.pylon__price {
+		margin: 0;
+		font-family: var(--font-mono);
+		font-weight: 600;
+		font-size: clamp(1.75rem, 4vw, 2.25rem);
+		line-height: 1.1;
+	}
+	.pylon__unit {
+		font-size: 0.9rem;
+		font-weight: 500;
+		margin-left: 0.25rem;
+		opacity: 0.75;
+	}
+	.pylon__network {
+		margin: 0;
+		font-size: 0.9rem;
+		color: color-mix(in srgb, var(--color-pylon-ink) 85%, transparent);
+	}
+	.pylon__change {
+		margin: 0;
+		font-family: var(--font-mono);
+		font-size: 0.85rem;
+	}
+	.pylon__change[data-change="down"] {
+		color: #8fd6ac;
+	}
+	.pylon__change[data-change="up"] {
+		color: #e7a3a3;
+	}
+	.pylon__change[data-change="same"] {
+		color: color-mix(in srgb, var(--color-pylon-ink) 60%, transparent);
+	}
+	.pylon__meta {
+		margin: 0.5rem 0 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+	.badge {
+		font-size: 0.7rem;
+		padding: 0.15rem 0.5rem;
+		border-radius: 999px;
+		border: 1px solid color-mix(in srgb, var(--color-pylon-ink) 35%, transparent);
+		color: color-mix(in srgb, var(--color-pylon-ink) 85%, transparent);
+	}
+</style>
