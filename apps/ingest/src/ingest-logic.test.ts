@@ -1,0 +1,118 @@
+import { describe, expect, it } from "vitest";
+import {
+	FuelPriceSchema,
+	IngestBatchSchema,
+	computeSignature,
+	decidePriceUpdate,
+	isTimestampFresh,
+	localDate,
+	verifySignature,
+} from "./ingest-logic";
+
+describe("computeSignature / verifySignature", () => {
+	it("verifies a signature computed with the same secret", async () => {
+		const signature = await computeSignature("s3cret", "2026-09-18T12:00:00Z", '{"a":1}');
+		expect(await verifySignature("s3cret", "2026-09-18T12:00:00Z", '{"a":1}', signature)).toBe(true);
+	});
+
+	it("rejects a signature computed with a different secret", async () => {
+		const signature = await computeSignature("s3cret", "2026-09-18T12:00:00Z", '{"a":1}');
+		expect(await verifySignature("wrong", "2026-09-18T12:00:00Z", '{"a":1}', signature)).toBe(false);
+	});
+
+	it("rejects when the body was tampered with after signing", async () => {
+		const signature = await computeSignature("s3cret", "2026-09-18T12:00:00Z", '{"a":1}');
+		expect(await verifySignature("s3cret", "2026-09-18T12:00:00Z", '{"a":2}', signature)).toBe(false);
+	});
+
+	it("produces the documented sha256= prefix", async () => {
+		const signature = await computeSignature("s3cret", "2026-09-18T12:00:00Z", "{}");
+		expect(signature).toMatch(/^sha256=[0-9a-f]{64}$/);
+	});
+});
+
+describe("isTimestampFresh", () => {
+	const now = new Date("2026-09-18T12:00:00Z");
+
+	it("accepts a timestamp within 5 minutes", () => {
+		expect(isTimestampFresh("2026-09-18T11:57:00Z", now)).toBe(true);
+	});
+
+	it("rejects a timestamp more than 5 minutes old", () => {
+		expect(isTimestampFresh("2026-09-18T11:00:00Z", now)).toBe(false);
+	});
+
+	it("rejects a timestamp in the future beyond the skew", () => {
+		expect(isTimestampFresh("2026-09-18T12:10:00Z", now)).toBe(false);
+	});
+
+	it("rejects an unparseable timestamp", () => {
+		expect(isTimestampFresh("not-a-date", now)).toBe(false);
+	});
+});
+
+describe("decidePriceUpdate", () => {
+	it("inserts with no flag when there is no previous price", () => {
+		expect(decidePriceUpdate(null, 1900)).toEqual({ action: "insert", flags: null });
+	});
+
+	it("no-ops when the price is unchanged", () => {
+		expect(decidePriceUpdate(1900, 1900)).toEqual({ action: "no_change" });
+	});
+
+	it("inserts without a jump flag for a small change", () => {
+		expect(decidePriceUpdate(1900, 1950)).toEqual({ action: "insert", flags: null }); // ~2.6%
+	});
+
+	it("flags a jump for a change of 8% or more", () => {
+		expect(decidePriceUpdate(1900, 2100)).toEqual({ action: "insert", flags: "jump" }); // ~10.5%
+	});
+});
+
+describe("localDate", () => {
+	it("matches the collector's Europe/Riga conversion for a UTC evening timestamp", () => {
+		// Same case as collector/tests/test_time.py -- keep both in sync.
+		expect(localDate(new Date("2026-09-17T22:00:00Z"))).toBe("2026-09-18");
+	});
+});
+
+describe("IngestBatchSchema", () => {
+	it("accepts a minimal valid batch", () => {
+		const result = IngestBatchSchema.safeParse({
+			run: { source_id: "circlek-fuel-web", started_at: "2026-09-18T12:00:00Z", status: "ok" },
+			fuel: [{ network_id: "circlek", scope: "cheapest_riga", product: "P95", price_milli: 1914 }],
+		});
+		expect(result.success).toBe(true);
+	});
+
+	it("rejects a non-positive price", () => {
+		const result = FuelPriceSchema.safeParse({
+			network_id: "circlek",
+			scope: "cheapest_riga",
+			product: "P95",
+			price_milli: 0,
+		});
+		expect(result.success).toBe(false);
+	});
+
+	it("rejects an unknown scope value", () => {
+		const result = FuelPriceSchema.safeParse({
+			network_id: "circlek",
+			scope: "everywhere",
+			product: "P95",
+			price_milli: 1914,
+		});
+		expect(result.success).toBe(false);
+	});
+
+	it("defaults fuel/ev to empty arrays when omitted", () => {
+		const result = IngestBatchSchema.safeParse({
+			run: { source_id: "circlek-fuel-web", started_at: "2026-09-18T12:00:00Z", status: "not_modified" },
+		});
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.fuel).toEqual([]);
+			expect(result.data.ev).toEqual([]);
+		}
+	});
+});
