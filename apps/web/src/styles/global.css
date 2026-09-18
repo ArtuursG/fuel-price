@@ -1,0 +1,62 @@
+/* Design tokens -- "Cenu pilons" virziens (sk. dizaina plānu). */
+:root {
+  --color-bg: #f7f4ec;
+  --color-surface: #fffdf8;
+  --color-ink: #22201b;
+  --color-ink-muted: #5c584e;
+  --color-border: #e3ddc9;
+  --color-pylon: #1b3a4b;
+  --color-pylon-ink: #f7f4ec;
+  --color-cheapest-bg: #f3d9ad;
+  --color-cheapest-border: #d98e2b;
+  --color-down: #3b7a57;
+  --color-up: #a83232;
+  --color-neutral: #8a8577;
+
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, monospace;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--color-pylon);
+  text-decoration-thickness: 1px;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--color-cheapest-border);
+  outline-offset: 2px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

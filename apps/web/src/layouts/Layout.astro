@@ -1,0 +1,102 @@
+---
+import "../styles/global.css";
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<html lang="lv">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body>
+		<header class="site-header">
+			<div class="site-header__inner">
+				<a class="site-header__brand" href="/">degvielas-cenas</a>
+				<nav aria-label="Galvenā navigācija" class="site-header__nav">
+					<a href="/">Šodien</a>
+					<a href="/ev/">EV uzlāde</a>
+					<a href="/avoti/">Avoti</a>
+					<a href="/par/">Par</a>
+				</nav>
+			</div>
+		</header>
+		<main>
+			<slot />
+		</main>
+		<footer class="site-footer">
+			<p>
+				Dati no tīklu oficiālajām lapām. Cenas informatīvas, var atšķirties konkrētā stacijā.
+				<a href="/par/">Par metodiku</a>.
+			</p>
+		</footer>
+	</body>
+</html>
+
+<style>
+	.site-header {
+		border-bottom: 1px solid var(--color-border);
+		background: var(--color-surface);
+	}
+	.site-header__inner {
+		max-width: 72rem;
+		margin: 0 auto;
+		padding: 1rem 1.25rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+	.site-header__brand {
+		font-weight: 700;
+		font-size: 1.05rem;
+		color: var(--color-ink);
+		text-decoration: none;
+	}
+	.site-header__nav {
+		display: flex;
+		gap: 1.25rem;
+		font-size: 0.95rem;
+	}
+	.site-header__nav a {
+		color: var(--color-ink-muted);
+		text-decoration: none;
+	}
+	.site-header__nav a:hover {
+		color: var(--color-ink);
+		text-decoration: underline;
+	}
+	main {
+		max-width: 72rem;
+		margin: 0 auto;
+		padding: 0 1.25rem 3rem;
+	}
+	.site-footer {
+		border-top: 1px solid var(--color-border);
+		margin-top: 2rem;
+	}
+	.site-footer p {
+		max-width: 72rem;
+		margin: 0 auto;
+		padding: 1.5rem 1.25rem;
+		color: var(--color-ink-muted);
+		font-size: 0.875rem;
+	}
+	.site-footer a {
+		color: var(--color-ink-muted);
+	}
+</style>
