@@ -1,0 +1,23 @@
+name = "fuel-price-web"
+compatibility_date = "2026-09-18"
+# `main`/`assets` NAV šeit -- @astrojs/cloudflare adapteris tos ģenerē pats
+# (dist/server/wrangler.json) PĒC `astro build`, ar ceļiem relatīviem pret dist/.
+# Ja tos hardkodē šeit, build lūzt: tas grib validēt main ceļu PIRMS izveides (aplis).
+# `wrangler deploy` no apps/web/ jāizpilda PĒC build -- tas izmanto ģenerēto konfigurāciju.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fuel-price-db"
+# TODO: tas pats ID, ko izmanto apps/ingest/wrangler.toml -- aizpildīt pēc `wrangler d1 create fuel-price-db`.
+database_id = "TODO-fill-after-wrangler-d1-create"
+migrations_dir = "../../db/migrations"
+
+# @astrojs/cloudflare adapteris automātiski iespējo sesijas (KV) un attēlu apstrādi
+# (Cloudflare Images) -- redzēts dist/server/wrangler.json pēc `astro build`. Neizmantojam
+# ne vienu, ne otru pagaidām, bet bindingiem jābūt deklarētiem, lai `wrangler deploy` nesūdzas.
+[[kv_namespaces]]
+binding = "SESSION"
+id = "TODO-fill-after-wrangler-kv-namespace-create"
+
+[images]
+binding = "IMAGES"

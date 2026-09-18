@@ -1,0 +1,16 @@
+# Kopēt uz .dev.vars (tas ir .gitignore) un aizpildīt lokālai izstrādei.
+# Produkcijā šos ievieto ar `wrangler secret put <NAME>`, ne šeit.
+
+# apps/ingest - POST /ingest HMAC paraksts (3. fāze)
+INGEST_SECRET=
+
+# collector - kur sūtīt datus (3. fāze)
+INGEST_URL=http://localhost:8787/ingest
+
+# collector - Telegram brīdinājumi (3. fāze); ja tukšs, uzraugs raksta žurnālā, nevis sūta
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+
+# esošā EV projekta avoti, ja tos pārnesīsim 6. fāzē (sk. ev-charge-lv/.env.example)
+TRANSPORTDATA_API_KEY=
+OCM_API_KEY=
