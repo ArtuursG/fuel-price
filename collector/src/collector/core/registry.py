@@ -1,23 +1,15 @@
-"""Source registry. Empty in Phase 1 -- Phase 2 registers real source
-modules here (circlek-fuel-web, straujupite-fuel-web, ...), keyed by the
-same id used in docs/sources.yaml.
+"""Source registry, keyed by the same id used in docs/sources.yaml.
+Populated by importing collector.sources.fuel (see its __init__.py).
 """
 
 from __future__ import annotations
 
-from typing import Protocol
+from collector.core.runner import FuelSource
+
+_SOURCES: dict[str, FuelSource] = {}
 
 
-class Source(Protocol):
-    source_id: str
-
-    def run(self) -> object: ...  # Phase 2 will replace `object` with IngestBatch
-
-
-_SOURCES: dict[str, Source] = {}
-
-
-def register(source: Source) -> None:
+def register(source: FuelSource) -> None:
     _SOURCES[source.source_id] = source
 
 
@@ -25,7 +17,7 @@ def list_sources() -> list[str]:
     return sorted(_SOURCES)
 
 
-def get_source(source_id: str | None) -> Source | None:
+def get_source(source_id: str | None) -> FuelSource | None:
     if source_id is None:
         return None
     return _SOURCES.get(source_id)
