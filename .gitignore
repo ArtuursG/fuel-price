@@ -1,0 +1,32 @@
+# Secrets
+.dev.vars
+.env
+
+# Iekšējie plānošanas/izpētes un izstrādes noteikumu dokumenti -- paliek
+# lokāli, NETIEK pushoti publiskajā repo (konkurentu analīze, avotu izpēte,
+# lēmumu vēsture, izstrādes konvencijas).
+docs/
+CLAUDE.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+collector/data/raw/
+
+# Node / TypeScript
+node_modules/
+dist/
+.astro/
+.wrangler/
+*.tsbuildinfo
+
+# Wrangler local D1 state
+apps/*/.wrangler/
+
+# OS / editor
+.DS_Store
+Thumbs.db
