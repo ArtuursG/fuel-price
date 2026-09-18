@@ -8,6 +8,7 @@ from pathlib import Path
 
 import collector.sources.fuel  # noqa: F401 -- import side effect: registers sources
 from collector.core.models import IngestBatch
+from collector.core.push import PushConfigError, push_batch
 from collector.core.registry import get_source, list_sources
 from collector.core.runner import check_fuel_source, run_fuel_source, snapshot_fuel_source
 
@@ -51,8 +52,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
         print(f"Nav norādīts avots. Lieto --source <id> vai --all. Reģistrēti avoti: {registered}")
         return 0
 
-    if args.push and not args.dry_run:
-        print("--push nav ieviests (3. fāzes darbs). Lieto --dry-run.", file=sys.stderr)
+    if not args.dry_run and not args.push:
+        print("Norādi --dry-run (izvadīt JSON) vai --push (sūtīt uz INGEST_URL).", file=sys.stderr)
         return 1
 
     exit_code = 0
@@ -67,7 +68,25 @@ def _cmd_run(args: argparse.Namespace) -> int:
         if report.status in ("error", "blocked"):
             exit_code = 1
         batch = IngestBatch(run=report, fuel=prices, ev=[])
-        print(batch.model_dump_json(indent=2))
+
+        if args.dry_run:
+            print(batch.model_dump_json(indent=2))
+
+        if args.push:
+            try:
+                response = push_batch(batch)
+            except PushConfigError as exc:
+                print(f"{source_id}: {exc}", file=sys.stderr)
+                exit_code = 1
+                continue
+            if response.status_code >= 400:
+                print(
+                    f"{source_id}: ingest atbildēja {response.status_code}: {response.text}",
+                    file=sys.stderr,
+                )
+                exit_code = 1
+            else:
+                print(f"{source_id}: pushots (HTTP {response.status_code})")
     return exit_code
 
 

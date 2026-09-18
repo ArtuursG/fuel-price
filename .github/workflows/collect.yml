@@ -1,0 +1,26 @@
+name: Collect
+
+on:
+  workflow_dispatch: {}
+  # Cron schedule (7,37 * * * *, per docs/PROMPT_START.md) is added once
+  # INGEST_URL points to a real deployed ingest Worker -- running this on a
+  # schedule against a placeholder URL would just fail every time. Trigger
+  # manually via Actions -> Collect -> Run workflow until then.
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+      - name: Install collector
+        working-directory: collector
+        run: uv sync
+      - name: Run all sources and push
+        working-directory: collector
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: uv run python -m collector run --all --push
