@@ -1,17 +1,17 @@
-"""CLI entry point: run | snapshot | check.
-
-Phase 1 skeleton only -- no source is registered yet (that starts in
-Phase 2), so `run`/`check` on a real source id will report "unknown" until
-then. The commands still need to behave sensibly today so CI has something
-real to test against.
-"""
+"""CLI entry point: run | snapshot | check."""
 
 from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
+import collector.sources.fuel  # noqa: F401 -- import side effect: registers sources
+from collector.core.models import IngestBatch
 from collector.core.registry import get_source, list_sources
+from collector.core.runner import check_fuel_source, run_fuel_source, snapshot_fuel_source
+
+FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_p.add_argument("--source", help="Avota ID (sk. docs/sources.yaml)")
     run_p.add_argument("--all", action="store_true", help="Nolasa visus reģistrētos avotus")
     run_p.add_argument("--dry-run", action="store_true", help="Neko nesūta, tikai izvada JSON")
-    run_p.add_argument("--push", action="store_true", help="Sūta uz INGEST_URL")
+    run_p.add_argument("--push", action="store_true", help="Sūta uz INGEST_URL (3. fāze)")
 
     snapshot_p = sub.add_parser("snapshot", help="Saglabā dzīva avota paraugu testiem")
     snapshot_p.add_argument("--source", required=True)
@@ -48,23 +48,36 @@ def _cmd_run(args: argparse.Namespace) -> int:
     source_ids = _resolve_source_ids(args.source, args.all)
     if not source_ids:
         registered = list_sources()
-        print(
-            "Nav norādīts avots. Lieto --source <id> vai --all. "
-            f"Reģistrēti avoti: {registered or '(nav - 2. fāzes darbs)'}"
-        )
+        print(f"Nav norādīts avots. Lieto --source <id> vai --all. Reģistrēti avoti: {registered}")
         return 0
+
+    if args.push and not args.dry_run:
+        print("--push nav ieviests (3. fāzes darbs). Lieto --dry-run.", file=sys.stderr)
+        return 1
+
+    exit_code = 0
     for source_id in source_ids:
-        if get_source(source_id) is None:
+        source = get_source(source_id)
+        if source is None:
             print(f"Nezināms avots: {source_id}", file=sys.stderr)
-            return 1
-        # Phase 2+ izpildīs source.run() un izvadīs/nosūtīs IngestBatch šeit.
-    return 0
+            exit_code = 1
+            continue
+
+        report, prices = run_fuel_source(source)
+        if report.status in ("error", "blocked"):
+            exit_code = 1
+        batch = IngestBatch(run=report, fuel=prices, ev=[])
+        print(batch.model_dump_json(indent=2))
+    return exit_code
 
 
 def _cmd_snapshot(args: argparse.Namespace) -> int:
-    if get_source(args.source) is None:
+    source = get_source(args.source)
+    if source is None:
         print(f"Nezināms avots: {args.source}", file=sys.stderr)
         return 1
+    path = snapshot_fuel_source(source, FIXTURES_DIR)
+    print(f"Saglabāts: {path}")
     return 0
 
 
@@ -73,11 +86,19 @@ def _cmd_check(args: argparse.Namespace) -> int:
     if not source_ids:
         print("Nav norādīts avots. Lieto --source <id> vai --all.")
         return 0
+
+    exit_code = 0
     for source_id in source_ids:
-        if get_source(source_id) is None:
+        source = get_source(source_id)
+        if source is None:
             print(f"Nezināms avots: {source_id}", file=sys.stderr)
-            return 1
-    return 0
+            exit_code = 1
+            continue
+        report = check_fuel_source(source)
+        print(f"{source_id}: {report.status} (http {report.http_status})")
+        if report.status != "ok":
+            exit_code = 1
+    return exit_code
 
 
 def main(argv: list[str] | None = None) -> int:
