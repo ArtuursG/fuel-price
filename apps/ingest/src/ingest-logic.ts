@@ -33,6 +33,19 @@ export const FuelPriceSchema = z.object({
 	valid_from: z.string().nullable().optional(),
 });
 
+export const StationSchema = z.object({
+	id: z.string(),
+	network_id: z.string(),
+	country: z.string().default("LV"),
+	name: z.string().nullable().optional(),
+	address: z.string().nullable().optional(),
+	city: z.string().nullable().optional(),
+	municipality: z.string().nullable().optional(),
+	lat: z.number().nullable().optional(),
+	lon: z.number().nullable().optional(),
+	osm_id: z.string().nullable().optional(),
+});
+
 export const OfficialWeeklyPriceSchema = z.object({
 	week_monday: z.string(),
 	merchant: z.string(),
@@ -66,10 +79,12 @@ export const IngestBatchSchema = z.object({
 	fuel: z.array(FuelPriceSchema).default([]),
 	ev: z.array(EvTariffSchema).default([]),
 	official_weekly: z.array(OfficialWeeklyPriceSchema).default([]),
+	stations: z.array(StationSchema).default([]),
 });
 
 export type IngestBatch = z.infer<typeof IngestBatchSchema>;
 export type FuelPriceInput = z.infer<typeof FuelPriceSchema>;
+export type EvTariffInput = z.infer<typeof EvTariffSchema>;
 
 // --- HMAC signing/verification ---
 // Timestamp + "." + body, HMAC-SHA256, hex-encoded, "sha256=" prefixed.
@@ -136,6 +151,43 @@ export function decidePriceUpdate(previousMilli: number | null, newMilli: number
 	}
 	const changePct = (Math.abs(newMilli - previousMilli) / previousMilli) * 100;
 	return { action: "insert", flags: changePct >= JUMP_THRESHOLD_PCT ? "jump" : null };
+}
+
+// --- EV tariff change decision. Mirrors decidePriceUpdate's spirit (ADR-004:
+// only store on change), but a tariff has many fields, not one price, so
+// instead of comparing a single number we hash the price-defining fields and
+// compare hashes. Not cryptographic -- just a compact equality check, same
+// role as content_sha256 elsewhere in this file. The identity of a "slot"
+// (what a tariff is FOR, as opposed to what it costs) is the caller's
+// responsibility: see the ev_tariffs query in index.ts. ---
+
+async function sha256Hex(message: string): Promise<string> {
+	const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(message));
+	return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function computeTariffHash(tariff: EvTariffInput): Promise<string> {
+	const canonical = JSON.stringify([
+		tariff.power_min_kw ?? null,
+		tariff.power_max_kw ?? null,
+		tariff.energy_milli_per_kwh ?? null,
+		tariff.time_milli_per_min ?? null,
+		tariff.session_fee_milli ?? null,
+		tariff.min_fee_milli ?? null,
+		tariff.idle_fee_milli_per_min ?? null,
+		tariff.idle_after_min ?? null,
+		tariff.time_from ?? null,
+		tariff.time_to ?? null,
+		tariff.weekdays ?? null,
+		tariff.vat_included,
+	]);
+	return sha256Hex(canonical);
+}
+
+export type TariffDecision = { action: "no_change" } | { action: "insert" };
+
+export function decideTariffUpdate(previousHash: string | null, newHash: string): TariffDecision {
+	return previousHash === newHash ? { action: "no_change" } : { action: "insert" };
 }
 
 // --- Europe/Riga local date, matching collector/src/collector/core/time.py ---

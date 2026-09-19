@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+	EvTariffSchema,
 	FuelPriceSchema,
 	IngestBatchSchema,
 	OfficialWeeklyPriceSchema,
+	StationSchema,
 	computeSignature,
+	computeTariffHash,
 	decidePriceUpdate,
+	decideTariffUpdate,
 	isTimestampFresh,
 	localDate,
 	verifySignature,
@@ -132,6 +136,93 @@ describe("IngestBatchSchema", () => {
 			],
 		});
 		expect(result.success).toBe(true);
+	});
+});
+
+describe("computeTariffHash / decideTariffUpdate", () => {
+	const baseTariff = {
+		network_id: "emobi",
+		station_id: "emobi:x",
+		current_type: "DC" as const,
+		payment: "app" as const,
+		power_min_kw: 50,
+		power_max_kw: 50,
+		connector: "CCS2",
+		energy_milli_per_kwh: null,
+		time_milli_per_min: 190,
+		session_fee_milli: null,
+		min_fee_milli: null,
+		idle_fee_milli_per_min: null,
+		idle_after_min: null,
+		time_from: null,
+		time_to: null,
+		weekdays: null,
+		vat_included: true,
+	};
+
+	it("produces the same hash for identical price-defining fields", async () => {
+		const a = await computeTariffHash(baseTariff);
+		const b = await computeTariffHash({ ...baseTariff });
+		expect(a).toBe(b);
+	});
+
+	it("changes the hash when the price changes", async () => {
+		const a = await computeTariffHash(baseTariff);
+		const b = await computeTariffHash({ ...baseTariff, time_milli_per_min: 200 });
+		expect(a).not.toBe(b);
+	});
+
+	it("ignores slot-identity fields (network_id/station_id/current_type/connector/payment)", async () => {
+		// those are the WHERE-clause key in index.ts, not part of the hash --
+		// changing them here must not change the hash.
+		const a = await computeTariffHash(baseTariff);
+		const b = await computeTariffHash({ ...baseTariff, network_id: "elektrum", station_id: "other" });
+		expect(a).toBe(b);
+	});
+
+	it("decideTariffUpdate no-ops when the hash is unchanged", async () => {
+		const hash = await computeTariffHash(baseTariff);
+		expect(decideTariffUpdate(hash, hash)).toEqual({ action: "no_change" });
+	});
+
+	it("decideTariffUpdate inserts when there is no previous hash", async () => {
+		const hash = await computeTariffHash(baseTariff);
+		expect(decideTariffUpdate(null, hash)).toEqual({ action: "insert" });
+	});
+
+	it("decideTariffUpdate inserts when the hash changed", async () => {
+		const a = await computeTariffHash(baseTariff);
+		const b = await computeTariffHash({ ...baseTariff, time_milli_per_min: 200 });
+		expect(decideTariffUpdate(a, b)).toEqual({ action: "insert" });
+	});
+});
+
+describe("StationSchema / EvTariffSchema", () => {
+	it("accepts a minimal station", () => {
+		const result = StationSchema.safeParse({ id: "emobi:x", network_id: "emobi" });
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.country).toBe("LV"); // default
+		}
+	});
+
+	it("rejects an unknown current_type", () => {
+		const result = EvTariffSchema.safeParse({
+			network_id: "emobi",
+			current_type: "GAS",
+			payment: "app",
+		});
+		expect(result.success).toBe(false);
+	});
+
+	it("IngestBatchSchema defaults stations to an empty array when omitted", () => {
+		const result = IngestBatchSchema.safeParse({
+			run: { source_id: "emobi-ev", started_at: "2026-09-19T12:00:00Z", status: "ok" },
+		});
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.stations).toEqual([]);
+		}
 	});
 });
 

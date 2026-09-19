@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import {
 	IngestBatchSchema,
+	computeTariffHash,
 	decidePriceUpdate,
+	decideTariffUpdate,
 	isTimestampFresh,
 	localDate,
 	verifySignature,
@@ -25,9 +27,7 @@ app.get("/", (c) => c.json({ ok: true, service: "fuel-price-ingest" }));
 // Control policy (see docs/DECISIONS.md ADR-008, kept locally). The SQL below
 // has been reasoned through carefully and matches db/migrations/0001_init.sql,
 // but real verification needs either a machine without that block, or a
-// live deploy. EV tariffs are validated but not yet persisted -- no EV
-// source exists before Phase 6, so there's nothing to design that logic
-// against yet.
+// live deploy.
 app.post("/ingest", async (c) => {
 	const timestamp = c.req.header("X-Cenas-Timestamp");
 	const signature = c.req.header("X-Cenas-Signature");
@@ -140,11 +140,146 @@ app.post("/ingest", async (c) => {
 		);
 	}
 
-	if (writes.length > 0) {
-		await c.env.DB.batch(writes);
+	for (const station of batch.stations) {
+		writes.push(
+			c.env.DB.prepare(
+				`INSERT INTO stations
+					(id, network_id, country, name, address, city, municipality, lat, lon, osm_id, first_seen_at, last_seen_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				 ON CONFLICT (id) DO UPDATE SET
+					name = excluded.name,
+					address = excluded.address,
+					city = excluded.city,
+					municipality = excluded.municipality,
+					lat = excluded.lat,
+					lon = excluded.lon,
+					osm_id = excluded.osm_id,
+					last_seen_at = excluded.last_seen_at`,
+			).bind(
+				station.id,
+				station.network_id,
+				station.country,
+				station.name ?? null,
+				station.address ?? null,
+				station.city ?? null,
+				station.municipality ?? null,
+				station.lat ?? null,
+				station.lon ?? null,
+				station.osm_id ?? null,
+				observedAt,
+				observedAt,
+			),
+		);
 	}
 
-	return c.json({ ok: true, run_id: runId, fuel_changed: fuelChanged, official_weekly_written: batch.official_weekly.length });
+	// EV tariffs: change-only storage like fuel_prices (ADR-004), but the
+	// "did this change" comparison is a content hash over the price-defining
+	// fields (see computeTariffHash) rather than a single number. The
+	// (network_id, station_id, current_type, connector, payment) tuple below
+	// is a tariff "slot" -- what a price applies to.
+	//
+	// This reads the latest hash per slot with ONE bulk query instead of one
+	// SELECT per tariff: a single EV source (e-mobi) can carry 1000+ tariffs
+	// per batch, and D1 queries via the binding count against the Workers
+	// per-request subrequest budget -- one per tariff would either blow past
+	// that budget outright or burn through the D1 free-tier daily row-read
+	// cap for no reason, since almost every run changes nothing.
+	const evNetworkIds = [...new Set(batch.ev.map((t) => t.network_id))];
+	const lastTariffHashes = new Map<string, string>();
+	if (evNetworkIds.length > 0) {
+		const placeholders = evNetworkIds.map(() => "?").join(", ");
+		const { results } = await c.env.DB.prepare(
+			`WITH ranked AS (
+				SELECT network_id, station_id, current_type, connector, payment, tariff_hash,
+				       ROW_NUMBER() OVER (
+				           PARTITION BY network_id, station_id, current_type, connector, payment
+				           ORDER BY observed_at DESC
+				       ) AS rn
+				FROM ev_tariffs
+				WHERE network_id IN (${placeholders})
+			)
+			SELECT network_id, station_id, current_type, connector, payment, tariff_hash
+			FROM ranked WHERE rn = 1`,
+		)
+			.bind(...evNetworkIds)
+			.all<{
+				network_id: string;
+				station_id: string | null;
+				current_type: string;
+				connector: string | null;
+				payment: string;
+				tariff_hash: string;
+			}>();
+		for (const row of results) {
+			const key = JSON.stringify([row.network_id, row.station_id, row.current_type, row.connector, row.payment]);
+			lastTariffHashes.set(key, row.tariff_hash);
+		}
+	}
+
+	let evTariffsChanged = 0;
+	for (const tariff of batch.ev) {
+		const hash = await computeTariffHash(tariff);
+		const key = JSON.stringify([
+			tariff.network_id,
+			tariff.station_id ?? null,
+			tariff.current_type,
+			tariff.connector ?? null,
+			tariff.payment,
+		]);
+
+		const decision = decideTariffUpdate(lastTariffHashes.get(key) ?? null, hash);
+		if (decision.action === "no_change") continue;
+		evTariffsChanged++;
+
+		writes.push(
+			c.env.DB.prepare(
+				`INSERT INTO ev_tariffs
+					(network_id, station_id, current_type, power_min_kw, power_max_kw, connector, payment,
+					 energy_milli_per_kwh, time_milli_per_min, session_fee_milli, min_fee_milli,
+					 idle_fee_milli_per_min, idle_after_min, time_from, time_to, weekdays, vat_included,
+					 tariff_hash, observed_at, run_id)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			).bind(
+				tariff.network_id,
+				tariff.station_id ?? null,
+				tariff.current_type,
+				tariff.power_min_kw ?? null,
+				tariff.power_max_kw ?? null,
+				tariff.connector ?? null,
+				tariff.payment,
+				tariff.energy_milli_per_kwh ?? null,
+				tariff.time_milli_per_min ?? null,
+				tariff.session_fee_milli ?? null,
+				tariff.min_fee_milli ?? null,
+				tariff.idle_fee_milli_per_min ?? null,
+				tariff.idle_after_min ?? null,
+				tariff.time_from ?? null,
+				tariff.time_to ?? null,
+				tariff.weekdays ?? null,
+				tariff.vat_included ? 1 : 0,
+				hash,
+				observedAt,
+				runId,
+			),
+		);
+	}
+
+	// D1 caps a single batch() call at 1000 statements (e.g. a first-ever
+	// e-mobi run can queue 1000+ new ev_tariffs rows alongside station
+	// upserts) -- chunk to stay under that regardless of source size.
+	const BATCH_CHUNK_SIZE = 500;
+	for (let i = 0; i < writes.length; i += BATCH_CHUNK_SIZE) {
+		await c.env.DB.batch(writes.slice(i, i + BATCH_CHUNK_SIZE));
+	}
+
+	return c.json({
+		ok: true,
+		run_id: runId,
+		fuel_changed: fuelChanged,
+		official_weekly_written: batch.official_weekly.length,
+		stations_written: batch.stations.length,
+		ev_tariffs_changed: evTariffsChanged,
+	});
 });
 
 export default app;
