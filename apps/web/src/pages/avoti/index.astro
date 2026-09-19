@@ -1,0 +1,124 @@
+---
+import { env } from "cloudflare:workers";
+import Layout from "../../layouts/Layout.astro";
+import { getSourceStatuses, RUN_STATUS_LABELS, STATUS_LABELS } from "../../lib/sources";
+
+const sources = await getSourceStatuses(env.DB);
+
+function formatRunAt(iso: string | null): string {
+	if (!iso) return "vēl nav nolasīts";
+	return new Date(iso).toLocaleString("lv-LV", { timeZone: "Europe/Riga", dateStyle: "short", timeStyle: "short" });
+}
+---
+
+<Layout title="Avoti - fuel-price">
+	<h1>Avoti</h1>
+	<p class="intro">
+		Katrs avots tiek nolasīts automātiski. Šeit redzams katra avota statuss un pēdējā nolasīšanas mēģinājuma
+		rezultāts -- arī tad, ja tas bijis neveiksmīgs.
+	</p>
+
+	<div class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					<th scope="col">Tīkls</th>
+					<th scope="col">Veids</th>
+					<th scope="col">Statuss</th>
+					<th scope="col">Pēdējais nolasījums</th>
+					<th scope="col">Rezultāts</th>
+				</tr>
+			</thead>
+			<tbody>
+				{sources.map((source) => (
+					<tr>
+						<th scope="row">
+							<a href={source.url} rel="noopener noreferrer" target="_blank">{source.networkName ?? source.id}</a>
+						</th>
+						<td>{source.kind}</td>
+						<td><span class="badge" data-status={source.status}>{STATUS_LABELS[source.status]}</span></td>
+						<td>{formatRunAt(source.lastRunAt)}</td>
+						<td>
+							{source.lastRunStatus ? (
+								<span class="badge" data-run={source.lastRunStatus}>{RUN_STATUS_LABELS[source.lastRunStatus]}</span>
+							) : (
+								<span class="table-dash">-</span>
+							)}
+						</td>
+					</tr>
+				))}
+			</tbody>
+		</table>
+	</div>
+
+	<p class="note">
+		"Nolasīts" nenozīmē vienmēr jaunu cenu -- daudzi avoti pārbaudīti, bet cena nav mainījusies (ADR-004: jauna
+		rinda tiek rakstīta tikai tad, kad cena tiešām mainās).
+	</p>
+</Layout>
+
+<style>
+	h1 {
+		font-size: 1.5rem;
+		margin: 1.5rem 0 0.75rem;
+	}
+	.intro {
+		color: var(--color-ink-muted);
+		max-width: 42rem;
+		margin: 0 0 1.5rem;
+	}
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+	}
+	table {
+		font-size: 0.9rem;
+	}
+	th,
+	td {
+		padding: 0.6rem 0.85rem;
+		text-align: left;
+		border-bottom: 1px solid var(--color-border);
+		white-space: nowrap;
+	}
+	thead th {
+		font-size: 0.78rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-ink-muted);
+		background: var(--color-surface);
+	}
+	tbody tr:last-child td,
+	tbody tr:last-child th {
+		border-bottom: none;
+	}
+	.badge {
+		font-size: 0.75rem;
+		padding: 0.15rem 0.55rem;
+		border-radius: 999px;
+		border: 1px solid var(--color-border);
+		color: var(--color-ink-muted);
+	}
+	.badge[data-status="active"],
+	.badge[data-run="ok"] {
+		color: var(--color-down);
+		border-color: var(--color-down);
+	}
+	.badge[data-status="blocked"],
+	.badge[data-status="unpublished"],
+	.badge[data-run="error"],
+	.badge[data-run="blocked"] {
+		color: var(--color-up);
+		border-color: var(--color-up);
+	}
+	.table-dash {
+		color: var(--color-neutral);
+	}
+	.note {
+		color: var(--color-ink-muted);
+		font-size: 0.875rem;
+		max-width: 42rem;
+		margin-top: 1.5rem;
+	}
+</style>
