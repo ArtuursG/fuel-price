@@ -1,0 +1,82 @@
+---
+import { env } from "cloudflare:workers";
+import Layout from "../../layouts/Layout.astro";
+import { getSourceStatuses, STATUS_LABELS } from "../../lib/sources";
+
+const allSources = await getSourceStatuses(env.DB);
+const evSources = allSources.filter((s) => s.kind === "ev");
+---
+
+<Layout title="EV uzlāde - fuel-price">
+	<h1>EV uzlāde</h1>
+	<p class="intro">
+		EV uzlādes tarifu salīdzinājums vēl nav ieviests -- kolektors pagaidām nolasa tikai degvielas cenas. Zemāk
+		redzami tīkli, kuriem tas plānots, un to pašreizējais statuss.
+	</p>
+
+	<div class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					<th scope="col">Tīkls</th>
+					<th scope="col">Statuss</th>
+				</tr>
+			</thead>
+			<tbody>
+				{evSources.map((source) => (
+					<tr>
+						<th scope="row">
+							<a href={source.url} rel="noopener noreferrer" target="_blank">{source.networkName ?? source.id}</a>
+						</th>
+						<td><span class="badge" data-status={source.status}>{STATUS_LABELS[source.status]}</span></td>
+					</tr>
+				))}
+			</tbody>
+		</table>
+	</div>
+</Layout>
+
+<style>
+	h1 {
+		font-size: 1.5rem;
+		margin: 1.5rem 0 0.75rem;
+	}
+	.intro {
+		color: var(--color-ink-muted);
+		max-width: 42rem;
+		margin: 0 0 1.5rem;
+	}
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+	}
+	table {
+		font-size: 0.9rem;
+	}
+	th,
+	td {
+		padding: 0.6rem 0.85rem;
+		text-align: left;
+		border-bottom: 1px solid var(--color-border);
+		white-space: nowrap;
+	}
+	thead th {
+		font-size: 0.78rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-ink-muted);
+		background: var(--color-surface);
+	}
+	tbody tr:last-child td,
+	tbody tr:last-child th {
+		border-bottom: none;
+	}
+	.badge {
+		font-size: 0.75rem;
+		padding: 0.15rem 0.55rem;
+		border-radius: 999px;
+		border: 1px solid var(--color-border);
+		color: var(--color-ink-muted);
+	}
+</style>
