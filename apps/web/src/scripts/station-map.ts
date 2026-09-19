@@ -151,10 +151,20 @@ input<HTMLButtonElement>("locate-me").addEventListener("click", () => {
   navigator.geolocation.getCurrentPosition((position) => {
     button.disabled=false;
     const coordinates:[number,number]=[position.coords.longitude,position.coords.latitude];
-    if(map) { locationMarker?.remove();locationMarker=new maplibregl.Marker({color:"#202b35"}).setLngLat(coordinates).addTo(map);map.easeTo({center:coordinates,zoom:12,duration:0}); }
+    if(map) { locationMarker?.remove();locationMarker=new maplibregl.Marker({color:COLOR_INK}).setLngLat(coordinates).addTo(map);map.easeTo({center:coordinates,zoom:12,duration:0}); }
     message.textContent="Karte centrēta uz aptuveno atrašanās vietu. Tuvums negarantē īsāko braukšanas maršrutu.";
   }, (error) => {button.disabled=false;message.textContent=error.code===1 ? "Atrašanās vietas piekļuve nav atļauta. Ieraksti pilsētu vai adresi meklēšanā." : "Atrašanās vietu neizdevās noteikt. Izmanto meklēšanu.";}, {timeout:12000,maximumAge:60000,enableHighAccuracy:false});
 });
+
+// Karte lasa krāsas TIEŠI no global.css mainīgajiem, nevis dublē tās kā
+// atsevišķas hex vērtības -- tā karte automātiski seko lapas paletei, ja tā
+// mainās, nevis paliek nesalāgota (kā notika ar EV punktu violeto krāsu,
+// kas nebija daļa no lapas paletes vispār).
+const rootStyle = getComputedStyle(document.documentElement);
+const cssColor = (name: string, fallback: string) => rootStyle.getPropertyValue(name).trim() || fallback;
+const COLOR_FUEL = cssColor("--color-pylon", "#245779");
+const COLOR_EV = cssColor("--color-down", "#296448");
+const COLOR_INK = cssColor("--color-ink", "#202b35");
 
 applyFilters();
 try {
@@ -163,9 +173,9 @@ try {
   map.on("load", () => {
     if(!map) return;
     map.addSource("stations",{type:"geojson",data:geojson(),cluster:true,clusterMaxZoom:12,clusterRadius:40});
-    map.addLayer({id:"clusters",type:"circle",source:"stations",filter:["has","point_count"],paint:{"circle-color":"#354f61","circle-radius":["step",["get","point_count"],17,25,22,100,28],"circle-stroke-color":"#fff","circle-stroke-width":2}});
+    map.addLayer({id:"clusters",type:"circle",source:"stations",filter:["has","point_count"],paint:{"circle-color":COLOR_INK,"circle-radius":["step",["get","point_count"],17,25,22,100,28],"circle-stroke-color":"#fff","circle-stroke-width":2}});
     map.addLayer({id:"cluster-count",type:"symbol",source:"stations",filter:["has","point_count"],layout:{"text-field":["get","point_count_abbreviated"],"text-font":["Noto Sans Regular"],"text-size":12},paint:{"text-color":"#fff"}});
-    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["match",["get","kind"],"ev","#77517a","#245779"],"circle-radius":10,"circle-stroke-color":"#fff","circle-stroke-width":2}});
+    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"circle-radius":10,"circle-stroke-color":"#fff","circle-stroke-width":2}});
     map.addLayer({id:"station-labels",type:"symbol",source:"stations",filter:["!",["has","point_count"]],layout:{"text-field":["match",["get","kind"],"ev","E","D"],"text-font":["Noto Sans Regular"],"text-size":10,"text-allow-overlap":true},paint:{"text-color":"#fff"}});
     mapReady=true; message.textContent="Pietuvini karti vai izvēlies staciju sarakstā. Skaitļi apļos norāda staciju skaitu.";renderList();
   });
