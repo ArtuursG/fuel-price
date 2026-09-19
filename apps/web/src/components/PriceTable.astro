@@ -106,7 +106,9 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 	}
 	td.cheapest {
 		background: var(--color-cheapest-bg);
-		font-weight: 600;
+		color: var(--color-cheapest-ink);
+		font-weight: 700;
+		box-shadow: inset 3px 0 0 var(--color-cheapest-border);
 	}
 	.table-note {
         display: block;

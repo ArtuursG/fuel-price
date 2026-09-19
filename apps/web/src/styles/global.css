@@ -7,8 +7,11 @@
   --color-border: #d7dfe5;
   --color-pylon: #245779;
   --color-pylon-ink: #ffffff;
-  --color-cheapest-bg: #eaf1f5;
-  --color-cheapest-border: #245779;
+  /* Lētākā cena ir zaļa -- tā ir lapas galvenā ziņa, un zaļš to atdala no
+     pārējās zilās saskarnes. Sakrīt ar --color-down (cena nokritusi). */
+  --color-cheapest-bg: #e3f1e8;
+  --color-cheapest-border: #296448;
+  --color-cheapest-ink: #1d5138;
   --color-down: #296448;
   --color-up: #a13838;
   --color-neutral: #65737f;
@@ -61,8 +64,10 @@ a {
   text-decoration-thickness: 1px;
 }
 
+/* Fokusa rāmis lieto zilo akcentu, nevis "lētākās cenas" zaļo -- tās ir
+   divas atsevišķas nozīmes un nedrīkst dalīt vienu mainīgo. */
 :focus-visible {
-  outline: 3px solid var(--color-cheapest-border);
+  outline: 3px solid var(--color-pylon);
   outline-offset: 2px;
 }
 
