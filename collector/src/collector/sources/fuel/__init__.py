@@ -5,7 +5,7 @@ registry so they're testable in isolation (see tests/test_sources_*.py).
 
 from collector.core.registry import register
 from collector.core.runner import FuelSource
-from collector.sources.fuel import circlek, straujupite
+from collector.sources.fuel import circlek, straujupite, viada, virsi
 
 register(
     FuelSource(
@@ -24,5 +24,25 @@ register(
         url="https://straujupite.lv/degvielas-cenas/",
         parser=straujupite.parse,
         parser_version="straujupite@1",
+    )
+)
+
+register(
+    FuelSource(
+        source_id=virsi.SOURCE_ID,
+        network_id=virsi.NETWORK_ID,
+        url="https://www.virsi.lv/lv/privatpersonam/degviela/degvielas-un-elektrouzlades-cenas",
+        parser=virsi.parse,
+        parser_version="virsi@1",
+    )
+)
+
+register(
+    FuelSource(
+        source_id=viada.SOURCE_ID,
+        network_id=viada.NETWORK_ID,
+        url="https://www.viada.lv/zemakas-degvielas-cenas/",
+        parser=viada.parse,
+        parser_version="viada@1",
     )
 )
