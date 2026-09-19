@@ -38,6 +38,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Virsrakstu mērogs definēts VIENUVIET, nevis katrā lapā atsevišķi -- pirms
+   tam sākumlapa un karte lietoja lielo stilu, bet pārējās astoņas lapas bija
+   palikušas ar veco 1.5rem variantu, tāpēc vietne nejutās kā viens veselums.
+   Lapas drīkst pārrakstīt tikai atkāpes, kur izkārtojums to prasa. */
+h1 {
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  letter-spacing: -0.04em;
+  font-weight: 600;
+  margin: 2.5rem 0 0.45rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 2.5rem 0 1rem;
+}
+
 a {
   color: var(--color-pylon);
   text-decoration-thickness: 1px;
