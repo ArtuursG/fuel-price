@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	FuelPriceSchema,
 	IngestBatchSchema,
+	OfficialWeeklyPriceSchema,
 	computeSignature,
 	decidePriceUpdate,
 	isTimestampFresh,
@@ -105,7 +106,7 @@ describe("IngestBatchSchema", () => {
 		expect(result.success).toBe(false);
 	});
 
-	it("defaults fuel/ev to empty arrays when omitted", () => {
+	it("defaults fuel/ev/official_weekly to empty arrays when omitted", () => {
 		const result = IngestBatchSchema.safeParse({
 			run: { source_id: "circlek-fuel-web", started_at: "2026-09-18T12:00:00Z", status: "not_modified" },
 		});
@@ -113,6 +114,36 @@ describe("IngestBatchSchema", () => {
 		if (result.success) {
 			expect(result.data.fuel).toEqual([]);
 			expect(result.data.ev).toEqual([]);
+			expect(result.data.official_weekly).toEqual([]);
 		}
+	});
+
+	it("accepts a batch with official_weekly entries", () => {
+		const result = IngestBatchSchema.safeParse({
+			run: { source_id: "eu-weekly-oil-bulletin", started_at: "2026-09-18T12:00:00Z", status: "ok" },
+			official_weekly: [
+				{
+					week_monday: "2026-09-14",
+					merchant: "LV",
+					product: "P95",
+					avg_price_milli: 1976,
+					source_url: "https://energy.ec.europa.eu/document/download/x",
+				},
+			],
+		});
+		expect(result.success).toBe(true);
+	});
+});
+
+describe("OfficialWeeklyPriceSchema", () => {
+	it("rejects a non-positive price", () => {
+		const result = OfficialWeeklyPriceSchema.safeParse({
+			week_monday: "2026-09-14",
+			merchant: "LV",
+			product: "P95",
+			avg_price_milli: 0,
+			source_url: "https://energy.ec.europa.eu/document/download/x",
+		});
+		expect(result.success).toBe(false);
 	});
 });
