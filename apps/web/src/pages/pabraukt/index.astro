@@ -1,0 +1,281 @@
+---
+import { env } from "cloudflare:workers";
+import Layout from "../../layouts/Layout.astro";
+import { getLatestFuelPrices } from "../../lib/prices";
+import fuelData from "../../../public/data/fuel-stations.json";
+
+// Tikai tīkli, kuriem IR gan reāla OSM staciju atrašanās vieta, GAN reāli
+// nolasīta cena -- droši, apstiprināti nosaukumu sakritumi starp OSM "brand"
+// tagiem un mūsu iekšējiem tīklu id, NEVIS uzminēti (sk. lib/detour.ts
+// piezīmi par formulu). Neste/KOOL/Astarte/Gotika ir OSM datos, bet cenu
+// mums nav (nepublicē vai avots vēl nav ieviests), tāpēc nav iekļauti --
+// neskaidri nosaukumu varianti (piem. "Virāža A") apzināti nav mēģināti
+// piesaistīt nevienam tīklam.
+const OSM_NETWORK_TO_ID: Record<string, string> = {
+	"Circle K": "circlek",
+	Viada: "viada",
+	"AS VIADA Baltija": "viada",
+	'AS "VIADA Baltija"': "viada",
+	Virši: "virsi",
+	"Virši-A": "virsi",
+	Straujupīte: "straujupite",
+};
+
+const products = await getLatestFuelPrices(env.DB);
+
+const stationsByNetwork = new Map<string, { lat: number; lon: number }[]>();
+for (const station of fuelData.stations as { network: string; lat: number; lon: number }[]) {
+	const networkId = OSM_NETWORK_TO_ID[station.network];
+	if (!networkId || !Number.isFinite(station.lat) || !Number.isFinite(station.lon)) continue;
+	const list = stationsByNetwork.get(networkId) ?? [];
+	list.push({ lat: station.lat, lon: station.lon });
+	stationsByNetwork.set(networkId, list);
+}
+
+// Produkti, kuriem VISMAZ 2 izsekotajiem tīkliem ir zināma cena -- tikai
+// tad ir jēga "tuvākais pret lētāko" salīdzinājumam.
+const comparableProducts = products
+	.map((row) => {
+		const prices = new Map<string, number>();
+		for (const price of row.prices) {
+			if (!stationsByNetwork.has(price.networkId)) continue;
+			if (!prices.has(price.networkId)) prices.set(price.networkId, price.priceMilli);
+		}
+		return { product: row.product, label: row.label, prices };
+	})
+	.filter((row) => row.prices.size >= 2);
+
+const payload = {
+	products: comparableProducts.map((row) => ({
+		product: row.product,
+		label: row.label,
+		prices: Object.fromEntries(row.prices),
+	})),
+	stations: Object.fromEntries(stationsByNetwork),
+};
+const hasData = payload.products.length > 0;
+---
+
+<Layout title="Vai ir vērts pabraukt? - fuel-price">
+	<h1>Vai ir vērts pabraukt?</h1>
+
+	{!hasData ? (
+		<p class="intro">Vēl nav pietiekami daudz datu šim salīdzinājumam -- vajag vismaz divus tīklus ar zināmu cenu.</p>
+	) : (
+		<>
+			<p class="intro">
+				Salīdzina tavu tuvāko degvielas tīklu ar pašlaik lētāko zināmo. Attālums ir taisnes attālums &times; 1,3
+				(ceļa tuvinājums, nevis precīzs maršruts). Aptver tikai tīklus, kuriem zināma gan cena, gan stacijas
+				atrašanās vieta -- <a href="/karte/">pilns staciju saraksts kartē</a>.
+			</p>
+
+			<form id="detour-form" class="detour-form">
+				<label>
+					Produkts
+					<select id="detour-product">
+						{payload.products.map((p) => <option value={p.product}>{p.label}</option>)}
+					</select>
+				</label>
+				<label>
+					Uzpildāmais daudzums (l)
+					<input id="detour-liters" type="number" value="40" min="1" step="1" />
+				</label>
+				<label>
+					Patēriņš (l/100 km)
+					<input id="detour-consumption" type="number" value="7" min="0.1" step="0.1" />
+				</label>
+				<button type="button" id="detour-locate">Izmantot manu atrašanās vietu</button>
+			</form>
+			<p id="detour-status" role="status" aria-live="polite" class="detour-status">
+				Nospied "Izmantot manu atrašanās vietu", lai salīdzinātu. Koordinātas netiek saglabātas.
+			</p>
+
+			<div id="detour-result" class="detour-result" hidden></div>
+
+			<script id="detour-data" type="application/json" set:html={JSON.stringify(payload)} />
+			<script>
+				import {
+					breakEvenExtraKm,
+					detourNetSavingsMilli,
+					extraRoundTripKm,
+					haversineKm,
+					nearestStation,
+					roadDistanceEstimateKm,
+				} from "../../lib/detour";
+				import { formatPrice } from "../../lib/prices";
+
+				interface Payload {
+					products: { product: string; label: string; prices: Record<string, number> }[];
+					stations: Record<string, { lat: number; lon: number }[]>;
+				}
+
+				const NETWORK_LABELS: Record<string, string> = {
+					circlek: "Circle K",
+					virsi: "Virši",
+					viada: "Viada",
+					straujupite: "Straujupīte",
+				};
+
+				const data: Payload = JSON.parse(document.getElementById("detour-data")!.textContent!);
+				const productSelect = document.getElementById("detour-product") as unknown as HTMLSelectElement;
+				const litersInput = document.getElementById("detour-liters") as HTMLInputElement;
+				const consumptionInput = document.getElementById("detour-consumption") as HTMLInputElement;
+				const locateButton = document.getElementById("detour-locate") as HTMLButtonElement;
+				const status = document.getElementById("detour-status") as HTMLParagraphElement;
+				const result = document.getElementById("detour-result") as HTMLDivElement;
+
+				let origin: { lat: number; lon: number } | null = null;
+
+				function render() {
+					if (!origin) return;
+					const product = data.products.find((p) => p.product === productSelect.value);
+					if (!product) return;
+					const liters = Number(litersInput.value) || 0;
+					const consumption = Number(consumptionInput.value) || 0;
+
+					const distances = Object.entries(product.prices).map(([networkId, priceMilli]) => {
+						const stations = data.stations[networkId] ?? [];
+						const nearest = nearestStation(origin!, stations);
+						const straightKm = nearest ? haversineKm(origin!, nearest) : Infinity;
+						return { networkId, priceMilli, roadKm: roadDistanceEstimateKm(straightKm) };
+					});
+					if (!distances.length) return;
+
+					const nearest = distances.reduce((a, b) => (b.roadKm < a.roadKm ? b : a));
+					const cheapest = distances.reduce((a, b) => (b.priceMilli < a.priceMilli ? b : a));
+
+					result.hidden = false;
+					if (nearest.networkId === cheapest.networkId) {
+						result.innerHTML = `<p>Tavs tuvākais zināmais tīkls (${NETWORK_LABELS[nearest.networkId]}) ir arī lētākais no salīdzinātajiem -- nav ko izlemt.</p>`;
+						return;
+					}
+
+					const extraKm = extraRoundTripKm(cheapest.roadKm, nearest.roadKm);
+					const savings = detourNetSavingsMilli(nearest.priceMilli, cheapest.priceMilli, liters, extraKm, consumption);
+					const breakEven = breakEvenExtraKm(nearest.priceMilli, cheapest.priceMilli, liters, consumption);
+
+					result.innerHTML = `
+						<div class="detour-row"><span>Tuvākais</span><strong>${NETWORK_LABELS[nearest.networkId]}, ${formatPrice(nearest.priceMilli)}&nbsp;&euro;/l, ~${nearest.roadKm.toFixed(1)}&nbsp;km</strong></div>
+						<div class="detour-row"><span>Lētākais</span><strong>${NETWORK_LABELS[cheapest.networkId]}, ${formatPrice(cheapest.priceMilli)}&nbsp;&euro;/l, ~${cheapest.roadKm.toFixed(1)}&nbsp;km</strong></div>
+						<div class="detour-row"><span>Papildu ceļš (turp-atpakaļ)</span><strong>~${extraKm.toFixed(1)}&nbsp;km</strong></div>
+						<div class="detour-row detour-row--outcome" data-positive="${savings > 0}">
+							<span>Neto ${savings >= 0 ? "ietaupījums" : "zaudējums"}</span>
+							<strong>${formatPrice(Math.abs(savings))}&nbsp;&euro;</strong>
+						</div>
+						${breakEven !== null ? `<p class="detour-note">Atmaksājas, ja papildu ceļš turp-atpakaļ ir līdz ~${breakEven.toFixed(1)}&nbsp;km.</p>` : ""}
+						<p class="detour-note">Attālums ir tuvinājums (taisnes attālums &times; 1,3), ne precīzs maršruts. Balstīts uz OpenStreetMap staciju atrašanās vietām, ne uz katras konkrētās stacijas reālo cenu.</p>
+					`;
+				}
+
+				locateButton.addEventListener("click", () => {
+					if (!navigator.geolocation) {
+						status.textContent = "Pārlūks neatbalsta atrašanās vietas noteikšanu.";
+						return;
+					}
+					locateButton.disabled = true;
+					status.textContent = "Gaida atrašanās vietas atļauju...";
+					navigator.geolocation.getCurrentPosition(
+						(position) => {
+							origin = { lat: position.coords.latitude, lon: position.coords.longitude };
+							locateButton.disabled = false;
+							status.textContent = "Atrašanās vieta noteikta.";
+							render();
+						},
+						(error) => {
+							locateButton.disabled = false;
+							status.textContent =
+								error.code === 1
+									? "Atrašanās vietas piekļuve nav atļauta."
+									: "Atrašanās vietu neizdevās noteikt.";
+						},
+						{ timeout: 12000, maximumAge: 60000, enableHighAccuracy: false },
+					);
+				});
+
+				for (const input of [productSelect, litersInput, consumptionInput]) {
+					input.addEventListener("input", render);
+				}
+			</script>
+		</>
+	)}
+</Layout>
+
+<style>
+	h1 {
+		font-size: 1.5rem;
+		margin: 1.5rem 0 0.75rem;
+	}
+	.intro {
+		color: var(--color-ink-muted);
+		max-width: 42rem;
+		margin: 0 0 1.5rem;
+	}
+	.detour-form {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+		gap: 1rem;
+		align-items: end;
+		max-width: 42rem;
+		margin-bottom: 0.75rem;
+	}
+	.detour-form label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		font-size: 0.85rem;
+		color: var(--color-ink-muted);
+	}
+	.detour-form input,
+	.detour-form select {
+		font-family: var(--font-mono);
+		font-size: 0.95rem;
+		padding: 0.5rem 0.6rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		background: var(--color-surface);
+		color: var(--color-ink);
+	}
+	.detour-form button {
+		grid-column: 1 / -1;
+		padding: 0.65rem 1rem;
+		border: 1px solid var(--color-pylon);
+		background: var(--color-pylon);
+		color: var(--color-pylon-ink);
+		border-radius: 4px;
+		font: inherit;
+		cursor: pointer;
+	}
+	.detour-status {
+		font-size: 0.85rem;
+		color: var(--color-ink-muted);
+		margin: 0 0 1.5rem;
+	}
+	.detour-result {
+		max-width: 30rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		padding: 0.5rem 1rem;
+	}
+	:global(.detour-row) {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.6rem 0;
+		border-bottom: 1px solid var(--color-border);
+		font-size: 0.9rem;
+	}
+	:global(.detour-row--outcome) {
+		font-size: 1.05rem;
+	}
+	:global(.detour-row--outcome[data-positive="true"] strong) {
+		color: var(--color-down);
+	}
+	:global(.detour-row--outcome[data-positive="false"] strong) {
+		color: var(--color-up);
+	}
+	:global(.detour-note) {
+		font-size: 0.78rem;
+		color: var(--color-ink-muted);
+		margin: 0.75rem 0 0;
+	}
+</style>
