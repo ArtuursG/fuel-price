@@ -42,3 +42,9 @@ jobs:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector ignitis-ev --push
+      - name: Run Eleport EV tariffs and push
+        working-directory: collector
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: uv run python -m collector eleport-ev --push
