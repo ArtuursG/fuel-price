@@ -1,51 +1,37 @@
 ---
+import { env } from "cloudflare:workers";
 import Layout from "../layouts/Layout.astro";
 import PriceCard from "../components/PriceCard.astro";
 import PriceTable from "../components/PriceTable.astro";
-import { cheapest, SAMPLE_PRODUCTS, UNPUBLISHED_NETWORKS } from "../lib/sample-data";
+import { cheapest, getLatestFuelPrices } from "../lib/prices";
+
+const products = await getLatestFuelPrices(env.DB);
 ---
 
 <Layout title="Degvielas cenas šodien - fuel-price">
-	<div class="sample-notice" role="note">
-		<strong>Paraugdati.</strong> Kolektors (2. fāze) vēl nav ieviests -- šīs cenas ir izdomātas, lai parādītu
-		izkārtojumu. Reāli dati aizstāj šo pēc kolektora un ingest darba.
-	</div>
-
-	<section aria-labelledby="today-heading">
-		<h1 id="today-heading">Šodien lētākā cena Rīgā</h1>
-		<div class="pylon-grid">
-			{SAMPLE_PRODUCTS.map((row) => (
-				<PriceCard product={row.product} label={row.label} price={cheapest(row)} />
-			))}
-		</div>
-	</section>
-
-	<section aria-labelledby="all-networks-heading">
-		<h2 id="all-networks-heading">Visi tīkli šodien</h2>
-		<PriceTable />
-	</section>
-
-	{UNPUBLISHED_NETWORKS.length > 0 && (
-		<section aria-labelledby="unpublished-heading" class="unpublished">
-			<h2 id="unpublished-heading">Nepublicē cenas</h2>
-			<ul>
-				{UNPUBLISHED_NETWORKS.map((n) => (
-					<li>{n.networkName} kopš 2026-08-10 savā mājaslapā cenas nepublicē. Skatiet cenu stacijas pilonā.</li>
-				))}
-			</ul>
+	{products.length === 0 ? (
+		<section class="empty-state">
+			<h1>Degvielas cenas šodien</h1>
+			<p>Vēl nav datu -- kolektors avotus vēl nav nolasījis. Pārbaudi vēlāk.</p>
 		</section>
+	) : (
+		<>
+			<section aria-labelledby="today-heading">
+				<h1 id="today-heading">Šodien lētākā cena Rīgā</h1>
+				<div class="pylon-grid">
+					{products.map((row) => <PriceCard label={row.label} price={cheapest(row)} />)}
+				</div>
+			</section>
+
+			<section aria-labelledby="all-networks-heading">
+				<h2 id="all-networks-heading">Visi tīkli šodien</h2>
+				<PriceTable products={products} />
+			</section>
+		</>
 	)}
 </Layout>
 
 <style>
-	.sample-notice {
-		background: var(--color-cheapest-bg);
-		border: 1px solid var(--color-cheapest-border);
-		border-radius: 4px;
-		padding: 0.75rem 1rem;
-		margin: 1.5rem 0;
-		font-size: 0.9rem;
-	}
 	h1 {
 		font-size: 1.5rem;
 		margin: 1.5rem 0 1rem;
@@ -59,10 +45,7 @@ import { cheapest, SAMPLE_PRODUCTS, UNPUBLISHED_NETWORKS } from "../lib/sample-d
 		grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
 		gap: 0.9rem;
 	}
-	.unpublished {
+	.empty-state {
 		color: var(--color-ink-muted);
-	}
-	.unpublished ul {
-		padding-left: 1.25rem;
 	}
 </style>

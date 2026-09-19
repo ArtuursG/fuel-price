@@ -1,8 +1,14 @@
 ---
-import { AGE_LABELS, formatPrice, SAMPLE_PRODUCTS, type NetworkPrice } from "../lib/sample-data";
+import { AGE_LABELS, formatPrice, type NetworkPrice, type ProductRow } from "../lib/prices";
 
-// Sākotnējie dati sakārtoti pēc produkta; tabulai sakārtojam pēc tīkla.
-const networkIds = [...new Set(SAMPLE_PRODUCTS.flatMap((row) => row.prices.map((p) => p.networkId)))];
+interface Props {
+	products: ProductRow[];
+}
+
+const { products } = Astro.props as Props;
+
+// Dati sakārtoti pēc produkta; tabulai sakārtojam pēc tīkla.
+const networkIds = [...new Set(products.flatMap((row) => row.prices.map((p) => p.networkId)))];
 
 interface NetworkRow {
 	networkId: string;
@@ -11,7 +17,7 @@ interface NetworkRow {
 }
 
 const rows: NetworkRow[] = networkIds.map((networkId) => {
-	const cells = SAMPLE_PRODUCTS.map((row) => row.prices.find((p) => p.networkId === networkId) ?? null);
+	const cells = products.map((row) => row.prices.find((p) => p.networkId === networkId) ?? null);
 	const networkName = cells.find((c) => c !== null)?.networkName ?? networkId;
 	return { networkId, networkName, cells };
 });
@@ -23,7 +29,7 @@ const rows: NetworkRow[] = networkIds.map((networkId) => {
 		<thead>
 			<tr>
 				<th scope="col">Tīkls</th>
-				{SAMPLE_PRODUCTS.map((row) => <th scope="col">{row.label}</th>)}
+				{products.map((row) => <th scope="col">{row.label}</th>)}
 				<th scope="col">Svaigums</th>
 			</tr>
 		</thead>

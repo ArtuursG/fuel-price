@@ -1,19 +1,21 @@
 ---
-import { AGE_LABELS, ORIGIN_LABELS, formatPrice, type NetworkPrice, type Product } from "../lib/sample-data";
+import { AGE_LABELS, ORIGIN_LABELS, formatPrice, type NetworkPrice } from "../lib/prices";
 
 interface Props {
-	product: Product;
 	label: string;
 	price: NetworkPrice;
 }
 
 const { label, price } = Astro.props as Props;
 
-const changeDirection = price.changeMilli < 0 ? "down" : price.changeMilli > 0 ? "up" : "same";
+const changeDirection =
+	price.changeMilli === null ? "unknown" : price.changeMilli < 0 ? "down" : price.changeMilli > 0 ? "up" : "same";
 const changeText =
-	changeDirection === "same"
-		? "nemainīga"
-		: `${changeDirection === "down" ? "↓" : "↑"} ${formatPrice(Math.abs(price.changeMilli))} €`;
+	price.changeMilli === null
+		? "pirmā novērošana"
+		: changeDirection === "same"
+			? "nemainīga"
+			: `${changeDirection === "down" ? "↓" : "↑"} ${formatPrice(Math.abs(price.changeMilli))} €`;
 ---
 
 <article class="pylon" data-change={changeDirection}>
@@ -76,7 +78,8 @@ const changeText =
 	.pylon__change[data-change="up"] {
 		color: #e7a3a3;
 	}
-	.pylon__change[data-change="same"] {
+	.pylon__change[data-change="same"],
+	.pylon__change[data-change="unknown"] {
 		color: color-mix(in srgb, var(--color-pylon-ink) 60%, transparent);
 	}
 	.pylon__meta {
