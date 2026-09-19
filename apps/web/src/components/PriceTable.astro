@@ -21,6 +21,10 @@ const rows: NetworkRow[] = networkIds.map((networkId) => {
 	const networkName = cells.find((c) => c !== null)?.networkName ?? networkId;
 	return { networkId, networkName, cells };
 });
+
+// row.prices ir šķirots augoši (sk. getLatestFuelPrices), tāpēc [0] ir
+// lētākais katram produktam -- izceļam attiecīgo šūnu tabulā.
+const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId ?? null);
 ---
 
 <div class="table-wrap">
@@ -37,8 +41,8 @@ const rows: NetworkRow[] = networkIds.map((networkId) => {
 			{rows.map((row) => (
 				<tr>
 					<th scope="row">{row.networkName}</th>
-					{row.cells.map((cell) => (
-						<td>
+					{row.cells.map((cell, i) => (
+						<td class={cell && cheapestNetworkByProduct[i] === row.networkId ? "cheapest" : undefined}>
 							{cell ? (
 								<>
 									{formatPrice(cell.priceMilli)}&nbsp;&euro;
@@ -86,9 +90,19 @@ const rows: NetworkRow[] = networkIds.map((networkId) => {
 	tbody tr:last-child th {
 		border-bottom: none;
 	}
+	tbody tr {
+		transition: background-color 0.1s ease;
+	}
+	tbody tr:hover {
+		background: var(--color-surface);
+	}
 	td {
 		font-family: var(--font-mono);
 		font-size: 0.9rem;
+	}
+	td.cheapest {
+		background: var(--color-cheapest-bg);
+		font-weight: 600;
 	}
 	.table-note {
 		font-family: var(--font-body);

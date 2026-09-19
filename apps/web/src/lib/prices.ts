@@ -124,3 +124,15 @@ export async function getLatestFuelPrices(db: D1Database, now: Date = new Date()
 export function cheapest(row: ProductRow): NetworkPrice {
 	return row.prices[0];
 }
+
+export async function getLastUpdated(db: D1Database): Promise<string | null> {
+	const row = await db
+		.prepare(
+			`SELECT MAX(r.started_at) AS last
+			 FROM scrape_runs r
+			 JOIN sources s ON s.id = r.source_id
+			 WHERE s.kind = 'fuel'`,
+		)
+		.first<{ last: string | null }>();
+	return row?.last ?? null;
+}
