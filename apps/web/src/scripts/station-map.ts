@@ -1,8 +1,16 @@
-import * as maplibregl from "maplibre-gl";
-import type {GeoJSONSource, Map as MapLibreMap} from "maplibre-gl";
+// MapLibre nāk no CDN kā globāls skripts (sk. karte/index.astro), NEVIS caur
+// bundli. Iemesls: sapakota v6 karte klusi uzkārās -- konstruktors izdevās,
+// neviena kļūda netika izmesta, bet "load" nekad nenotika, kas ir tipiska
+// pazīme, ka MapLibre Web Worker (ko bundleris ieliek kā blob) nomirst, un
+// worker kļūdas neizplatās līdz kartes "error" notikumam. Tā pati versija
+// un piegādes veids jau strādā blakus projektā ev-charge-lv.
+// Tipi joprojām nāk no npm pakotnes (tikai devDependency), tāpēc pārbaude
+// paliek pilnvērtīga.
+import type {GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker} from "maplibre-gl";
 import type {FeatureCollection, Point} from "geojson";
-import "maplibre-gl/dist/maplibre-gl.css";
 import {filterStations, connectorLabel, routeUrl, safeSourceUrl, tariffText, type MapStation, type StationFilters} from "../lib/station-map";
+
+declare const maplibregl: typeof import("maplibre-gl");
 
 const stations: MapStation[] = JSON.parse(document.getElementById("map-stations")!.textContent!);
 const input = <T = HTMLDivElement>(id: string) => document.getElementById(id) as T;
@@ -23,7 +31,7 @@ let mapReady = false;
 let filtered = stations;
 let limit = 50;
 let selectedId: string | null = null;
-let locationMarker: maplibregl.Marker | null = null;
+let locationMarker: MapLibreMarker | null = null;
 
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, className?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);

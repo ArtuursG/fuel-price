@@ -54,6 +54,10 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
     <p>EV stacijas un tarifi: kolektoru nolasītie operatoru dati; avots un laiks pie katras stacijas. Produktu filtri rāda tikai vietas, kur šī informācija zināma; kartes pārklājums nav pilnīgs. <a href="/avoti/">Avotu stāvoklis</a>.</p>
   </footer>
   <script id="map-stations" type="application/json" is:inline set:html={payload} />
+  <!-- MapLibre no CDN, nevis caur bundli -- sk. skaidrojumu scripts/station-map.ts.
+       Versija piesaistīta tieši tai, kas jau strādā ev-charge-lv projektā. -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css" />
+  <script is:inline src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
   <script>import "../../scripts/station-map";</script>
 </Layout>
 
@@ -73,8 +77,8 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   .map-toolbar>div { display:flex; gap:0.5rem; flex-wrap:wrap; }
   .map-toolbar button,#more-stations,.detail-close { border:1px solid var(--color-border); background:var(--color-bg); padding:0.6rem 0.8rem; color:var(--color-pylon); font:inherit; cursor:pointer; }
   .map-toolbar button:disabled { opacity:0.5; cursor:wait; }
-  .map-workspace { display:grid; grid-template-columns:minmax(0,1fr) 22rem; border:1px solid var(--color-border); height:650px; max-height:80vh; }
-  #station-map { min-width:0; min-height:360px; background:var(--color-surface); }
+  .map-workspace { display:grid; grid-template-columns:minmax(0,1fr) 24rem; border:1px solid var(--color-border); height:calc(100vh - 13rem); min-height:620px; }
+  #station-map { min-width:0; min-height:420px; background:var(--color-surface); }
   .station-sidebar { min-width:0; overflow:auto; border-left:1px solid var(--color-border); background:var(--color-bg); }
   .station-sidebar h2 { font-size:0.95rem; padding:0.9rem 1rem; margin:0; border-bottom:1px solid var(--color-border); }
   .station-list-item { border-bottom:1px solid var(--color-border); padding:0.8rem 1rem; font-size:0.85rem; overflow-wrap:anywhere; }
