@@ -40,7 +40,7 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 		<tbody>
 			{rows.map((row) => (
 				<tr>
-					<th scope="row">{row.networkName}</th>
+					<th scope="row"><a href={`/tikli/${row.networkId}/`}>{row.networkName}</a></th>
 					{row.cells.map((cell, i) => (
 						<td class={cell && cheapestNetworkByProduct[i] === row.networkId ? "cheapest" : undefined}>
 							{cell ? (

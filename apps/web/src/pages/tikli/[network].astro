@@ -1,0 +1,222 @@
+---
+import { env } from "cloudflare:workers";
+import Layout from "../../layouts/Layout.astro";
+import { CONNECTOR_LABELS, getEvTariffSummary } from "../../lib/ev";
+import { getNetwork } from "../../lib/networks";
+import { AGE_LABELS, ORIGIN_LABELS, formatPrice, getLatestFuelPrices } from "../../lib/prices";
+import { RUN_STATUS_LABELS, STATUS_LABELS, getSourceStatuses } from "../../lib/sources";
+
+const networkId = Astro.params.network;
+const network = networkId ? await getNetwork(env.DB, networkId) : null;
+
+if (!network) {
+	Astro.response.status = 404;
+}
+
+const [allProducts, allEvSummary, allSources] = network
+	? await Promise.all([getLatestFuelPrices(env.DB), getEvTariffSummary(env.DB), getSourceStatuses(env.DB)])
+	: [[], [], []];
+
+const fuelRows = network
+	? allProducts
+			.map((row) => ({ ...row, prices: row.prices.filter((p) => p.networkId === network.id) }))
+			.filter((row) => row.prices.length > 0)
+	: [];
+
+const evRows = network ? allEvSummary.filter((t) => t.networkId === network.id) : [];
+const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === network.id) : [];
+---
+
+<Layout title={network ? `${network.name} - fuel-price` : "Nav atrasts - fuel-price"}>
+	{!network ? (
+		<section class="empty-state">
+			<h1>Tīkls nav atrasts</h1>
+			<p><a href="/tikli/">Atpakaļ uz tīklu sarakstu</a>.</p>
+		</section>
+	) : (
+		<>
+			<p class="breadcrumb"><a href="/tikli/">Tīkli</a> / {network.name}</p>
+			<h1>{network.name}</h1>
+			{network.website && (
+				<p class="intro">
+					<a href={network.website} rel="noopener noreferrer" target="_blank">{network.website}</a>
+				</p>
+			)}
+			{network.note && <p class="note">{network.note}</p>}
+
+			{fuelRows.length > 0 && (
+				<>
+					<h2>Degvielas cenas</h2>
+					<div class="table-wrap">
+						<table>
+							<thead>
+								<tr>
+									<th scope="col">Produkts</th>
+									<th scope="col">Cena</th>
+									<th scope="col">Vieta</th>
+									<th scope="col">Svaigums</th>
+									<th scope="col">Izcelsme</th>
+								</tr>
+							</thead>
+							<tbody>
+								{fuelRows.map((row) =>
+									row.prices.map((p) => (
+										<tr>
+											<th scope="row">{row.label}</th>
+											<td>{formatPrice(p.priceMilli)}&nbsp;&euro;</td>
+											<td>{p.whereText ?? (p.scope === "network" ? "Visā tīklā" : "-")}</td>
+											<td>{AGE_LABELS[p.age]}</td>
+											<td>{ORIGIN_LABELS[p.origin]}</td>
+										</tr>
+									)),
+								)}
+							</tbody>
+						</table>
+					</div>
+				</>
+			)}
+
+			{evRows.length > 0 && (
+				<>
+					<h2>EV uzlādes tarifi</h2>
+					<div class="table-wrap">
+						<table>
+							<thead>
+								<tr>
+									<th scope="col">Savienotājs</th>
+									<th scope="col">Strāva</th>
+									<th scope="col">Lētākā cena</th>
+									<th scope="col">Vietu skaits</th>
+								</tr>
+							</thead>
+							<tbody>
+								{evRows.map((t) => (
+									<tr>
+										<td>{t.connector ? (CONNECTOR_LABELS[t.connector] ?? t.connector) : "-"}</td>
+										<td>{t.currentType}</td>
+										<td>
+											{t.minEnergyMilliPerKwh !== null && <>{formatPrice(t.minEnergyMilliPerKwh)}&nbsp;&euro;/kWh</>}
+											{t.minTimeMilliPerMin !== null && <>{formatPrice(t.minTimeMilliPerMin)}&nbsp;&euro;/min</>}
+										</td>
+										<td>{t.stationCount}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</>
+			)}
+
+			{fuelRows.length === 0 && evRows.length === 0 && (
+				<p class="note">Šim tīklam vēl nav nolasītu cenu.</p>
+			)}
+
+			{sourcesForNetwork.length > 0 && (
+				<>
+					<h2>Avoti</h2>
+					<div class="table-wrap">
+						<table>
+							<thead>
+								<tr>
+									<th scope="col">Avots</th>
+									<th scope="col">Statuss</th>
+									<th scope="col">Pēdējais rezultāts</th>
+								</tr>
+							</thead>
+							<tbody>
+								{sourcesForNetwork.map((s) => (
+									<tr>
+										<th scope="row"><a href={s.url} rel="noopener noreferrer" target="_blank">{s.kind}</a></th>
+										<td><span class="badge" data-status={s.status}>{STATUS_LABELS[s.status]}</span></td>
+										<td>
+											{s.lastRunStatus ? (
+												<span class="badge" data-run={s.lastRunStatus}>{RUN_STATUS_LABELS[s.lastRunStatus]}</span>
+											) : (
+												<span class="table-dash">-</span>
+											)}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</>
+			)}
+		</>
+	)}
+</Layout>
+
+<style>
+	h1 {
+		font-size: 1.5rem;
+		margin: 0.25rem 0 0.5rem;
+	}
+	h2 {
+		font-size: 1.1rem;
+		margin: 2rem 0 0.75rem;
+	}
+	.breadcrumb {
+		font-size: 0.85rem;
+		color: var(--color-ink-muted);
+		margin: 1.5rem 0 0;
+	}
+	.breadcrumb a {
+		color: var(--color-ink-muted);
+	}
+	.intro {
+		margin: 0 0 0.5rem;
+	}
+	.note {
+		color: var(--color-ink-muted);
+		max-width: 42rem;
+		margin: 0 0 1.5rem;
+	}
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+	}
+	table {
+		font-size: 0.9rem;
+		width: 100%;
+	}
+	th,
+	td {
+		padding: 0.6rem 0.85rem;
+		text-align: left;
+		border-bottom: 1px solid var(--color-border);
+		white-space: nowrap;
+	}
+	thead th {
+		font-size: 0.78rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-ink-muted);
+		background: var(--color-surface);
+	}
+	tbody tr:last-child td,
+	tbody tr:last-child th {
+		border-bottom: none;
+	}
+	td {
+		font-family: var(--font-mono);
+	}
+	.badge {
+		font-size: 0.75rem;
+		padding: 0.15rem 0.55rem;
+		border-radius: 999px;
+		border: 1px solid var(--color-border);
+		color: var(--color-ink-muted);
+	}
+	.badge[data-status="active"],
+	.badge[data-run="ok"] {
+		color: var(--color-down);
+		border-color: var(--color-down);
+	}
+	.table-dash {
+		color: var(--color-neutral);
+	}
+	.empty-state {
+		color: var(--color-ink-muted);
+	}
+</style>
