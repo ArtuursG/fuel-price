@@ -40,7 +40,7 @@ uv run python -m collector check --source <avota-id>
 uv run python -m collector snapshot --source <avota-id>
 ```
 
-Avotu reģistrs pagaidām tukšs -- reāli avoti tiek pievienoti pakāpeniski.
+Ieviesti Circle K, Straujupītes, Viršu un Viadas degvielas kolektori, e-mobi, Ignitis ON un Eleport EV kolektori, kā arī EK Weekly Oil Bulletin imports.
 
 ## Lokālā izstrāde (Cloudflare Workers/D1)
 

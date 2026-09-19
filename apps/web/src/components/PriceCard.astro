@@ -1,5 +1,5 @@
 ---
-import { AGE_LABELS, ORIGIN_LABELS, formatPrice, type NetworkPrice } from "../lib/prices";
+import { AGE_LABELS, ORIGIN_LABELS, formatPrice, formatObservedAt, type NetworkPrice } from "../lib/prices";
 import { buildSparklinePath } from "../lib/sparkline";
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 	history?: number[];
 }
 
-const { label, product, price, history } = Astro.props as Props;
+const { label, price, history } = Astro.props as Props;
 const sparklinePath = history ? buildSparklinePath(history) : null;
 
 const changeDirection =
@@ -21,22 +21,9 @@ const changeText =
 			? "nemainīga"
 			: `${changeDirection === "down" ? "↓" : "↑"} ${formatPrice(Math.abs(price.changeMilli))} €`;
 
-// Vizuāla grupēšana pēc degvielas veida -- ne tikai teksts, arī krāsu akcents,
-// lai pilonu rinda nešķiet viendabīga siena. Tīri dekoratīvs, datus nemaina.
-const ACCENT_FAMILY: Record<string, string> = {
-	P95: "petrol",
-	P98: "petrol",
-	E85: "petrol",
-	DSL: "diesel",
-	DSL_PLUS: "diesel",
-	DSL_AGRO: "diesel",
-	LPG: "gas",
-	CNG: "gas",
-};
-const accent = ACCENT_FAMILY[product] ?? "other";
 ---
 
-<article class="pylon" data-change={changeDirection} data-accent={accent}>
+<article class="pylon" data-change={changeDirection}>
 	<p class="pylon__label">{label}</p>
 	<p class="pylon__price">
 		{formatPrice(price.priceMilli)}<span class="pylon__unit">&euro;/l</span>
@@ -47,117 +34,32 @@ const accent = ACCENT_FAMILY[product] ?? "other";
 			<path d={sparklinePath} />
 		</svg>
 	)}
-	<p class="pylon__change" data-change={changeDirection}>{changeText}</p>
+	<p class="pylon__change" data-change={changeDirection} title="Pret iepriekšējo novēroto cenu">{changeText}</p>
 	<p class="pylon__meta">
 		<span class="badge badge--age" data-age={price.age}>{AGE_LABELS[price.age]}</span>
-		<span class="badge badge--origin">{ORIGIN_LABELS[price.origin]}</span>
+		<span class="badge badge--origin">{price.origin ? ORIGIN_LABELS[price.origin] : "izcelsme nav zināma"}</span>
 	</p>
+    {price.scope === "network" ? <p class="pylon__details">Visā tīklā</p> : <details class="pylon__details"><summary>Apskatīt vietas</summary><p>{price.whereText ?? "Vieta nav norādīta"}</p></details>}
+    <p class="pylon__details">Pirmoreiz novērota <time datetime={price.observedAt}>{formatObservedAt(price.observedAt)}</time></p>
+    {price.sourceUrl && <a class="pylon__details" href={price.sourceUrl}>Oficiālais avots</a>}
 </article>
 
 <style>
-	.pylon {
-		background: var(--color-pylon);
-		color: var(--color-pylon-ink);
-		border-radius: 6px;
-		border-top: 3px solid var(--accent-color, transparent);
-		padding: 1.25rem 1.25rem 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		min-width: 0;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-		transition:
-			transform 0.15s ease,
-			box-shadow 0.15s ease;
-	}
-	.pylon:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
-	}
-	.pylon[data-accent="petrol"] {
-		--accent-color: #d98e2b;
-	}
-	.pylon[data-accent="diesel"] {
-		--accent-color: #6f93b8;
-	}
-	.pylon[data-accent="gas"] {
-		--accent-color: #4fa17e;
-	}
-	.pylon[data-accent="other"] {
-		--accent-color: #8fa3c9;
-	}
-	.pylon__label {
-		margin: 0;
-		font-size: 0.8rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: color-mix(in srgb, var(--color-pylon-ink) 70%, transparent);
-	}
-	.pylon__price {
-		margin: 0;
-		font-family: var(--font-mono);
-		font-weight: 600;
-		font-size: clamp(1.75rem, 4vw, 2.25rem);
-		line-height: 1.1;
-	}
-	.pylon__unit {
-		font-size: 0.9rem;
-		font-weight: 500;
-		margin-left: 0.25rem;
-		opacity: 0.75;
-	}
-	.pylon__network {
-		margin: 0;
-		font-size: 0.9rem;
-		color: color-mix(in srgb, var(--color-pylon-ink) 85%, transparent);
-	}
-	.pylon__sparkline {
-		width: 100%;
-		height: 1.5rem;
-		margin: 0.2rem 0 0;
-	}
-	.pylon__sparkline path {
-		fill: none;
-		stroke: var(--accent-color, currentColor);
-		stroke-width: 2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-	.pylon__change {
-		margin: 0.15rem 0 0;
-		display: inline-flex;
-		align-items: center;
-		width: fit-content;
-		font-family: var(--font-mono);
-		font-size: 0.8rem;
-		font-weight: 600;
-		padding: 0.15rem 0.5rem;
-		border-radius: 999px;
-	}
-	.pylon__change[data-change="down"] {
-		color: #d7f5e3;
-		background: color-mix(in srgb, #3b7a57 55%, transparent);
-	}
-	.pylon__change[data-change="up"] {
-		color: #fbe1e1;
-		background: color-mix(in srgb, #a83232 55%, transparent);
-	}
-	.pylon__change[data-change="same"],
-	.pylon__change[data-change="unknown"] {
-		color: color-mix(in srgb, var(--color-pylon-ink) 70%, transparent);
-		background: color-mix(in srgb, var(--color-pylon-ink) 12%, transparent);
-	}
-	.pylon__meta {
-		margin: 0.5rem 0 0;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-	}
-	.badge {
-		font-size: 0.7rem;
-		padding: 0.15rem 0.5rem;
-		border-radius: 999px;
-		border: 1px solid color-mix(in srgb, var(--color-pylon-ink) 35%, transparent);
-		color: color-mix(in srgb, var(--color-pylon-ink) 85%, transparent);
-	}
+    .pylon { padding: 1rem 1.15rem; display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+    .pylon p { margin: 0; }
+    summary { cursor: pointer; color: var(--color-pylon); padding: 0.25rem 0; }
+    details[open] p { padding: 0.25rem 0; }
+    .pylon__label { font-size: 0.95rem; font-weight: 600; }
+    .pylon__price { font-family: var(--font-mono); font-size: clamp(1.65rem, 3vw, 2.1rem); line-height: 1.3; letter-spacing: -0.06em; }
+    .pylon__unit { font-family: var(--font-body); font-size: 0.75rem; color: var(--color-ink-muted); margin-left: 0.3rem; letter-spacing: 0; }
+    .pylon__network { font-size: 0.85rem; }
+    .pylon__sparkline { width: 100%; height: 1.25rem; margin: 0.25rem 0; }
+    .pylon__sparkline path { fill: none; stroke: var(--color-pylon); stroke-width: 1.5; }
+    .pylon__change { font-family: var(--font-mono); font-size: 0.75rem; }
+    .pylon__change[data-change="down"] { color: var(--color-down); }
+    .pylon__change[data-change="up"] { color: var(--color-up); }
+    .pylon__meta { display: flex; flex-direction: column; font-size: 0.75rem; color: var(--color-ink-muted); }
+    .badge--age[data-age="older"], .badge--age[data-age="unknown"] { color: var(--color-up); font-weight: 600; }
+    .pylon__details { font-size: 0.72rem; overflow-wrap: anywhere; color: var(--color-ink-muted); }
+    a.pylon__details { color: var(--color-pylon); margin-top: auto; padding-top: 0.4rem; }
 </style>

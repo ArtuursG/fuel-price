@@ -2,7 +2,7 @@
 // un ingest faktiski strādāja). Forma apzināti sakrīt ar to, ko lietoja
 // PriceCard/PriceTable, lai komponentes nemainītos, tikai datu avots.
 
-export type AgeBucket = "today" | "1-2d" | "3-7d" | "older";
+export type AgeBucket = "today" | "1-2d" | "3-7d" | "older" | "unknown";
 export type Origin = "official_site" | "official_register" | "official_aggregate" | "crowd";
 
 export interface NetworkPrice {
@@ -11,7 +11,9 @@ export interface NetworkPrice {
 	priceMilli: number;
 	changeMilli: number | null; // null = nav iepriekšējās cenas salīdzināšanai (pirmā novērošana)
 	age: AgeBucket;
-	origin: Origin;
+	origin: Origin | null;
+	sourceUrl: string | null;
+	observedAt: string;
 	scope: string;
 	whereText: string | null;
 }
@@ -47,19 +49,46 @@ interface FuelPriceQueryRow {
 	valid_from: string | null;
 	observed_at: string;
 	source_type: Origin | null;
+	source_url: string | null;
 }
 
 export function formatPrice(priceMilli: number): string {
 	return (priceMilli / 1000).toFixed(3).replace(".", ",");
 }
 
-function ageBucket(referenceDate: string, now: Date = new Date()): AgeBucket {
-	const ref = new Date(`${referenceDate}T00:00:00Z`);
-	const days = Math.floor((now.getTime() - ref.getTime()) / (1000 * 60 * 60 * 24));
-	if (days <= 0) return "today";
-	if (days <= 2) return "1-2d";
-	if (days <= 7) return "3-7d";
-	return "older";
+const rigaDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Riga", year: "numeric", month: "2-digit", day: "2-digit",
+});
+
+function calendarDate(value: string | Date): string | null {
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const parsed = new Date(`${value}T00:00:00Z`);
+        return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? value : null;
+    }
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return null;
+    const parts = rigaDate.formatToParts(date);
+    const part = (type: string) => parts.find((p) => p.type === type)?.value;
+    return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+export function ageBucket(referenceDate: string, now: Date = new Date()): AgeBucket {
+    const reference = calendarDate(referenceDate);
+    const today = calendarDate(now);
+    if (!reference || !today) return "unknown";
+    const days = (Date.parse(today) - Date.parse(reference)) / 86_400_000;
+    if (days < 0) return "unknown";
+    if (days === 0) return "today";
+    if (days <= 2) return "1-2d";
+    if (days <= 7) return "3-7d";
+    return "older";
+}
+
+export function formatObservedAt(iso: string): string {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return new Date(`${iso}T00:00:00Z`).toLocaleDateString("lv-LV", { timeZone: "Europe/Riga" });
+    return new Date(iso).toLocaleString("lv-LV", {
+        timeZone: "Europe/Riga", dateStyle: "short", timeStyle: "short",
+    });
 }
 
 export const AGE_LABELS: Record<AgeBucket, string> = {
@@ -67,6 +96,7 @@ export const AGE_LABELS: Record<AgeBucket, string> = {
 	"1-2d": "1-2 dienas",
 	"3-7d": "3-7 dienas",
 	older: "vecāka",
+	unknown: "vecums nav zināms",
 };
 
 export const ORIGIN_LABELS: Record<Origin, string> = {
@@ -87,10 +117,11 @@ const QUERY = `
 		FROM fuel_prices fp
 	)
 	SELECT r.network_id, n.name AS network_name, r.product, r.price_milli, r.prev_price_milli,
-	       r.scope, r.where_text, r.valid_from, r.observed_at, s.source_type
+	       r.scope, r.where_text, r.valid_from, r.observed_at, s.source_type, s.url AS source_url
 	FROM ranked r
 	JOIN networks n ON n.id = r.network_id
-	LEFT JOIN sources s ON s.network_id = r.network_id AND s.kind = 'fuel'
+	LEFT JOIN scrape_runs sr ON sr.id = r.run_id
+	LEFT JOIN sources s ON s.id = sr.source_id
 	WHERE r.rn = 1
 	ORDER BY r.product, r.price_milli
 `;
@@ -106,8 +137,10 @@ export async function getLatestFuelPrices(db: D1Database, now: Date = new Date()
 			networkName: row.network_name,
 			priceMilli: row.price_milli,
 			changeMilli: row.prev_price_milli === null ? null : row.price_milli - row.prev_price_milli,
-			age: ageBucket(row.valid_from ?? row.observed_at.slice(0, 10), now),
-			origin: row.source_type ?? "official_site",
+			age: ageBucket(row.valid_from ?? row.observed_at, now),
+			origin: row.source_type,
+			sourceUrl: row.source_url,
+			observedAt: row.observed_at,
 			scope: row.scope,
 			whereText: row.where_text,
 		});
@@ -168,7 +201,7 @@ export async function getLastUpdated(db: D1Database): Promise<string | null> {
 			`SELECT MAX(r.started_at) AS last
 			 FROM scrape_runs r
 			 JOIN sources s ON s.id = r.source_id
-			 WHERE s.kind = 'fuel'`,
+			 WHERE s.kind = 'fuel' AND r.status IN ('ok', 'not_modified')`,
 		)
 		.first<{ last: string | null }>();
 	return row?.last ?? null;

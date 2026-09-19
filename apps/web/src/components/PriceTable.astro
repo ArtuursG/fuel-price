@@ -1,5 +1,5 @@
 ---
-import { AGE_LABELS, formatPrice, type NetworkPrice, type ProductRow } from "../lib/prices";
+import { AGE_LABELS, ORIGIN_LABELS, formatObservedAt, formatPrice, type NetworkPrice, type ProductRow } from "../lib/prices";
 
 interface Props {
 	products: ProductRow[];
@@ -27,14 +27,14 @@ const rows: NetworkRow[] = networkIds.map((networkId) => {
 const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId ?? null);
 ---
 
-<div class="table-wrap">
+<div class="table-wrap" tabindex="0" role="region" aria-label="Degvielas cenu tabula, ritināma horizontāli">
 	<table>
 		<caption class="sr-only">Visu tīklu degvielas cenas šodien, salīdzinājumā pa produktiem</caption>
 		<thead>
 			<tr>
 				<th scope="col">Tīkls</th>
 				{products.map((row) => <th scope="col">{row.label}</th>)}
-				<th scope="col">Svaigums</th>
+
 			</tr>
 		</thead>
 		<tbody>
@@ -46,6 +46,9 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 							{cell ? (
 								<>
 									{formatPrice(cell.priceMilli)}&nbsp;&euro;
+                                    <span class="price-detail">{AGE_LABELS[cell.age]}</span>
+                                    <span class="price-detail">Pirmoreiz <time datetime={cell.observedAt}>{formatObservedAt(cell.observedAt)}</time></span>
+                                    <span class="price-detail">{cell.sourceUrl ? <a href={cell.sourceUrl}>{cell.origin ? ORIGIN_LABELS[cell.origin] : "Avots"}</a> : "izcelsme nav zināma"}</span>
 									{cell.scope !== "network" && <span class="table-note"> ({cell.scope === "cheapest_riga" ? "Rīgā" : "lētākā"})</span>}
 								</>
 							) : (
@@ -53,7 +56,7 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 							)}
 						</td>
 					))}
-					<td>{AGE_LABELS[row.cells.find((c) => c !== null)?.age ?? "today"]}</td>
+
 				</tr>
 			))}
 		</tbody>
@@ -61,10 +64,11 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 </div>
 
 <style>
+	.price-detail { display: block; font-family: var(--font-body); font-size: 0.75rem; }
 	.table-wrap {
 		overflow-x: auto;
 		border: 1px solid var(--color-border);
-		border-radius: 4px;
+		border-radius: 0;
 	}
 	table {
 		font-size: 0.95rem;
@@ -78,8 +82,8 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 	}
 	thead th {
 		font-size: 0.8rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+
+
 		color: var(--color-ink-muted);
 		background: var(--color-surface);
 	}
@@ -105,6 +109,7 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 		font-weight: 600;
 	}
 	.table-note {
+        display: block;
 		font-family: var(--font-body);
 		color: var(--color-ink-muted);
 		font-size: 0.75rem;

@@ -1,17 +1,17 @@
-/* Design tokens -- "Cenu pilons" virziens (sk. dizaina plānu). */
+/* Datu pārskats: balts fons, tintes teksts, zils akcents. */
 :root {
-  --color-bg: #f7f4ec;
-  --color-surface: #fffdf8;
-  --color-ink: #22201b;
-  --color-ink-muted: #5c584e;
-  --color-border: #e3ddc9;
-  --color-pylon: #1b3a4b;
-  --color-pylon-ink: #f7f4ec;
-  --color-cheapest-bg: #f3d9ad;
-  --color-cheapest-border: #d98e2b;
-  --color-down: #3b7a57;
-  --color-up: #a83232;
-  --color-neutral: #8a8577;
+  --color-bg: #ffffff;
+  --color-surface: #f3f5f7;
+  --color-ink: #202b35;
+  --color-ink-muted: #52616d;
+  --color-border: #d7dfe5;
+  --color-pylon: #245779;
+  --color-pylon-ink: #ffffff;
+  --color-cheapest-bg: #eaf1f5;
+  --color-cheapest-border: #245779;
+  --color-down: #296448;
+  --color-up: #a13838;
+  --color-neutral: #65737f;
 
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, monospace;
@@ -43,8 +43,7 @@ a {
   text-decoration-thickness: 1px;
 }
 
-a:focus-visible,
-button:focus-visible {
+:focus-visible {
   outline: 3px solid var(--color-cheapest-border);
   outline-offset: 2px;
 }
@@ -60,3 +59,6 @@ table {
     transition-duration: 0.001ms !important;
   }
 }
+
+body { font-variant-numeric: tabular-nums; }
+::selection { background: #dbe8f1; }
