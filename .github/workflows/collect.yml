@@ -30,3 +30,9 @@ jobs:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector official-weekly --push
+      - name: Run e-mobi EV stations/tariffs and push
+        working-directory: collector
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: uv run python -m collector emobi-ev --push
