@@ -33,6 +33,14 @@ export const FuelPriceSchema = z.object({
 	valid_from: z.string().nullable().optional(),
 });
 
+export const OfficialWeeklyPriceSchema = z.object({
+	week_monday: z.string(),
+	merchant: z.string(),
+	product: z.string(),
+	avg_price_milli: z.number().int().positive(),
+	source_url: z.string(),
+});
+
 export const EvTariffSchema = z.object({
 	network_id: z.string(),
 	station_id: z.string().nullable().optional(),
@@ -57,6 +65,7 @@ export const IngestBatchSchema = z.object({
 	run: RunReportSchema,
 	fuel: z.array(FuelPriceSchema).default([]),
 	ev: z.array(EvTariffSchema).default([]),
+	official_weekly: z.array(OfficialWeeklyPriceSchema).default([]),
 });
 
 export type IngestBatch = z.infer<typeof IngestBatchSchema>;

@@ -28,6 +28,14 @@ class FuelPrice(BaseModel):
     valid_from: str | None = None
 
 
+class OfficialWeeklyPrice(BaseModel):
+    week_monday: str
+    merchant: str  # country code (LV/LT/EE) for this source; see docs/IZPETE.md 7.4
+    product: str
+    avg_price_milli: int = Field(gt=0)
+    source_url: str
+
+
 class EvTariff(BaseModel):
     network_id: str
     station_id: str | None = None
@@ -64,3 +72,4 @@ class IngestBatch(BaseModel):
     run: RunReport
     fuel: list[FuelPrice] = Field(default_factory=list)
     ev: list[EvTariff] = Field(default_factory=list)
+    official_weekly: list[OfficialWeeklyPrice] = Field(default_factory=list)

@@ -126,11 +126,25 @@ app.post("/ingest", async (c) => {
 		);
 	}
 
+	const fuelChanged = writes.length;
+
+	for (const weekly of batch.official_weekly) {
+		writes.push(
+			c.env.DB.prepare(
+				`INSERT INTO official_weekly (week_monday, merchant, product, avg_price_milli, source_url)
+				 VALUES (?, ?, ?, ?, ?)
+				 ON CONFLICT (week_monday, merchant, product) DO UPDATE SET
+					avg_price_milli = excluded.avg_price_milli,
+					source_url = excluded.source_url`,
+			).bind(weekly.week_monday, weekly.merchant, weekly.product, weekly.avg_price_milli, weekly.source_url),
+		);
+	}
+
 	if (writes.length > 0) {
 		await c.env.DB.batch(writes);
 	}
 
-	return c.json({ ok: true, run_id: runId, fuel_changed: writes.length });
+	return c.json({ ok: true, run_id: runId, fuel_changed: fuelChanged, official_weekly_written: batch.official_weekly.length });
 });
 
 export default app;

@@ -18,9 +18,15 @@ jobs:
       - name: Install collector
         working-directory: collector
         run: uv sync
-      - name: Run all sources and push
+      - name: Run all fuel sources and push
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector run --all --push
+      - name: Run EU weekly oil bulletin and push
+        working-directory: collector
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: uv run python -m collector official-weekly --push
