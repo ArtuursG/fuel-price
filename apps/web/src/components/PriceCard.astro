@@ -3,10 +3,11 @@ import { AGE_LABELS, ORIGIN_LABELS, formatPrice, type NetworkPrice } from "../li
 
 interface Props {
 	label: string;
+	product: string;
 	price: NetworkPrice;
 }
 
-const { label, price } = Astro.props as Props;
+const { label, product, price } = Astro.props as Props;
 
 const changeDirection =
 	price.changeMilli === null ? "unknown" : price.changeMilli < 0 ? "down" : price.changeMilli > 0 ? "up" : "same";
@@ -16,9 +17,23 @@ const changeText =
 		: changeDirection === "same"
 			? "nemainīga"
 			: `${changeDirection === "down" ? "↓" : "↑"} ${formatPrice(Math.abs(price.changeMilli))} €`;
+
+// Vizuāla grupēšana pēc degvielas veida -- ne tikai teksts, arī krāsu akcents,
+// lai pilonu rinda nešķiet viendabīga siena. Tīri dekoratīvs, datus nemaina.
+const ACCENT_FAMILY: Record<string, string> = {
+	P95: "petrol",
+	P98: "petrol",
+	E85: "petrol",
+	DSL: "diesel",
+	DSL_PLUS: "diesel",
+	DSL_AGRO: "diesel",
+	LPG: "gas",
+	CNG: "gas",
+};
+const accent = ACCENT_FAMILY[product] ?? "other";
 ---
 
-<article class="pylon" data-change={changeDirection}>
+<article class="pylon" data-change={changeDirection} data-accent={accent}>
 	<p class="pylon__label">{label}</p>
 	<p class="pylon__price">
 		{formatPrice(price.priceMilli)}<span class="pylon__unit">&euro;/l</span>
@@ -35,12 +50,33 @@ const changeText =
 	.pylon {
 		background: var(--color-pylon);
 		color: var(--color-pylon-ink);
-		border-radius: 4px;
+		border-radius: 6px;
+		border-top: 3px solid var(--accent-color, transparent);
 		padding: 1.25rem 1.25rem 1rem;
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
 		min-width: 0;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+		transition:
+			transform 0.15s ease,
+			box-shadow 0.15s ease;
+	}
+	.pylon:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+	}
+	.pylon[data-accent="petrol"] {
+		--accent-color: #d98e2b;
+	}
+	.pylon[data-accent="diesel"] {
+		--accent-color: #6f93b8;
+	}
+	.pylon[data-accent="gas"] {
+		--accent-color: #4fa17e;
+	}
+	.pylon[data-accent="other"] {
+		--accent-color: #8fa3c9;
 	}
 	.pylon__label {
 		margin: 0;
@@ -68,19 +104,28 @@ const changeText =
 		color: color-mix(in srgb, var(--color-pylon-ink) 85%, transparent);
 	}
 	.pylon__change {
-		margin: 0;
+		margin: 0.15rem 0 0;
+		display: inline-flex;
+		align-items: center;
+		width: fit-content;
 		font-family: var(--font-mono);
-		font-size: 0.85rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		padding: 0.15rem 0.5rem;
+		border-radius: 999px;
 	}
 	.pylon__change[data-change="down"] {
-		color: #8fd6ac;
+		color: #d7f5e3;
+		background: color-mix(in srgb, #3b7a57 55%, transparent);
 	}
 	.pylon__change[data-change="up"] {
-		color: #e7a3a3;
+		color: #fbe1e1;
+		background: color-mix(in srgb, #a83232 55%, transparent);
 	}
 	.pylon__change[data-change="same"],
 	.pylon__change[data-change="unknown"] {
-		color: color-mix(in srgb, var(--color-pylon-ink) 60%, transparent);
+		color: color-mix(in srgb, var(--color-pylon-ink) 70%, transparent);
+		background: color-mix(in srgb, var(--color-pylon-ink) 12%, transparent);
 	}
 	.pylon__meta {
 		margin: 0.5rem 0 0;

@@ -3,12 +3,31 @@ import { env } from "cloudflare:workers";
 import Layout from "../layouts/Layout.astro";
 import PriceCard from "../components/PriceCard.astro";
 import PriceTable from "../components/PriceTable.astro";
-import { cheapest, getLatestFuelPrices } from "../lib/prices";
+import { cheapest, formatPrice, getLastUpdated, getLatestFuelPrices } from "../lib/prices";
 
-const products = await getLatestFuelPrices(env.DB);
+const [products, lastUpdated] = await Promise.all([getLatestFuelPrices(env.DB), getLastUpdated(env.DB)]);
+
+const networkCount = new Set(products.flatMap((row) => row.prices.map((p) => p.networkId))).size;
+const headline = products.find((row) => row.product === "P95") ?? products[0];
+
+function formatUpdatedAt(iso: string): string {
+	return new Date(iso).toLocaleString("lv-LV", { timeZone: "Europe/Riga", dateStyle: "short", timeStyle: "short" });
+}
+
+const datasetJsonLd = {
+	"@context": "https://schema.org",
+	"@type": "Dataset",
+	name: "Latvijas degvielas cenas",
+	description: "Degvielas cenu salīdzinājums Latvijas uzpildes staciju tīklos, nolasīts no oficiālajām mājaslapām.",
+	license: "https://creativecommons.org/publicdomain/zero/1.0/",
+	...(lastUpdated ? { temporalCoverage: lastUpdated } : {}),
+	creator: { "@type": "Organization", name: "fuel-price" },
+};
 ---
 
 <Layout title="Degvielas cenas šodien - fuel-price">
+	<script type="application/ld+json" set:html={JSON.stringify(datasetJsonLd)} />
+
 	{products.length === 0 ? (
 		<section class="empty-state">
 			<h1>Degvielas cenas šodien</h1>
@@ -16,10 +35,19 @@ const products = await getLatestFuelPrices(env.DB);
 		</section>
 	) : (
 		<>
-			<section aria-labelledby="today-heading">
+			<section class="hero" aria-labelledby="today-heading">
 				<h1 id="today-heading">Šodien lētākā cena Rīgā</h1>
+				{headline && (
+					<p class="hero__headline">
+						<span class="hero__price">{formatPrice(cheapest(headline).priceMilli)}&nbsp;&euro;/l</span>
+						<span class="hero__detail">{headline.label} &middot; {cheapest(headline).networkName}</span>
+					</p>
+				)}
+				<p class="hero__meta">
+					{networkCount} tīkli salīdzināti{lastUpdated && <> &middot; atjaunots {formatUpdatedAt(lastUpdated)}</>}
+				</p>
 				<div class="pylon-grid">
-					{products.map((row) => <PriceCard label={row.label} price={cheapest(row)} />)}
+					{products.map((row) => <PriceCard label={row.label} product={row.product} price={cheapest(row)} />)}
 				</div>
 			</section>
 
@@ -33,12 +61,34 @@ const products = await getLatestFuelPrices(env.DB);
 
 <style>
 	h1 {
-		font-size: 1.5rem;
-		margin: 1.5rem 0 1rem;
+		font-size: 1.75rem;
+		margin: 1.5rem 0 0.5rem;
 	}
 	h2 {
 		font-size: 1.15rem;
 		margin: 2.5rem 0 1rem;
+	}
+	.hero__headline {
+		display: flex;
+		align-items: baseline;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+		margin: 0 0 0.35rem;
+	}
+	.hero__price {
+		font-family: var(--font-mono);
+		font-weight: 700;
+		font-size: clamp(2rem, 5vw, 2.75rem);
+		color: var(--color-cheapest-border);
+	}
+	.hero__detail {
+		font-size: 1rem;
+		color: var(--color-ink-muted);
+	}
+	.hero__meta {
+		font-size: 0.85rem;
+		color: var(--color-ink-muted);
+		margin: 0 0 1.5rem;
 	}
 	.pylon-grid {
 		display: grid;
