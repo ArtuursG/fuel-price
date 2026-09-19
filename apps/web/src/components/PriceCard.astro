@@ -1,13 +1,16 @@
 ---
 import { AGE_LABELS, ORIGIN_LABELS, formatPrice, type NetworkPrice } from "../lib/prices";
+import { buildSparklinePath } from "../lib/sparkline";
 
 interface Props {
 	label: string;
 	product: string;
 	price: NetworkPrice;
+	history?: number[];
 }
 
-const { label, product, price } = Astro.props as Props;
+const { label, product, price, history } = Astro.props as Props;
+const sparklinePath = history ? buildSparklinePath(history) : null;
 
 const changeDirection =
 	price.changeMilli === null ? "unknown" : price.changeMilli < 0 ? "down" : price.changeMilli > 0 ? "up" : "same";
@@ -39,6 +42,11 @@ const accent = ACCENT_FAMILY[product] ?? "other";
 		{formatPrice(price.priceMilli)}<span class="pylon__unit">&euro;/l</span>
 	</p>
 	<p class="pylon__network">{price.networkName}</p>
+	{sparklinePath && (
+		<svg class="pylon__sparkline" viewBox="0 0 64 24" preserveAspectRatio="none" aria-hidden="true">
+			<path d={sparklinePath} />
+		</svg>
+	)}
 	<p class="pylon__change" data-change={changeDirection}>{changeText}</p>
 	<p class="pylon__meta">
 		<span class="badge badge--age" data-age={price.age}>{AGE_LABELS[price.age]}</span>
@@ -102,6 +110,18 @@ const accent = ACCENT_FAMILY[product] ?? "other";
 		margin: 0;
 		font-size: 0.9rem;
 		color: color-mix(in srgb, var(--color-pylon-ink) 85%, transparent);
+	}
+	.pylon__sparkline {
+		width: 100%;
+		height: 1.5rem;
+		margin: 0.2rem 0 0;
+	}
+	.pylon__sparkline path {
+		fill: none;
+		stroke: var(--accent-color, currentColor);
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
 	}
 	.pylon__change {
 		margin: 0.15rem 0 0;

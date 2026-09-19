@@ -125,6 +125,43 @@ export function cheapest(row: ProductRow): NetworkPrice {
 	return row.prices[0];
 }
 
+// Cenu vēsture pēdējo 90 dienu laikā, VISIEM (network_id, scope, product)
+// vienā pieprasījumā -- ne viens vaicājums par karti, sk. iepriekšējo mācību
+// ar EV tarifiem (D1 subrequest/rindu limiti). fuel_prices raksta rindu TIKAI
+// pie izmaiņām (ADR-004), tāpēc šī tabula paliek maza ilgi, pat ar plašu logu.
+const HISTORY_QUERY = `
+	SELECT network_id, scope, product, price_milli, observed_at
+	FROM fuel_prices
+	WHERE observed_at >= datetime('now', '-90 days')
+	ORDER BY observed_at ASC
+`;
+
+interface HistoryQueryRow {
+	network_id: string;
+	scope: string;
+	product: string;
+	price_milli: number;
+	observed_at: string;
+}
+
+export type PriceHistory = Map<string, number[]>;
+
+export function historyKey(networkId: string, scope: string, product: string): string {
+	return `${networkId}|${scope}|${product}`;
+}
+
+export async function getPriceHistory(db: D1Database): Promise<PriceHistory> {
+	const { results } = await db.prepare(HISTORY_QUERY).all<HistoryQueryRow>();
+	const history: PriceHistory = new Map();
+	for (const row of results) {
+		const key = historyKey(row.network_id, row.scope, row.product);
+		const values = history.get(key) ?? [];
+		values.push(row.price_milli);
+		history.set(key, values);
+	}
+	return history;
+}
+
 export async function getLastUpdated(db: D1Database): Promise<string | null> {
 	const row = await db
 		.prepare(
