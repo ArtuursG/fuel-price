@@ -12,6 +12,12 @@ export interface EvTariffSummary {
 	stationCount: number;
 	minEnergyMilliPerKwh: number | null;
 	minTimeMilliPerMin: number | null;
+	// Only meaningful (and only used) alongside minTimeMilliPerMin, to convert
+	// a per-minute tariff to a per-100km cost -- see lib/calculator.ts. Power
+	// is usually constant within a (network, connector, current_type) group,
+	// but not always (e.g. emobi TYPE2 spans 22-43 kW); this is an average,
+	// not an exact figure, and the calculator page says so.
+	avgPowerKw: number | null;
 }
 
 interface EvTariffQueryRow {
@@ -22,6 +28,7 @@ interface EvTariffQueryRow {
 	station_count: number;
 	min_energy_milli: number | null;
 	min_time_milli: number | null;
+	avg_power_kw: number | null;
 }
 
 export const CONNECTOR_LABELS: Record<string, string> = {
@@ -46,7 +53,8 @@ const QUERY = `
 	SELECT r.network_id, n.name AS network_name, r.connector, r.current_type,
 	       COUNT(*) AS station_count,
 	       MIN(r.energy_milli_per_kwh) AS min_energy_milli,
-	       MIN(r.time_milli_per_min) AS min_time_milli
+	       MIN(r.time_milli_per_min) AS min_time_milli,
+	       AVG(r.power_max_kw) AS avg_power_kw
 	FROM ranked r
 	JOIN networks n ON n.id = r.network_id
 	WHERE r.rn = 1
@@ -64,5 +72,6 @@ export async function getEvTariffSummary(db: D1Database): Promise<EvTariffSummar
 		stationCount: row.station_count,
 		minEnergyMilliPerKwh: row.min_energy_milli,
 		minTimeMilliPerMin: row.min_time_milli,
+		avgPowerKw: row.avg_power_kw,
 	}));
 }

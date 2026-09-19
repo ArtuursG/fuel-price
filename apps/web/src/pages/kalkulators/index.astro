@@ -1,0 +1,206 @@
+---
+import { env } from "cloudflare:workers";
+import Layout from "../../layouts/Layout.astro";
+import { getEvTariffSummary } from "../../lib/ev";
+import { cheapest, getLatestFuelPrices } from "../../lib/prices";
+
+// Tikai uz litru cenoti, uz ceļiem legāli degvielas veidi (sk. lib/prices.ts
+// DSL_AGRO piezīmi -- NEKAD nerādīt šeit). CNG izslēgts -- tā cena ir par kg,
+// ne litru, tāpēc nesader ar vienu kopīgu "L/100km" ievadlauku.
+const CALC_FUEL_PRODUCTS = new Set(["P95", "P98", "DSL", "DSL_PLUS", "LPG"]);
+
+const [allFuelRows, evSummary] = await Promise.all([getLatestFuelPrices(env.DB), getEvTariffSummary(env.DB)]);
+const fuelRows = allFuelRows.filter((row) => CALC_FUEL_PRODUCTS.has(row.product));
+
+const calcData = {
+	fuel: fuelRows.map((row) => ({
+		product: row.product,
+		label: row.label,
+		priceMilli: cheapest(row).priceMilli,
+	})),
+	ev: evSummary
+		.filter((t) => t.minEnergyMilliPerKwh !== null || t.minTimeMilliPerMin !== null)
+		.map((t) => ({
+			networkName: t.networkName,
+			connector: t.connector,
+			currentType: t.currentType,
+			minEnergyMilliPerKwh: t.minEnergyMilliPerKwh,
+			minTimeMilliPerMin: t.minTimeMilliPerMin,
+			avgPowerKw: t.avgPowerKw,
+		})),
+};
+
+const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
+---
+
+<Layout title="Kalkulators - fuel-price">
+	<h1>Cik maksā nobraukt 100 km?</h1>
+
+	{!hasData ? (
+		<p class="intro">Vēl nav datu -- kolektors avotus vēl nav nolasījis.</p>
+	) : (
+		<>
+			<p class="intro">
+				Salīdzina degvielas, publiskās EV uzlādes un mājas uzlādes izmaksas pēc pašreizējām lētākajām zināmajām
+				cenām. Rezultāti pārrēķinās uzreiz, mainot ievadi -- nekas netiek sūtīts uz serveri.
+			</p>
+
+			<div class="inputs">
+				<label>
+					Degvielas patēriņš (l/100&nbsp;km)
+					<input type="number" id="fuel-consumption" value="7" min="0" step="0.1" />
+				</label>
+				<label>
+					EV patēriņš (kWh/100&nbsp;km)
+					<input type="number" id="ev-consumption" value="18" min="0" step="0.5" />
+				</label>
+				<label>
+					Mājas elektrības cena (&euro;/kWh)
+					<input type="number" id="home-price" value="0.20" min="0" step="0.01" />
+				</label>
+			</div>
+			<p class="note">
+				Vienāds patēriņš pieņemts visiem degvielas veidiem vienkāršības labad -- reālais patēriņš atšķiras pēc
+				degvielas veida. EV laika tarifiem (&euro;/min) izmantota savienotāja vidējā jauda, ne precīza vērtība.
+			</p>
+
+			<div id="results" class="results" aria-live="polite"></div>
+
+			<script type="application/json" id="calc-data" set:html={JSON.stringify(calcData)} />
+			<script>
+				import { evEnergyCostPer100km, evTimeCostPer100km, fuelCostPer100km } from "../../lib/calculator";
+				import { formatPrice } from "../../lib/prices";
+
+				interface CalcData {
+					fuel: { product: string; label: string; priceMilli: number }[];
+					ev: {
+						networkName: string;
+						connector: string | null;
+						currentType: "AC" | "DC";
+						minEnergyMilliPerKwh: number | null;
+						minTimeMilliPerMin: number | null;
+						avgPowerKw: number | null;
+					}[];
+				}
+
+				const dataEl = document.getElementById("calc-data");
+				const data: CalcData = JSON.parse(dataEl?.textContent ?? "{}");
+
+				const fuelInput = document.getElementById("fuel-consumption") as HTMLInputElement;
+				const evInput = document.getElementById("ev-consumption") as HTMLInputElement;
+				const homeInput = document.getElementById("home-price") as HTMLInputElement;
+				const resultsEl = document.getElementById("results") as HTMLElement;
+
+				const CONNECTOR_LABELS: Record<string, string> = { CCS2: "CCS2", CHADEMO: "CHAdeMO", TYPE2: "Type 2" };
+
+				function render() {
+					const fuelConsumption = Number(fuelInput.value) || 0;
+					const evConsumption = Number(evInput.value) || 0;
+					const homePriceMilli = (Number(homeInput.value) || 0) * 1000;
+
+					const rows: { label: string; costMilli: number }[] = [];
+
+					for (const f of data.fuel) {
+						rows.push({ label: f.label, costMilli: fuelCostPer100km(f.priceMilli, fuelConsumption) });
+					}
+
+					for (const t of data.ev) {
+						const connectorLabel = t.connector ? (CONNECTOR_LABELS[t.connector] ?? t.connector) : t.currentType;
+						const label = `${t.networkName} (${connectorLabel})`;
+						if (t.minEnergyMilliPerKwh !== null) {
+							rows.push({ label, costMilli: evEnergyCostPer100km(t.minEnergyMilliPerKwh, evConsumption) });
+						} else if (t.minTimeMilliPerMin !== null && t.avgPowerKw) {
+							rows.push({
+								label,
+								costMilli: evTimeCostPer100km(t.minTimeMilliPerMin, t.avgPowerKw, evConsumption),
+							});
+						}
+					}
+
+					if (homePriceMilli > 0) {
+						rows.push({ label: "Uzlāde mājās", costMilli: evEnergyCostPer100km(homePriceMilli, evConsumption) });
+					}
+
+					rows.sort((a, b) => a.costMilli - b.costMilli);
+
+					resultsEl.innerHTML = rows
+						.map(
+							(r) => `
+						<div class="result-row">
+							<span class="result-label">${r.label}</span>
+							<span class="result-cost">${formatPrice(r.costMilli)}&nbsp;&euro;</span>
+						</div>
+					`,
+						)
+						.join("");
+				}
+
+				for (const input of [fuelInput, evInput, homeInput]) {
+					input.addEventListener("input", render);
+				}
+				render();
+			</script>
+		</>
+	)}
+</Layout>
+
+<style>
+	h1 {
+		font-size: 1.5rem;
+		margin: 1.5rem 0 0.75rem;
+	}
+	.intro {
+		color: var(--color-ink-muted);
+		max-width: 42rem;
+		margin: 0 0 1.5rem;
+	}
+	.inputs {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+		gap: 1rem;
+		max-width: 42rem;
+		margin-bottom: 0.75rem;
+	}
+	.inputs label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		font-size: 0.85rem;
+		color: var(--color-ink-muted);
+	}
+	.inputs input {
+		font-family: var(--font-mono);
+		font-size: 1rem;
+		padding: 0.5rem 0.6rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		background: var(--color-surface);
+		color: var(--color-ink);
+	}
+	.note {
+		color: var(--color-ink-muted);
+		font-size: 0.8rem;
+		max-width: 42rem;
+		margin: 0 0 2rem;
+	}
+	.results {
+		max-width: 30rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+	:global(.result-row) {
+		display: flex;
+		justify-content: space-between;
+		padding: 0.65rem 0.9rem;
+		border-bottom: 1px solid var(--color-border);
+		font-size: 0.95rem;
+	}
+	:global(.result-row:last-child) {
+		border-bottom: none;
+	}
+	:global(.result-cost) {
+		font-family: var(--font-mono);
+		font-weight: 600;
+	}
+</style>
