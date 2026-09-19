@@ -6,6 +6,7 @@ export type RunStatus = "ok" | "not_modified" | "partial" | "error" | "blocked" 
 
 export interface SourceRow {
 	id: string;
+	networkId: string | null;
 	networkName: string | null;
 	kind: string;
 	url: string;
@@ -18,6 +19,7 @@ export interface SourceRow {
 
 interface SourceQueryRow {
 	id: string;
+	network_id: string | null;
 	network_name: string | null;
 	kind: string;
 	url: string;
@@ -29,7 +31,7 @@ interface SourceQueryRow {
 }
 
 const QUERY = `
-	SELECT s.id, n.name AS network_name, s.kind, s.url, s.status, s.attribution,
+	SELECT s.id, s.network_id, n.name AS network_name, s.kind, s.url, s.status, s.attribution,
 	       r.started_at AS last_run_at, r.status AS last_run_status, r.items AS last_run_items
 	FROM sources s
 	LEFT JOIN networks n ON n.id = s.network_id
@@ -45,6 +47,7 @@ export async function getSourceStatuses(db: D1Database): Promise<SourceRow[]> {
 	const { results } = await db.prepare(QUERY).all<SourceQueryRow>();
 	return results.map((row) => ({
 		id: row.id,
+		networkId: row.network_id,
 		networkName: row.network_name,
 		kind: row.kind,
 		url: row.url,

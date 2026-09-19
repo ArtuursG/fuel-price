@@ -1,0 +1,71 @@
+---
+import { env } from "cloudflare:workers";
+import Layout from "../../layouts/Layout.astro";
+import { getAllNetworks } from "../../lib/networks";
+
+const networks = await getAllNetworks(env.DB);
+
+const KIND_LABELS: Record<string, string> = { fuel: "degviela", ev: "EV uzlāde" };
+---
+
+<Layout title="Tīkli - fuel-price">
+	<h1>Tīkli</h1>
+	<p class="intro">Visi šajā vietnē salīdzinātie degvielas un EV uzlādes tīkli.</p>
+
+	<ul class="network-list">
+		{networks.map((n) => (
+			<li>
+				<a href={`/tikli/${n.id}/`} class="network-list__link">
+					<span class="network-list__name">{n.name}</span>
+					<span class="network-list__kinds">{n.kinds.map((k) => KIND_LABELS[k] ?? k).join(", ")}</span>
+				</a>
+			</li>
+		))}
+	</ul>
+</Layout>
+
+<style>
+	h1 {
+		font-size: 1.5rem;
+		margin: 1.5rem 0 0.75rem;
+	}
+	.intro {
+		color: var(--color-ink-muted);
+		max-width: 42rem;
+		margin: 0 0 1.5rem;
+	}
+	.network-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+		gap: 0.75rem;
+	}
+	.network-list__link {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 1rem 1.1rem;
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		background: var(--color-surface);
+		text-decoration: none;
+		color: var(--color-ink);
+		transition:
+			border-color 0.1s ease,
+			transform 0.1s ease;
+	}
+	.network-list__link:hover {
+		border-color: var(--color-pylon);
+		transform: translateY(-1px);
+	}
+	.network-list__name {
+		font-weight: 600;
+	}
+	.network-list__kinds {
+		font-size: 0.8rem;
+		color: var(--color-ink-muted);
+		text-transform: capitalize;
+	}
+</style>
