@@ -6,7 +6,15 @@ import { CONNECTOR_LABELS, getEvTariffSummary } from "../../lib/ev";
 import { getSourceStatuses, STATUS_LABELS } from "../../lib/sources";
 
 const [tariffs, allSources] = await Promise.all([getEvTariffSummary(env.DB), getSourceStatuses(env.DB)]);
-const pendingEvSources = allSources.filter((s) => s.kind === "ev" && s.status !== "active");
+
+// A network can already have real data from a DIFFERENT source than its own
+// (e.g. Elektrum Drive's tariffs come via emobi-ev, not elektrum-ev, which
+// itself was never fetched) -- exclude those so the page doesn't show a
+// network as both priced above and "still being investigated" below.
+const networksWithData = new Set(tariffs.map((t) => t.networkName));
+const pendingEvSources = allSources.filter(
+	(s) => s.kind === "ev" && s.status !== "active" && !(s.networkName && networksWithData.has(s.networkName)),
+);
 ---
 
 <Layout title="EV uzlāde - fuel-price">
