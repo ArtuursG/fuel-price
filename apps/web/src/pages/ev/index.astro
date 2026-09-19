@@ -1,45 +1,97 @@
 ---
 import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
+import { formatPrice } from "../../lib/prices";
+import { CONNECTOR_LABELS, getEvTariffSummary } from "../../lib/ev";
 import { getSourceStatuses, STATUS_LABELS } from "../../lib/sources";
 
-const allSources = await getSourceStatuses(env.DB);
-const evSources = allSources.filter((s) => s.kind === "ev");
+const [tariffs, allSources] = await Promise.all([getEvTariffSummary(env.DB), getSourceStatuses(env.DB)]);
+const pendingEvSources = allSources.filter((s) => s.kind === "ev" && s.status !== "active");
 ---
 
 <Layout title="EV uzlāde - fuel-price">
 	<h1>EV uzlāde</h1>
-	<p class="intro">
-		EV uzlādes tarifu salīdzinājums vēl nav ieviests -- kolektors pagaidām nolasa tikai degvielas cenas. Zemāk
-		redzami tīkli, kuriem tas plānots, un to pašreizējais statuss.
-	</p>
 
-	<div class="table-wrap">
-		<table>
-			<thead>
-				<tr>
-					<th scope="col">Tīkls</th>
-					<th scope="col">Statuss</th>
-				</tr>
-			</thead>
-			<tbody>
-				{evSources.map((source) => (
-					<tr>
-						<th scope="row">
-							<a href={source.url} rel="noopener noreferrer" target="_blank">{source.networkName ?? source.id}</a>
-						</th>
-						<td><span class="badge" data-status={source.status}>{STATUS_LABELS[source.status]}</span></td>
-					</tr>
-				))}
-			</tbody>
-		</table>
-	</div>
+	{tariffs.length === 0 ? (
+		<p class="intro">Vēl nav datu -- kolektors EV tarifus vēl nav nolasījis.</p>
+	) : (
+		<>
+			<p class="intro">
+				Lētākā zināmā cena katram tīklam un savienotāja tipam. Vienā tīklā dažādās vietās cena var atšķirties --
+				šeit rādīta lētākā, ne vidējā.
+			</p>
+			<div class="table-wrap">
+				<table>
+					<caption class="sr-only">EV uzlādes tarifi pa tīkliem un savienotāju tipiem</caption>
+					<thead>
+						<tr>
+							<th scope="col">Tīkls</th>
+							<th scope="col">Savienotājs</th>
+							<th scope="col">Strāva</th>
+							<th scope="col">Lētākā cena</th>
+							<th scope="col">Vietu skaits</th>
+						</tr>
+					</thead>
+					<tbody>
+						{tariffs.map((t) => (
+							<tr>
+								<th scope="row">{t.networkName}</th>
+								<td>{t.connector ? (CONNECTOR_LABELS[t.connector] ?? t.connector) : "-"}</td>
+								<td>{t.currentType}</td>
+								<td>
+									{t.minEnergyMilliPerKwh !== null && (
+										<>{formatPrice(t.minEnergyMilliPerKwh)}&nbsp;&euro;/kWh</>
+									)}
+									{t.minEnergyMilliPerKwh !== null && t.minTimeMilliPerMin !== null && " / "}
+									{t.minTimeMilliPerMin !== null && (
+										<>{formatPrice(t.minTimeMilliPerMin)}&nbsp;&euro;/min</>
+									)}
+								</td>
+								<td>{t.stationCount}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</>
+	)}
+
+	{pendingEvSources.length > 0 && (
+		<>
+			<h2>Citi EV tīkli</h2>
+			<p class="intro">Tīkli, kuriem uzlādes tarifu nolase vēl nav ieviesta vai izpētīta.</p>
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr>
+							<th scope="col">Tīkls</th>
+							<th scope="col">Statuss</th>
+						</tr>
+					</thead>
+					<tbody>
+						{pendingEvSources.map((source) => (
+							<tr>
+								<th scope="row">
+									<a href={source.url} rel="noopener noreferrer" target="_blank">{source.networkName ?? source.id}</a>
+								</th>
+								<td><span class="badge" data-status={source.status}>{STATUS_LABELS[source.status]}</span></td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</>
+	)}
 </Layout>
 
 <style>
 	h1 {
 		font-size: 1.5rem;
 		margin: 1.5rem 0 0.75rem;
+	}
+	h2 {
+		font-size: 1.15rem;
+		margin: 2.5rem 0 0.5rem;
 	}
 	.intro {
 		color: var(--color-ink-muted);
@@ -78,5 +130,12 @@ const evSources = allSources.filter((s) => s.kind === "ev");
 		border-radius: 999px;
 		border: 1px solid var(--color-border);
 		color: var(--color-ink-muted);
+	}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
 	}
 </style>
