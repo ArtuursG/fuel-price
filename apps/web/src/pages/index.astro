@@ -3,9 +3,13 @@ import { env } from "cloudflare:workers";
 import Layout from "../layouts/Layout.astro";
 import PriceCard from "../components/PriceCard.astro";
 import PriceTable from "../components/PriceTable.astro";
-import { cheapest, formatPrice, getLastUpdated, getLatestFuelPrices } from "../lib/prices";
+import { cheapest, formatPrice, getLastUpdated, getLatestFuelPrices, getPriceHistory, historyKey } from "../lib/prices";
 
-const [products, lastUpdated] = await Promise.all([getLatestFuelPrices(env.DB), getLastUpdated(env.DB)]);
+const [products, lastUpdated, history] = await Promise.all([
+	getLatestFuelPrices(env.DB),
+	getLastUpdated(env.DB),
+	getPriceHistory(env.DB),
+]);
 
 const networkCount = new Set(products.flatMap((row) => row.prices.map((p) => p.networkId))).size;
 const headline = products.find((row) => row.product === "P95") ?? products[0];
@@ -47,7 +51,17 @@ const datasetJsonLd = {
 					{networkCount} tīkli salīdzināti{lastUpdated && <> &middot; atjaunots {formatUpdatedAt(lastUpdated)}</>}
 				</p>
 				<div class="pylon-grid">
-					{products.map((row) => <PriceCard label={row.label} product={row.product} price={cheapest(row)} />)}
+					{products.map((row) => {
+						const price = cheapest(row);
+						return (
+							<PriceCard
+								label={row.label}
+								product={row.product}
+								price={price}
+								history={history.get(historyKey(price.networkId, price.scope, row.product))}
+							/>
+						);
+					})}
 				</div>
 			</section>
 
