@@ -1,0 +1,143 @@
+---
+import { env } from "cloudflare:workers";
+import Layout from "../../layouts/Layout.astro";
+import { COUNTRY_LABELS, getBorderComparison, type BorderCountry } from "../../lib/borders";
+import { formatPrice } from "../../lib/prices";
+
+const comparison = await getBorderComparison(env.DB);
+const countries: BorderCountry[] = ["LV", "LT", "EE"];
+
+function cheapestCountry(prices: Partial<Record<BorderCountry, number>>): BorderCountry | null {
+	let min: BorderCountry | null = null;
+	for (const c of countries) {
+		const p = prices[c];
+		if (p === undefined) continue;
+		if (min === null || p < (prices[min] as number)) min = c;
+	}
+	return min;
+}
+
+function formatWeek(weekMonday: string): string {
+	return new Date(`${weekMonday}T00:00:00Z`).toLocaleDateString("lv-LV", {
+		timeZone: "UTC",
+		day: "numeric",
+		month: "long",
+		year: "numeric",
+	});
+}
+---
+
+<Layout title="Pārrobežu cenas - fuel-price">
+	<h1>Latvija, Lietuva, Igaunija</h1>
+
+	{comparison.rows.length === 0 ? (
+		<p class="intro">Vēl nav datu -- kolektors ES nedēļas biļetenu vēl nav nolasījis.</p>
+	) : (
+		<>
+			<p class="intro">
+				Nedēļas vidējās mazumtirdzniecības cenas ar nodokļiem, nedēļa, kas sākas {formatWeek(comparison.weekMonday!)}.
+				Avots visām trim valstīm ir tas pats -- Eiropas Komisijas nedēļas degvielas biļetens -- tāpēc cenas ir
+				savstarpēji salīdzināmas. Šis NAV tas pats, kas šīs vietnes pārējās lapās redzamā "šodienas lētākā cena":
+				tur ir konkrētu Latvijas tīklu cenas šodien, šeit -- visas valsts vidējā cena nedēļā.
+			</p>
+
+			<div class="table-wrap">
+				<table>
+					<caption class="sr-only">Nedēļas vidējās degvielas cenas Latvijā, Lietuvā un Igaunijā</caption>
+					<thead>
+						<tr>
+							<th scope="col">Produkts</th>
+							{countries.map((c) => <th scope="col">{COUNTRY_LABELS[c]}</th>)}
+						</tr>
+					</thead>
+					<tbody>
+						{comparison.rows.map((row) => {
+							const cheapest = cheapestCountry(row.prices);
+							return (
+								<tr>
+									<th scope="row">{row.label}</th>
+									{countries.map((c) => {
+										const price = row.prices[c];
+										return (
+											<td class={c === cheapest ? "cheapest" : undefined}>
+												{price !== undefined ? <>{formatPrice(price)}&nbsp;&euro;</> : <span class="table-dash">-</span>}
+											</td>
+										);
+									})}
+								</tr>
+							);
+						})}
+					</tbody>
+				</table>
+			</div>
+
+			<p class="note">
+				Ikdienas Lietuvas staciju līmeņa dati (LEA) vēl nav pievienoti -- kad tie būs pieejami, pievienosies
+				precīzāks, ikdienas pārrobežu salīdzinājums šai nedēļas skata vietā.
+			</p>
+		</>
+	)}
+</Layout>
+
+<style>
+	h1 {
+		font-size: 1.5rem;
+		margin: 1.5rem 0 0.75rem;
+	}
+	.intro {
+		color: var(--color-ink-muted);
+		max-width: 42rem;
+		margin: 0 0 1.5rem;
+	}
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+	}
+	table {
+		font-size: 0.95rem;
+	}
+	th,
+	td {
+		padding: 0.65rem 0.85rem;
+		text-align: left;
+		border-bottom: 1px solid var(--color-border);
+		white-space: nowrap;
+	}
+	thead th {
+		font-size: 0.8rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-ink-muted);
+		background: var(--color-surface);
+	}
+	tbody tr:last-child td,
+	tbody tr:last-child th {
+		border-bottom: none;
+	}
+	td {
+		font-family: var(--font-mono);
+	}
+	td.cheapest {
+		background: var(--color-cheapest-bg);
+		border-left: 3px solid var(--color-cheapest-border);
+		border-right: 3px solid var(--color-cheapest-border);
+		font-weight: 600;
+	}
+	.table-dash {
+		color: var(--color-neutral);
+	}
+	.note {
+		color: var(--color-ink-muted);
+		font-size: 0.875rem;
+		max-width: 42rem;
+		margin-top: 1.5rem;
+	}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+	}
+</style>

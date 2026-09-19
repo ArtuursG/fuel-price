@@ -23,7 +23,7 @@ export interface ProductRow {
 }
 
 const PRODUCT_ORDER = ["P95", "P98", "DSL", "DSL_PLUS", "HVO", "LPG", "CNG", "ADBLUE", "E85", "DSL_AGRO"];
-const PRODUCT_LABELS: Record<string, string> = {
+export const PRODUCT_LABELS: Record<string, string> = {
 	P95: "95",
 	P98: "98",
 	DSL: "D",
