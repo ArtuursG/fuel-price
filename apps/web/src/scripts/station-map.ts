@@ -189,8 +189,24 @@ try {
     map.on("mouseenter",layer,() => {if(map)map.getCanvas().style.cursor="pointer";});
     map.on("mouseleave",layer,() => {if(map)map.getCanvas().style.cursor="";});
   }
-  map.on("error",() => {message.textContent="Daļu kartes neizdevās ielādēt. Staciju saraksts un filtri joprojām ir pieejami.";});
-} catch {
-  message.textContent="Šajā pārlūkā karti neizdevās palaist. Izmanto staciju sarakstu un filtrus.";
+  // Kļūdas TIEK parādītas ar iemeslu, nevis noklusētas: iepriekš gan šis
+  // handleris, gan catch zemāk tikai nomainīja tekstu, tāpēc reālais cēlonis
+  // (WebGL, tīkls, stila fails) nekad nebija redzams ne lietotājam, ne konsolē.
+  map.on("error",(event) => {
+    const reason = event?.error?.message ?? "nezināms iemesls";
+    console.error("Kartes kļūda:", event?.error ?? event);
+    message.textContent=`Daļu kartes neizdevās ielādēt (${reason}). Staciju saraksts un filtri joprojām ir pieejami.`;
+  });
+  // Ja stils nekad neielādējas, "load" nenotiek un lietotājs paliek ar tukšu
+  // pelēku lauku un mūžīgu "Karte ielādējas" -- pasakām to skaidri.
+  setTimeout(() => {
+    if (mapReady) return;
+    console.warn("Kartes stils nav ielādējies 15 sekunžu laikā.");
+    message.textContent="Karte joprojām ielādējas vai netiek atbildēts no kartes servera (tiles.openfreemap.org). Staciju saraksts un filtri zemāk darbojas.";
+  }, 15000);
+} catch (error) {
+  console.error("Karti neizdevās palaist:", error);
+  const reason = error instanceof Error ? error.message : String(error);
+  message.textContent=`Šajā pārlūkā karti neizdevās palaist (${reason}). Izmanto staciju sarakstu un filtrus.`;
   visibleOnly.checked=false;renderList();
 }
