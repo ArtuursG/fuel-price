@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 import Layout from "../layouts/Layout.astro";
 import PriceCard from "../components/PriceCard.astro";
 import PriceTable from "../components/PriceTable.astro";
-import { cheapest, formatPrice, getLastUpdated, getLatestFuelPrices, getPriceHistory, historyKey } from "../lib/prices";
+import { cheapest, getLastUpdated, getLatestFuelPrices, getPriceHistory, historyKey } from "../lib/prices";
 
 const [products, lastUpdated, history] = await Promise.all([
 	getLatestFuelPrices(env.DB),
@@ -11,10 +11,14 @@ const [products, lastUpdated, history] = await Promise.all([
 	getPriceHistory(env.DB),
 ]);
 
+const mainProducts = products.filter((row) => ["P95", "P98", "DSL", "DSL_PLUS", "HVO", "LPG"].includes(row.product));
+const otherProducts = products.filter((row) => !mainProducts.includes(row));
+
 const networkCount = new Set(products.flatMap((row) => row.prices.map((p) => p.networkId))).size;
-const headline = products.find((row) => row.product === "P95") ?? products[0];
+
 
 function formatUpdatedAt(iso: string): string {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return new Date(`${iso}T00:00:00Z`).toLocaleDateString("lv-LV");
 	return new Date(iso).toLocaleString("lv-LV", { timeZone: "Europe/Riga", dateStyle: "short", timeStyle: "short" });
 }
 
@@ -40,18 +44,13 @@ const datasetJsonLd = {
 	) : (
 		<>
 			<section class="hero" aria-labelledby="today-heading">
-				<h1 id="today-heading">Šodien lētākā cena Rīgā</h1>
-				{headline && (
-					<p class="hero__headline">
-						<span class="hero__price">{formatPrice(cheapest(headline).priceMilli)}&nbsp;&euro;/l</span>
-						<span class="hero__detail">{headline.label} &middot; {cheapest(headline).networkName}</span>
-					</p>
-				)}
+				<h1 id="today-heading">Degvielas cenu pārskats</h1>
 				<p class="hero__meta">
-					{networkCount} tīkli salīdzināti{lastUpdated && <> &middot; atjaunots {formatUpdatedAt(lastUpdated)}</>}
+					{networkCount} tīkli. {lastUpdated && <>Pēdējā veiksmīgā pārbaude {formatUpdatedAt(lastUpdated)}.</>}
 				</p>
+				<p class="section-note">Zemākās novērotās cenas pa produktiem. Vieta un cenas vecums norādīts pie katras cenas.</p>
 				<div class="pylon-grid">
-					{products.map((row) => {
+					{mainProducts.map((row) => {
 						const price = cheapest(row);
 						return (
 							<PriceCard
@@ -66,50 +65,23 @@ const datasetJsonLd = {
 			</section>
 
 			<section aria-labelledby="all-networks-heading">
-				<h2 id="all-networks-heading">Visi tīkli šodien</h2>
-				<PriceTable products={products} />
+				<h2 id="all-networks-heading">Salīdzinājums pa tīkliem</h2>
+				<PriceTable products={mainProducts} />
+                {otherProducts.length > 0 && <details class="other-products"><summary>CNG, AdBlue un citi produkti</summary><p>CNG cena norādīta par kilogramu. Agro dīzelis paredzēts lauksaimniecības tehnikai, nevis vieglajām automašīnām.</p><PriceTable products={otherProducts} /></details>}
 			</section>
 		</>
 	)}
 </Layout>
 
 <style>
-	h1 {
-		font-size: 1.75rem;
-		margin: 1.5rem 0 0.5rem;
-	}
-	h2 {
-		font-size: 1.15rem;
-		margin: 2.5rem 0 1rem;
-	}
-	.hero__headline {
-		display: flex;
-		align-items: baseline;
-		gap: 0.6rem;
-		flex-wrap: wrap;
-		margin: 0 0 0.35rem;
-	}
-	.hero__price {
-		font-family: var(--font-mono);
-		font-weight: 700;
-		font-size: clamp(2rem, 5vw, 2.75rem);
-		color: var(--color-cheapest-border);
-	}
-	.hero__detail {
-		font-size: 1rem;
-		color: var(--color-ink-muted);
-	}
-	.hero__meta {
-		font-size: 0.85rem;
-		color: var(--color-ink-muted);
-		margin: 0 0 1.5rem;
-	}
-	.pylon-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-		gap: 0.9rem;
-	}
-	.empty-state {
-		color: var(--color-ink-muted);
-	}
+    .other-products { margin-top: 1.5rem; font-size: 0.85rem; }
+    .other-products summary { cursor: pointer; padding: 0.75rem 0; color: var(--color-pylon); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.5rem); letter-spacing: -0.04em; font-weight: 600; margin: 2.5rem 0 0.45rem; }
+    h2 { font-size: 1.25rem; font-weight: 600; margin: 2.5rem 0 1rem; letter-spacing: -0.02em; }
+    .hero__meta, .section-note { color: var(--color-ink-muted); font-size: 0.85rem; }
+    .hero__meta { margin: 0 0 2rem; }
+    .section-note { margin: 0 0 0.75rem; }
+    .pylon-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); border-top: 2px solid var(--color-ink); border-left: 1px solid var(--color-border); }
+    .empty-state { color: var(--color-ink-muted); }
+    @media (max-width: 420px) { .pylon-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>

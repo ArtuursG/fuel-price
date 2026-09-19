@@ -66,7 +66,7 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 											<td>{formatPrice(p.priceMilli)}&nbsp;&euro;</td>
 											<td>{p.whereText ?? (p.scope === "network" ? "Visā tīklā" : "-")}</td>
 											<td>{AGE_LABELS[p.age]}</td>
-											<td>{ORIGIN_LABELS[p.origin]}</td>
+											<td>{p.sourceUrl ? <a href={p.sourceUrl}>{p.origin ? ORIGIN_LABELS[p.origin] : "Avots"}</a> : "izcelsme nav zināma"}</td>
 										</tr>
 									)),
 								)}
