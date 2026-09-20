@@ -68,10 +68,19 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 </div>
 
 <style>
+	/* Bez pasvītrojuma, bet saite paliek saite: krāsa, kursors un
+	   pasvītrojums uz hover/fokusu to joprojām parāda. */
 	.network-cell {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
+		color: var(--color-ink);
+		text-decoration: none;
+	}
+	.network-cell:hover,
+	.network-cell:focus-visible {
+		color: var(--color-pylon);
+		text-decoration: underline;
 	}
 	.price-cell {
 		display: inline-flex;

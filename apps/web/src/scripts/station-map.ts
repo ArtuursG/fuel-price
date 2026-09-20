@@ -119,7 +119,7 @@ function badge(station: MapStation) {
 // Kartes marķieriem logo jābūt reģistrētam MapLibre attēlu reģistrā. PNG un
 // SVG abus ielasām caur <img> un uzzīmējam uz audekla, lai iegūtu pikseļus;
 // map.loadImage() ar SVG nestrādā.
-const MARKER_PX = 44;
+const MARKER_PX = 64;
 async function registerLogoImages(target: MapLibreMap): Promise<void> {
   const names = [...new Set(stations.map(station => canonicalNetwork(station.network)))];
   await Promise.all(names.map(async name => {
@@ -344,9 +344,9 @@ try {
     map.addLayer({id:"cluster-count",type:"symbol",source:"stations",filter:["has","point_count"],layout:{"text-field":["get","point_count_abbreviated"],"text-font":["Noto Sans Regular"],"text-size":12},paint:{"text-color":"#fff"}});
     // Ar logo aplis ir balts (krāsains fons logo nomāktu), un tīkla krāsa
     // pāriet uz apmali; bez logo viss paliek kā bijis.
-    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["case",["!=",["get","logo"],""],"#ffffff",["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL]],"circle-radius":16,"circle-stroke-color":["case",["!=",["get","logo"],""],["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"#ffffff"],"circle-stroke-width":2}});
-    map.addLayer({id:"station-logos",type:"symbol",source:"stations",filter:["all",["!",["has","point_count"]],["!=",["get","logo"],""]],layout:{"icon-image":["get","logo"],"icon-size":0.5,"icon-allow-overlap":true,"icon-ignore-placement":true}});
-    map.addLayer({id:"station-labels",type:"symbol",source:"stations",filter:["all",["!",["has","point_count"]],["==",["get","logo"],""]],layout:{"text-field":["get","mark"],"text-font":["Noto Sans Regular"],"text-size":10,"text-allow-overlap":true},paint:{"text-color":"#fff"}});
+    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["case",["!=",["get","logo"],""],"#ffffff",["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL]],"circle-radius":["interpolate",["linear"],["zoom"],10,15,14,19],"circle-stroke-color":["case",["!=",["get","logo"],""],["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"#ffffff"],"circle-stroke-width":3}});
+    map.addLayer({id:"station-logos",type:"symbol",source:"stations",filter:["all",["!",["has","point_count"]],["!=",["get","logo"],""]],layout:{"icon-image":["get","logo"],"icon-size":["interpolate",["linear"],["zoom"],10,0.62,14,0.82],"icon-allow-overlap":true,"icon-ignore-placement":true}});
+    map.addLayer({id:"station-labels",type:"symbol",source:"stations",filter:["all",["!",["has","point_count"]],["==",["get","logo"],""]],layout:{"text-field":["get","mark"],"text-font":["Noto Sans Regular"],"text-size":12,"text-allow-overlap":true},paint:{"text-color":"#fff"}});
     mapReady=true; message.textContent="Pietuvini karti vai izvēlies staciju sarakstā. Skaitļi apļos norāda staciju skaitu.";renderList();
   });
   map.on("moveend",renderList);
