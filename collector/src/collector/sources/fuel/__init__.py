@@ -5,7 +5,7 @@ registry so they're testable in isolation (see tests/test_sources_*.py).
 
 from collector.core.registry import register
 from collector.core.runner import FuelSource
-from collector.sources.fuel import circlek, straujupite, viada, virsi
+from collector.sources.fuel import circlek, kool, straujupite, viada, virsi
 
 register(
     FuelSource(
@@ -44,5 +44,17 @@ register(
         url="https://www.viada.lv/zemakas-degvielas-cenas/",
         parser=viada.parse,
         parser_version="viada@1",
+    )
+)
+
+register(
+    FuelSource(
+        source_id=kool.SOURCE_ID,
+        network_id=kool.NETWORK_ID,
+        url=kool.URL,
+        parser=kool.parse,
+        parser_version="kool@1",
+        # Cenas ir otrā dokumentā, uz kuru lapa norāda -- sk. kool.py.
+        follow=kool.find_snippet_url,
     )
 )
