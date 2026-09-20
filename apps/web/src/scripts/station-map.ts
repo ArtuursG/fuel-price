@@ -8,7 +8,8 @@
 // paliek pilnvērtīga.
 import type {GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker} from "maplibre-gl";
 import type {FeatureCollection, Point} from "geojson";
-import {filterStations, euro, connectorLabel, routeUrl, wazeUrl, safeSourceUrl, tariffText, type MapStation, type StationFilters} from "../lib/station-map";
+import {filterStations, euro, connectorLabel, routeUrl, wazeUrl, safeSourceUrl, tariffText, canonicalNetwork, type MapStation, type StationFilters} from "../lib/station-map";
+import {logoForNetworkName} from "../lib/logos";
 
 declare const maplibregl: typeof import("maplibre-gl");
 
@@ -102,9 +103,58 @@ function networkMark(station: MapStation): string {
   return known[station.network] ?? station.network.replace(/[^\p{L}\p{N}]/gu, "").slice(0,2).toLocaleUpperCase("lv");
 }
 function badge(station: MapStation) {
+  const logo = logoForNetworkName(canonicalNetwork(station.network));
+  if (logo) {
+    const img = document.createElement("img");
+    img.src = logo; img.alt = ""; img.loading = "lazy";
+    img.className = `network-mark network-mark--logo network-mark--${station.kind}`;
+    img.title = station.network;
+    return img;
+  }
   const mark = element("span", networkMark(station) || "D", `network-mark network-mark--${station.kind}`);
   mark.title = station.network; mark.setAttribute("aria-hidden", "true");
   return mark;
+}
+
+// Kartes marķieriem logo jābūt reģistrētam MapLibre attēlu reģistrā. PNG un
+// SVG abus ielasām caur <img> un uzzīmējam uz audekla, lai iegūtu pikseļus;
+// map.loadImage() ar SVG nestrādā.
+const MARKER_PX = 44;
+async function registerLogoImages(target: MapLibreMap): Promise<void> {
+  const names = [...new Set(stations.map(station => canonicalNetwork(station.network)))];
+  await Promise.all(names.map(async name => {
+    const url = logoForNetworkName(name);
+    const id = markerImageId(name);
+    if (!url || target.hasImage(id)) return;
+    try {
+      const bitmap = await loadBitmap(url);
+      if (!target.hasImage(id)) target.addImage(id, bitmap, {pixelRatio: 2});
+    } catch {
+      // Logo neielādējās -- marķieris paliek ar burtiem, karte strādā tālāk.
+    }
+  }));
+}
+function markerImageId(networkName: string): string {
+  return `logo-${networkName.toLocaleLowerCase("lv").replace(/[^a-z0-9]/g, "")}`;
+}
+function loadBitmap(url: string): Promise<ImageData> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = MARKER_PX; canvas.height = MARKER_PX;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("nav 2d konteksta")); return; }
+      // Ietilpinām kvadrātā, saglabājot proporcijas -- logo ir dažādu formu.
+      const scale = Math.min(MARKER_PX / img.width, MARKER_PX / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (MARKER_PX - w) / 2, (MARKER_PX - h) / 2, w, h);
+      resolve(ctx.getImageData(0, 0, MARKER_PX, MARKER_PX));
+    };
+    img.onerror = () => reject(new Error(`neizdevās ielādēt ${url}`));
+    img.src = url;
+  });
 }
 function priceLabel(tariff: MapStation["tariffs"][number]): string {
   const parts = [];
@@ -208,7 +258,7 @@ function renderList() {
 }
 
 function geojson(): FeatureCollection<Point> {
-  return {type:"FeatureCollection",features:filtered.map((station) => ({type:"Feature",geometry:{type:"Point",coordinates:[station.lon,station.lat]},properties:{id:station.id,kind:station.kind,mark:networkMark(station)}}))};
+  return {type:"FeatureCollection",features:filtered.map((station) => ({type:"Feature",geometry:{type:"Point",coordinates:[station.lon,station.lat]},properties:{id:station.id,kind:station.kind,mark:networkMark(station),logo:logoForNetworkName(canonicalNetwork(station.network))?markerImageId(canonicalNetwork(station.network)):""}}))};
 }
 
 function applyFilters() {
@@ -285,13 +335,18 @@ try {
   map.on("styledata",() => {diagnostics.styleData++;});
   map.on("sourcedata",() => {diagnostics.sourceData++;});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
-  map.on("load", () => {
+  map.on("load", async () => {
+    if(!map) return;
+    await registerLogoImages(map);
     if(!map) return;
     map.addSource("stations",{type:"geojson",data:geojson(),cluster:true,clusterMaxZoom:12,clusterRadius:40});
     map.addLayer({id:"clusters",type:"circle",source:"stations",filter:["has","point_count"],paint:{"circle-color":COLOR_INK,"circle-radius":["step",["get","point_count"],17,25,22,100,28],"circle-stroke-color":"#fff","circle-stroke-width":2}});
     map.addLayer({id:"cluster-count",type:"symbol",source:"stations",filter:["has","point_count"],layout:{"text-field":["get","point_count_abbreviated"],"text-font":["Noto Sans Regular"],"text-size":12},paint:{"text-color":"#fff"}});
-    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"circle-radius":16,"circle-stroke-color":"#fff","circle-stroke-width":2}});
-    map.addLayer({id:"station-labels",type:"symbol",source:"stations",filter:["!",["has","point_count"]],layout:{"text-field":["get","mark"],"text-font":["Noto Sans Regular"],"text-size":10,"text-allow-overlap":true},paint:{"text-color":"#fff"}});
+    // Ar logo aplis ir balts (krāsains fons logo nomāktu), un tīkla krāsa
+    // pāriet uz apmali; bez logo viss paliek kā bijis.
+    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["case",["!=",["get","logo"],""],"#ffffff",["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL]],"circle-radius":16,"circle-stroke-color":["case",["!=",["get","logo"],""],["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"#ffffff"],"circle-stroke-width":2}});
+    map.addLayer({id:"station-logos",type:"symbol",source:"stations",filter:["all",["!",["has","point_count"]],["!=",["get","logo"],""]],layout:{"icon-image":["get","logo"],"icon-size":0.5,"icon-allow-overlap":true,"icon-ignore-placement":true}});
+    map.addLayer({id:"station-labels",type:"symbol",source:"stations",filter:["all",["!",["has","point_count"]],["==",["get","logo"],""]],layout:{"text-field":["get","mark"],"text-font":["Noto Sans Regular"],"text-size":10,"text-allow-overlap":true},paint:{"text-color":"#fff"}});
     mapReady=true; message.textContent="Pietuvini karti vai izvēlies staciju sarakstā. Skaitļi apļos norāda staciju skaitu.";renderList();
   });
   map.on("moveend",renderList);
