@@ -1,5 +1,6 @@
 ---
-import { AGE_LABELS, ORIGIN_LABELS, formatPrice, formatObservedAt, type NetworkPrice } from "../lib/prices";
+import PriceInfo from "./PriceInfo.astro";
+import { formatPrice, type NetworkPrice } from "../lib/prices";
 import { buildSparklinePath } from "../lib/sparkline";
 
 interface Props {
@@ -34,14 +35,10 @@ const changeText =
 			<path d={sparklinePath} />
 		</svg>
 	)}
-	<p class="pylon__change" data-change={changeDirection} title="Pret iepriekšējo novēroto cenu">{changeText}</p>
-	<p class="pylon__meta">
-		<span class="badge badge--age" data-age={price.age}>{AGE_LABELS[price.age]}</span>
-		<span class="badge badge--origin">{price.origin ? ORIGIN_LABELS[price.origin] : "izcelsme nav zināma"}</span>
+	<p class="pylon__footer">
+		<span class="pylon__change" data-change={changeDirection} title="Pret iepriekšējo novēroto cenu">{changeText}</span>
+		<PriceInfo price={price} />
 	</p>
-    {price.scope === "network" ? <p class="pylon__details">Visā tīklā</p> : <details class="pylon__details"><summary>Apskatīt vietas</summary><p>{price.whereText ?? "Vieta nav norādīta"}</p></details>}
-    <p class="pylon__details">Pirmoreiz novērota <time datetime={price.observedAt}>{formatObservedAt(price.observedAt)}</time></p>
-    {price.sourceUrl && <a class="pylon__details" href={price.sourceUrl}>Oficiālais avots</a>}
 </article>
 
 <style>
@@ -55,11 +52,8 @@ const changeText =
     .pylon__network { font-size: 0.85rem; }
     .pylon__sparkline { width: 100%; height: 1.25rem; margin: 0.25rem 0; }
     .pylon__sparkline path { fill: none; stroke: var(--color-pylon); stroke-width: 1.5; }
+    .pylon__footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: auto; padding-top: 0.35rem; }
     .pylon__change { font-family: var(--font-mono); font-size: 0.75rem; }
     .pylon__change[data-change="down"] { color: var(--color-down); }
     .pylon__change[data-change="up"] { color: var(--color-up); }
-    .pylon__meta { display: flex; flex-direction: column; font-size: 0.75rem; color: var(--color-ink-muted); }
-    .badge--age[data-age="older"], .badge--age[data-age="unknown"] { color: var(--color-up); font-weight: 600; }
-    .pylon__details { font-size: 0.72rem; overflow-wrap: anywhere; color: var(--color-ink-muted); }
-    a.pylon__details { color: var(--color-pylon); margin-top: auto; padding-top: 0.4rem; }
 </style>

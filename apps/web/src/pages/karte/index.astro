@@ -104,8 +104,9 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   .detail-close { display:block; margin-left:auto; font-size:0.75rem; padding:0.3rem 0.5rem; }
   /* Navigācijas pogas. Krāsas ir lietotņu atpazīstamās krāsas, bet ikonas ir
      mūsu pašu zīmētas -- oriģinālie logotipi ir preču zīmes (sk. station-map.ts). */
-  .nav-buttons { display:flex; gap:0.4rem; margin:0.5rem 0 0.2rem; }
-  .nav-button { display:inline-grid; place-items:center; width:2.4rem; height:2.4rem; border-radius:6px; color:white; text-decoration:none; transition:transform 0.1s ease, filter 0.1s ease; }
+  .nav-buttons { display:flex; gap:0.3rem; margin:0.4rem 0 0.15rem; }
+  .nav-button { display:inline-grid; place-items:center; width:1.7rem; height:1.7rem; border-radius:5px; color:white; text-decoration:none; transition:transform 0.1s ease, filter 0.1s ease; }
+  .nav-button svg { width:13px; height:13px; }
   .nav-button:hover { transform:translateY(-1px); filter:brightness(1.08); }
   .nav-button--google { background:#1a73e8; }
   .nav-button--waze { background:#33ccff; color:#05204a; }

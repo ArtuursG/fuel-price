@@ -1,5 +1,6 @@
 ---
-import { AGE_LABELS, ORIGIN_LABELS, formatObservedAt, formatPrice, type NetworkPrice, type ProductRow } from "../lib/prices";
+import PriceInfo from "./PriceInfo.astro";
+import { formatPrice, type NetworkPrice, type ProductRow } from "../lib/prices";
 
 interface Props {
 	products: ProductRow[];
@@ -44,13 +45,10 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 					{row.cells.map((cell, i) => (
 						<td class={cell && cheapestNetworkByProduct[i] === row.networkId ? "cheapest" : undefined}>
 							{cell ? (
-								<>
-									{formatPrice(cell.priceMilli)}&nbsp;&euro;
-                                    <span class="price-detail">{AGE_LABELS[cell.age]}</span>
-                                    <span class="price-detail">Pirmoreiz <time datetime={cell.observedAt}>{formatObservedAt(cell.observedAt)}</time></span>
-                                    <span class="price-detail">{cell.sourceUrl ? <a href={cell.sourceUrl}>{cell.origin ? ORIGIN_LABELS[cell.origin] : "Avots"}</a> : "izcelsme nav zināma"}</span>
-									{cell.scope !== "network" && <span class="table-note"> ({cell.scope === "cheapest_riga" ? "Rīgā" : "lētākā"})</span>}
-								</>
+								<span class="price-cell">
+									<span class="price-cell__value">{formatPrice(cell.priceMilli)}&nbsp;&euro;</span>
+									<PriceInfo price={cell} />
+								</span>
 							) : (
 								<span class="table-dash" aria-label="nav datu">-</span>
 							)}
@@ -64,11 +62,29 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 </div>
 
 <style>
-	.price-detail { display: block; font-family: var(--font-body); font-size: 0.75rem; }
+	.price-cell {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.price-cell__value {
+		font-family: var(--font-mono);
+	}
+
+	/* Uznirstošais panelis ir absolūti pozicionēts, tāpēc to nogrieztu
+	   jebkurš ritināšanas konteiners. Platā ekrānā tabula ietilpst un
+	   overflow nav vajadzīgs, tāpēc ļaujam panelim iziet ārpus rāmja;
+	   šaurā ekrānā tabulai ritināšana ir vajadzīga, un tur panelis
+	   parādās šūnā nevis virs tās (sk. PriceInfo). */
 	.table-wrap {
 		overflow-x: auto;
 		border: 1px solid var(--color-border);
 		border-radius: 0;
+	}
+	@media (min-width: 60rem) {
+		.table-wrap {
+			overflow: visible;
+		}
 	}
 	table {
 		font-size: 0.95rem;
