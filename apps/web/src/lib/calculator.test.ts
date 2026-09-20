@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { evEnergyCostPer100km, evTimeCostPer100km, fuelCostPer100km } from "./calculator";
+import {
+	co2KgForLiters,
+	consumptionFromLiters,
+	costPerKmMilli,
+	evEnergyCostPer100km,
+	evTimeCostPer100km,
+	fuelCostPer100km,
+	litersForTrip,
+	periodCostMilli,
+	rangeKm,
+	tripCostMilli,
+} from "./calculator";
 
 describe("fuelCostPer100km", () => {
 	it("multiplies price per litre by consumption", () => {
@@ -53,5 +64,43 @@ describe("evTimeCostPer100km", () => {
 		const timeBasedCost = evTimeCostPer100km(190, 50, 18);
 		const energyBasedCost = evEnergyCostPer100km(230, 18);
 		expect(Math.abs(timeBasedCost - energyBasedCost)).toBeLessThan(200); // within 0.20 EUR
+	});
+});
+
+describe("brauciena kalkulators", () => {
+	it("rēķina vajadzīgos litrus", () => {
+		expect(litersForTrip(250, 7)).toBeCloseTo(17.5);
+		expect(litersForTrip(0, 7)).toBe(0);
+	});
+
+	it("rēķina brauciena izmaksas milli-EUR", () => {
+		// 250 km pie 7 l/100km = 17.5 l; 17.5 * 1947 = 34072.5
+		expect(tripCostMilli(250, 7, 1947)).toBeCloseTo(34072.5);
+	});
+
+	it("rēķina cenu uz kilometru un nedalās ar nulli", () => {
+		expect(costPerKmMilli(250, 34072.5)).toBeCloseTo(136.29);
+		expect(costPerKmMilli(0, 100)).toBe(0);
+	});
+
+	it("atvasina patēriņu no nobraukuma un litriem", () => {
+		expect(consumptionFromLiters(400, 28)).toBeCloseTo(7);
+		expect(consumptionFromLiters(0, 28)).toBe(0);
+	});
+
+	it("rēķina nobraucamo attālumu ar pilnu tvertni", () => {
+		expect(rangeKm(50, 7)).toBeCloseTo(714.29, 1);
+		expect(rangeKm(50, 0)).toBe(0);
+	});
+
+	it("rēķina aptuveno CO2 un klusē par nezināmu produktu", () => {
+		expect(co2KgForLiters(10, "DSL")).toBeCloseTo(26.8);
+		expect(co2KgForLiters(10, "P95")).toBeCloseTo(23.1);
+		expect(co2KgForLiters(10, "ADBLUE")).toBeNull();
+	});
+
+	it("rēķina perioda izmaksas", () => {
+		// 40 km dienā * 21 diena = 840 km
+		expect(periodCostMilli(40, 21, 7, 1947)).toBeCloseTo(tripCostMilli(840, 7, 1947));
 	});
 });
