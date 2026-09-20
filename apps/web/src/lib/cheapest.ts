@@ -68,18 +68,23 @@ export function cheapestByProduct(products: ProductRow[]): Map<string, NetworkPr
 	return cheapest;
 }
 
-export interface UnlocatedCheapest {
+export interface Highlight {
 	product: string;
 	networkName: string;
 	priceMilli: number;
-	whereText: string | null;
+	stationCount: number;
+	/** Vai izceltā ir absolūti lētākā, vai lētākā, ko izdevās novietot. */
+	isAbsoluteCheapest: boolean;
+	/** Aizpildīts tikai tad, ja lētākā nav novietojama. */
+	cheaperNetworkName: string | null;
+	cheaperPriceMilli: number | null;
 }
 
 export interface CheapestMarks {
-	/** Stacijas id -> produkti, kuriem tur ir zemākā zināmā cena. */
+	/** Stacijas id -> produkti, kuriem tur ir izceltā cena. */
 	byStation: Map<string, string[]>;
-	/** Lētākās cenas, kurām stacija kartē nav atrodama. */
-	unlocated: UnlocatedCheapest[];
+	/** Pa vienam ierakstam katram produktam, ko izdevās novietot. */
+	highlights: Highlight[];
 }
 
 interface StationLike {
@@ -89,13 +94,18 @@ interface StationLike {
 	address: string;
 }
 
+// Lētākā cena ne vienmēr ir piesienama stacijai: avots mēdz nosaukt tikai
+// pagastu ("Ainaži, Salacgrīvas nov."), un tādas stacijas kartes datos nav.
+// Tādā gadījumā ejam pa cenu sarakstu uz augšu līdz pirmajai, ko IZDODAS
+// novietot, un pasakām, ka lētākā ir citur. Citādi tieši tie divi produkti,
+// kas cilvēkus interesē visvairāk, kartē nebūtu izceļami vispār.
 export function markCheapestStations(
 	stations: StationLike[],
 	products: ProductRow[],
 	canonical: (name: string) => string,
 ): CheapestMarks {
 	const byStation = new Map<string, string[]>();
-	const unlocated: UnlocatedCheapest[] = [];
+	const highlights: Highlight[] = [];
 
 	const add = (stationId: string, product: string) => {
 		const list = byStation.get(stationId) ?? [];
@@ -103,44 +113,48 @@ export function markCheapestStations(
 		byStation.set(stationId, list);
 	};
 
-	for (const [product, price] of cheapestByProduct(products)) {
-		const networkStations = stations.filter(
-			(station) => station.kind === "fuel" && canonical(station.network) === price.networkName,
-		);
+	for (const row of products) {
+		const cheapestOverall = row.prices[0];
+		if (!cheapestOverall) continue;
 
-		// Tīkla mēroga cena ir spēkā visur, tāpēc adrese nav jāmeklē.
-		if (price.scope === "network") {
-			if (networkStations.length === 0) {
-				unlocated.push(toUnlocated(product, price));
-				continue;
-			}
-			for (const station of networkStations) add(station.id, product);
-			continue;
+		for (const [index, price] of row.prices.entries()) {
+			const matches = locateStations(stations, price, canonical);
+			if (matches.length === 0) continue;
+
+			for (const station of matches) add(station.id, row.product);
+			highlights.push({
+				product: row.product,
+				networkName: price.networkName,
+				priceMilli: price.priceMilli,
+				stationCount: matches.length,
+				isAbsoluteCheapest: index === 0,
+				cheaperNetworkName: index === 0 ? null : cheapestOverall.networkName,
+				cheaperPriceMilli: index === 0 ? null : cheapestOverall.priceMilli,
+			});
+			break;
 		}
-
-		const places = parseFuelPlaces(price.networkId, price.whereText);
-		const addresses = places.length > 0 ? places.map((place) => place.address) : price.whereText ? [price.whereText] : [];
-
-		let found = 0;
-		for (const address of addresses) {
-			for (const station of networkStations) {
-				if (station.address && addressMatches(address, station.address)) {
-					add(station.id, product);
-					found += 1;
-				}
-			}
-		}
-		if (found === 0) unlocated.push(toUnlocated(product, price));
 	}
 
-	return { byStation, unlocated };
+	return { byStation, highlights };
 }
 
-function toUnlocated(product: string, price: NetworkPrice): UnlocatedCheapest {
-	return {
-		product,
-		networkName: price.networkName,
-		priceMilli: price.priceMilli,
-		whereText: price.whereText,
-	};
+function locateStations(
+	stations: StationLike[],
+	price: NetworkPrice,
+	canonical: (name: string) => string,
+): StationLike[] {
+	const networkStations = stations.filter(
+		(station) => station.kind === "fuel" && canonical(station.network) === price.networkName,
+	);
+
+	// Tīkla mēroga cena ir spēkā visur, tāpēc adrese nav jāmeklē.
+	if (price.scope === "network") return networkStations;
+
+	const places = parseFuelPlaces(price.networkId, price.whereText);
+	const addresses =
+		places.length > 0 ? places.map((place) => place.address) : price.whereText ? [price.whereText] : [];
+
+	return networkStations.filter((station) =>
+		Boolean(station.address) && addresses.some((address) => addressMatches(address, station.address)),
+	);
 }

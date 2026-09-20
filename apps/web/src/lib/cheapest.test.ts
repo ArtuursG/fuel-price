@@ -60,15 +60,33 @@ describe("markCheapestStations", () => {
 		// OSM to sauc "Virši-A"; bez canonical() sakritības nebūtu.
 		const marks = markCheapestStations([station("s1", "Virši-A", "Brīvības gatve 297, Rīga")], products, canonical);
 		expect(marks.byStation.get("s1")).toEqual(["P95"]);
-		expect(marks.unlocated).toHaveLength(0);
+		expect(marks.highlights[0].isAbsoluteCheapest).toBe(true);
 	});
 
-	it("neizceļ neko un ziņo, ja stacija nav atrodama", () => {
+	it("neizceļ neko, ja neviena cena nav novietojama", () => {
 		const marks = markCheapestStations([station("s2", "Virši-A", "Brīvības gatve 250, Rīga")], products, canonical);
 		expect(marks.byStation.size).toBe(0);
-		expect(marks.unlocated).toEqual([
-			{ product: "P95", networkName: "Virši", priceMilli: 1997, whereText: "Brīvības gatve 297, Rīga, LV-1006" },
-		]);
+		expect(marks.highlights).toHaveLength(0);
+	});
+
+	it("pāriet uz nākamo cenu, ja lētāko nevar novietot", () => {
+		// Straujupītes lētākā norāda tikai pagastu, tāpēc izceļ Viada.
+		const rows: ProductRow[] = [{
+			product: "P95", label: "95",
+			prices: [
+				price({ networkId: "straujupite", networkName: "Straujupīte", priceMilli: 1874, whereText: "Ainaži, Salacgrīvas nov." }),
+				price({ networkId: "viada", networkName: "Viada", priceMilli: 1897, whereText: "ADUS Saharova : Andreja Saharova iela 10, Rīga" }),
+			],
+		}];
+		const marks = markCheapestStations(
+			[station("a", "Straujupīte", "Lāčplēša iela 4, Ventspils"), station("b", "Viada", "Andreja Saharova iela 10, Rīga")],
+			rows, canonical,
+		);
+		expect([...marks.byStation.keys()]).toEqual(["b"]);
+		expect(marks.highlights[0]).toMatchObject({
+			networkName: "Viada", priceMilli: 1897, isAbsoluteCheapest: false,
+			cheaperNetworkName: "Straujupīte", cheaperPriceMilli: 1874,
+		});
 	});
 
 	it("tīkla mēroga cenai izceļ visas tīkla stacijas", () => {

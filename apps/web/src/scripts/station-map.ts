@@ -281,7 +281,21 @@ function applyFilters() {
 input<HTMLFormElement>("map-filters").addEventListener("submit", (event) => event.preventDefault());
 search.addEventListener("input",applyFilters);
 network.addEventListener("change",applyFilters);
-cheapest?.addEventListener("change",applyFilters);
+// Paskaidro, kas tieši izcelts: tīkls, cena un vai tā tiešām ir zemākā.
+const highlightNotes: Record<string,{text:string;caveat:string|null}> =
+  JSON.parse(document.getElementById("highlight-notes")?.textContent ?? "{}");
+const cheapestNote = document.getElementById("cheapest-note") as unknown as HTMLElement | null;
+function renderCheapestNote(): void {
+  if(!cheapestNote) return;
+  const note = cheapest?.value ? highlightNotes[cheapest.value] : undefined;
+  if(!note){ cheapestNote.hidden = true; cheapestNote.replaceChildren(); return; }
+  cheapestNote.hidden = false;
+  cheapestNote.replaceChildren();
+  cheapestNote.appendChild(element("b", note.text));
+  if(note.caveat) cheapestNote.appendChild(element("small", note.caveat));
+}
+cheapest?.addEventListener("change",() => { renderCheapestNote(); applyFilters(); });
+renderCheapestNote();
 kind.addEventListener("change", () => {
   product.value=""; connector.value=""; power.value="0";
   input("fuel-filter").hidden = kind.value === "ev";
