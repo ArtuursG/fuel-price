@@ -2,6 +2,7 @@
 import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
 import { getLatestFuelPrices } from "../../lib/prices";
+import { buildCityOrigins } from "../../lib/detour";
 import fuelData from "../../../public/data/fuel-stations.json";
 
 // Tikai tīkli, kuriem IR gan reāla OSM staciju atrašanās vieta, GAN reāli
@@ -52,6 +53,10 @@ const payload = {
 		prices: Object.fromEntries(row.prices),
 	})),
 	stations: Object.fromEntries(stationsByNetwork),
+	// Ģeolokāciju lietotājs var liegt vai pārlūks bloķēt; bez alternatīvas
+	// lapa tad nedara neko. Pilsētas centrs ir gana precīzs, lai salīdzinātu,
+	// cik tālu jābrauc.
+	cities: buildCityOrigins(fuelData.stations as {address?: string | null; lat: number; lon: number}[]),
 };
 const hasData = payload.products.length > 0;
 ---
@@ -84,10 +89,17 @@ const hasData = payload.products.length > 0;
 					Patēriņš (l/100 km)
 					<input id="detour-consumption" type="number" value="7" min="0.1" step="0.1" />
 				</label>
+				<label>
+					Vai izvēlies pilsētu
+					<select id="detour-city">
+						<option value="">-- nav izvēlēta --</option>
+						{payload.cities.map((city) => <option value={city.name}>{city.name}</option>)}
+					</select>
+				</label>
 				<button type="button" id="detour-locate">Izmantot manu atrašanās vietu</button>
 			</form>
 			<p id="detour-status" role="status" aria-live="polite" class="detour-status">
-				Nospied "Izmantot manu atrašanās vietu", lai salīdzinātu. Koordinātas netiek saglabātas.
+				Izvēlies pilsētu vai nospied "Izmantot manu atrašanās vietu". Koordinātas netiek saglabātas.
 			</p>
 
 			<div id="detour-result" class="detour-result" hidden></div>
@@ -107,6 +119,7 @@ const hasData = payload.products.length > 0;
 				interface Payload {
 					products: { product: string; label: string; prices: Record<string, number> }[];
 					stations: Record<string, { lat: number; lon: number }[]>;
+					cities: { name: string; lat: number; lon: number }[];
 				}
 
 				const NETWORK_LABELS: Record<string, string> = {
@@ -167,6 +180,20 @@ const hasData = payload.products.length > 0;
 					`;
 				}
 
+				const citySelect = document.getElementById("detour-city") as unknown as HTMLSelectElement;
+				citySelect.addEventListener("change", () => {
+					const city = data.cities.find((item) => item.name === citySelect.value);
+					if (!city) {
+						origin = null;
+						status.textContent = "Izvēlies pilsētu vai nospied \"Izmantot manu atrašanās vietu\".";
+						result.hidden = true;
+						return;
+					}
+					origin = { lat: city.lat, lon: city.lon };
+					status.textContent = `Sākumpunkts: ${city.name} (pilsētas centrs).`;
+					render();
+				});
+
 				locateButton.addEventListener("click", () => {
 					if (!navigator.geolocation) {
 						status.textContent = "Pārlūks neatbalsta atrašanās vietas noteikšanu.";
@@ -177,6 +204,7 @@ const hasData = payload.products.length > 0;
 					navigator.geolocation.getCurrentPosition(
 						(position) => {
 							origin = { lat: position.coords.latitude, lon: position.coords.longitude };
+							citySelect.value = "";
 							locateButton.disabled = false;
 							status.textContent = "Atrašanās vieta noteikta.";
 							render();
@@ -185,8 +213,8 @@ const hasData = payload.products.length > 0;
 							locateButton.disabled = false;
 							status.textContent =
 								error.code === 1
-									? "Atrašanās vietas piekļuve nav atļauta."
-									: "Atrašanās vietu neizdevās noteikt.";
+									? "Atrašanās vietas piekļuve nav atļauta. Izvēlies pilsētu sarakstā."
+									: "Atrašanās vietu neizdevās noteikt. Izvēlies pilsētu sarakstā.";
 						},
 						{ timeout: 12000, maximumAge: 60000, enableHighAccuracy: false },
 					);
