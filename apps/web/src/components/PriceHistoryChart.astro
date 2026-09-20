@@ -1,0 +1,149 @@
+---
+// Viena produkta 30 dienu līnijgrafiks, visiem tīkliem vienā mērogā.
+// Zīmēts servera pusē kā SVG -- nekādas grafiku bibliotēkas un nekāda
+// JS klienta pusē.
+import { buildChartPaths, type NetworkSeries } from "../lib/history";
+import { formatPrice } from "../lib/prices";
+
+interface Props {
+	series: NetworkSeries[];
+	days: string[];
+}
+
+const { series, days } = Astro.props as Props;
+
+const WIDTH = 680;
+const HEIGHT = 180;
+const geometry = buildChartPaths(series, WIDTH, HEIGHT);
+
+// Tīklu ir daudz, tāpēc krāsas ir atsevišķs, apzināti atšķirīgs komplekts;
+// tās nav tīklu zīmolu krāsas, bet grafika krāsas.
+const LINE_COLORS = [
+	"#245779",
+	"#a13838",
+	"#296448",
+	"#7a5195",
+	"#bc7c1f",
+	"#2f7f8f",
+	"#8f4a6b",
+	"#4b6b2f",
+	"#6b5b95",
+	"#96603a",
+	"#3d6fa8",
+	"#a3496b",
+	"#5a6f3d",
+];
+
+function formatDay(day: string): string {
+	const [, month, date] = day.split("-");
+	return `${Number(date)}.${Number(month)}.`;
+}
+---
+
+{
+	geometry === null ? (
+		<p class="chart-empty">Šim produktam vēl nav cenu vēstures.</p>
+	) : (
+		<figure class="chart">
+			<svg viewBox={`0 0 ${WIDTH + 70} ${HEIGHT + 46}`} role="img" aria-label="Cenu vēstures grafiks">
+				<g transform="translate(58, 14)">
+					<line class="chart__axis" x1="0" y1="0" x2={WIDTH} y2="0" />
+					<line class="chart__axis" x1="0" y1={HEIGHT} x2={WIDTH} y2={HEIGHT} />
+					<text class="chart__tick" x="-8" y="4" text-anchor="end">{formatPrice(geometry.max)}</text>
+					<text class="chart__tick" x="-8" y={HEIGHT + 4} text-anchor="end">{formatPrice(geometry.min)}</text>
+					<text class="chart__tick" x="0" y={HEIGHT + 24} text-anchor="start">{formatDay(days[0])}</text>
+					<text class="chart__tick" x={WIDTH} y={HEIGHT + 24} text-anchor="end">
+						{formatDay(days[days.length - 1])}
+					</text>
+					{geometry.paths.map((path, i) => (
+						<path class="chart__line" d={path.d} style={`stroke: ${LINE_COLORS[i % LINE_COLORS.length]}`} />
+					))}
+				</g>
+			</svg>
+			<figcaption class="chart-legend">
+				{series.map((s, i) => {
+					const change = s.firstMilli !== null && s.lastMilli !== null ? s.lastMilli - s.firstMilli : null;
+					return (
+						<span class="chart-legend__item">
+							<span class="chart-legend__swatch" style={`background: ${LINE_COLORS[i % LINE_COLORS.length]}`} />
+							<a href={`/tikli/${s.networkId}/`}>{s.networkName}</a>
+							{s.lastMilli !== null && <b>{formatPrice(s.lastMilli)}&nbsp;&euro;</b>}
+							{change !== null && change !== 0 && (
+								<span class="chart-legend__change" data-direction={change < 0 ? "down" : "up"}>
+									{change < 0 ? "↓" : "↑"} {formatPrice(Math.abs(change))}
+								</span>
+							)}
+						</span>
+					);
+				})}
+			</figcaption>
+		</figure>
+	)
+}
+
+<style>
+	.chart {
+		margin: 0 0 1rem;
+	}
+	.chart svg {
+		width: 100%;
+		height: auto;
+		overflow: visible;
+	}
+	.chart__axis {
+		stroke: var(--color-border);
+		stroke-width: 1;
+	}
+	.chart__tick {
+		fill: var(--color-ink-muted);
+		font-family: var(--font-mono);
+		font-size: 11px;
+	}
+	.chart__line {
+		fill: none;
+		stroke-width: 2;
+		stroke-linejoin: round;
+		stroke-linecap: round;
+	}
+	.chart-legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem 1.1rem;
+		margin-top: 0.75rem;
+		font-size: 0.85rem;
+	}
+	.chart-legend__item {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+	.chart-legend__swatch {
+		width: 0.7rem;
+		height: 0.7rem;
+		border-radius: 2px;
+	}
+	.chart-legend a {
+		color: var(--color-ink);
+		text-decoration: none;
+	}
+	.chart-legend a:hover {
+		text-decoration: underline;
+	}
+	.chart-legend b {
+		font-family: var(--font-mono);
+	}
+	.chart-legend__change {
+		font-family: var(--font-mono);
+		font-size: 0.8rem;
+	}
+	.chart-legend__change[data-direction="down"] {
+		color: var(--color-down);
+	}
+	.chart-legend__change[data-direction="up"] {
+		color: var(--color-up);
+	}
+	.chart-empty {
+		color: var(--color-ink-muted);
+		margin: 0 0 1rem;
+	}
+</style>
