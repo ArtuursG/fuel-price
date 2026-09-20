@@ -29,6 +29,11 @@ class FuelSource:
     url: str
     parser: Callable[[str], list[FuelPrice]]
     parser_version: str
+    # Dažam avotam cenas nav pašā lapā, bet gan otrā dokumentā, uz kuru lapa
+    # norāda (piem. KOOL Readymag "HtmlSnippet"). Šī funkcija no pirmās lapas
+    # atgriež otro URL; robots.txt tiek pārbaudīts arī tam. Parsētājs paliek
+    # tīra funkcija -- tīklošana notiek šeit, ne avota modulī.
+    follow: Callable[[str], str | None] | None = None
 
 
 def _now() -> datetime:
@@ -78,6 +83,45 @@ def run_fuel_source(
                 ),
                 [],
             )
+
+        if source.follow is not None:
+            followed_url = source.follow(response.text)
+            if followed_url is None:
+                return (
+                    RunReport(
+                        source_id=source.source_id,
+                        started_at=started_at,
+                        finished_at=_now(),
+                        status="partial",
+                        http_status=response.status_code,
+                        error="could not locate the linked content document",
+                    ),
+                    [],
+                )
+            if not robots.check_allowed(followed_url, http.DEFAULT_USER_AGENT, client):
+                return (
+                    RunReport(
+                        source_id=source.source_id,
+                        started_at=started_at,
+                        finished_at=_now(),
+                        status="blocked",
+                        error="robots.txt disallows the linked content document",
+                    ),
+                    [],
+                )
+            response = http.get_with_retries(client, followed_url)
+            if response.status_code >= 400:
+                return (
+                    RunReport(
+                        source_id=source.source_id,
+                        started_at=started_at,
+                        finished_at=_now(),
+                        status="error",
+                        http_status=response.status_code,
+                        error=f"HTTP {response.status_code} for the linked content document",
+                    ),
+                    [],
+                )
 
         content_sha256 = hashlib.sha256(response.content).hexdigest()
         raw_prices = source.parser(response.text)
