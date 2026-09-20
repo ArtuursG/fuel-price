@@ -1,0 +1,130 @@
+---
+// Cenas papildu informācija zem viena "i" apzīmējuma: vecums, tvērums,
+// vietas, novērošanas laiks un avots. Pirms tam šīs rindas bija vienmēr
+// redzamas pie katras cenas -- tabulā tas nozīmēja četras sīkas rindiņas
+// KATRĀ šūnā.
+//
+// Pieejamība: panelis parādās gan uz :hover, gan uz :focus-within, tāpēc
+// tas darbojas ar peli, tastatūru (tab uz pogu) un pieskārienu (pieskāriens
+// pogai dod fokusu). Saturā ir saites, tāpēc `title` atribūts neder --
+// to nevar noklikšķināt.
+import FuelPricePlaces from "./FuelPricePlaces.astro";
+import { AGE_LABELS, ORIGIN_LABELS, formatObservedAt, type NetworkPrice } from "../lib/prices";
+
+interface Props {
+	price: NetworkPrice;
+}
+
+const { price } = Astro.props as Props;
+
+const scopeLabel =
+	price.scope === "network"
+		? "Visā tīklā"
+		: price.scope === "cheapest_riga"
+			? "Zemākā Rīgā"
+			: "Zemākā tīklā";
+---
+
+<span class="price-info">
+	<button type="button" class="price-info__trigger" aria-label={`Cenas detaļas: ${AGE_LABELS[price.age]}, ${scopeLabel}`}>
+		i
+	</button>
+	<span class="price-info__panel" role="note">
+		<span class="price-info__row" data-age={price.age}>{AGE_LABELS[price.age]}</span>
+		<span class="price-info__row">{scopeLabel}</span>
+		<FuelPricePlaces price={price} />
+		<span class="price-info__row">
+			Cena novērota <time datetime={price.observedAt}>{formatObservedAt(price.observedAt)}</time>
+		</span>
+		{price.sourceUrl && (
+			<a href={price.sourceUrl} target="_blank" rel="noopener noreferrer">
+				{price.origin ? ORIGIN_LABELS[price.origin] : "Cenas avots"} ↗
+			</a>
+		)}
+	</span>
+</span>
+
+<style>
+	.price-info {
+		position: relative;
+		display: inline-block;
+		font-family: var(--font-body);
+		font-weight: 400;
+		letter-spacing: 0;
+	}
+	.price-info__trigger {
+		display: inline-grid;
+		place-items: center;
+		width: 1.25rem;
+		height: 1.25rem;
+		padding: 0;
+		border: 1px solid var(--color-border);
+		border-radius: 50%;
+		background: var(--color-bg);
+		color: var(--color-ink-muted);
+		font: inherit;
+		font-size: 0.7rem;
+		font-style: italic;
+		line-height: 1;
+		cursor: pointer;
+	}
+	.price-info:hover .price-info__trigger,
+	.price-info:focus-within .price-info__trigger {
+		border-color: var(--color-pylon);
+		color: var(--color-pylon);
+	}
+
+	.price-info__panel {
+		display: none;
+		position: absolute;
+		z-index: 30;
+		top: calc(100% + 0.35rem);
+		left: 0;
+		width: max-content;
+		max-width: 16rem;
+		padding: 0.6rem 0.7rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		background: var(--color-bg);
+		box-shadow: 0 6px 18px rgba(32, 43, 53, 0.14);
+		text-align: left;
+		font-size: 0.75rem;
+		line-height: 1.45;
+		color: var(--color-ink-muted);
+		white-space: normal;
+	}
+	.price-info:hover .price-info__panel,
+	.price-info:focus-within .price-info__panel {
+		display: block;
+	}
+	/* Pie labās malas panelis citādi izietu ārpus ekrāna. */
+	.price-info--end .price-info__panel {
+		left: auto;
+		right: 0;
+	}
+
+	/* Šaurā ekrānā tabulai ir horizontālā ritināšana, un ritināšanas
+	   konteiners nogrieztu virs tā uzliktu paneli. Tur panelis parādās
+	   plūsmā (pabīda saturu) -- tas ir mazāk elegants, bet vienmēr
+	   redzams. Pieskāriena ierīcēs "hover" tik un tā nav. */
+	@media (max-width: 59.99rem) {
+		.price-info__panel {
+			position: static;
+			max-width: none;
+			margin-top: 0.35rem;
+			box-shadow: none;
+		}
+	}
+
+	.price-info__row {
+		display: block;
+	}
+	.price-info__row[data-age="older"],
+	.price-info__row[data-age="unknown"] {
+		color: var(--color-up);
+		font-weight: 600;
+	}
+	.price-info__panel a {
+		color: var(--color-pylon);
+	}
+</style>
