@@ -58,7 +58,17 @@ export function parseFuelPlaces(networkId: string, whereText: string | null): Fu
 	return [];
 }
 
+function placeQuery(networkName: string, place: FuelPlace): string {
+	return `${[networkName, place.name, place.address].filter(Boolean).join(", ")}, Latvija`;
+}
+
 export function placeSearchUrl(networkName: string, place: FuelPlace): string {
-	const query = [networkName, place.name, place.address].filter(Boolean).join(", ");
-	return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${query}, Latvija`)}`;
+	return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeQuery(networkName, place))}`;
+}
+
+// Adresei nav koordinātu, tāpēc Waze saņem meklējamo tekstu (`q`), nevis
+// `ll` kā kartē. Abās saitēs ir tikai galamērķis -- lietotāja atrašanās
+// vietu nesūtām nekur.
+export function placeWazeUrl(networkName: string, place: FuelPlace): string {
+	return `https://www.waze.com/ul?q=${encodeURIComponent(placeQuery(networkName, place))}&navigate=yes`;
 }
