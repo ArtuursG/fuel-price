@@ -77,3 +77,60 @@ export function breakEvenExtraKm(
 	if (costPerKm <= 0) return null;
 	return (priceDiff * litersL) / costPerKm;
 }
+
+// --- Pilsētu saraksts sākumpunktam ---------------------------------------
+// Ģeolokācija ne vienmēr ir pieejama: lietotājs var to liegt, pārlūks var
+// to bloķēt, un uz stacionāra datora tā mēdz būt neprecīza vai lēna. Bez
+// alternatīvas lapa tādā gadījumā nedara neko. Tāpēc no staciju adresēm
+// atvasinām pilsētu sarakstu -- pilsētas centrs ir tās staciju koordinātu
+// vidējais punkts, kas salīdzinājumam "cik tālu jābrauc" ir gana precīzi.
+
+export interface CityOrigin {
+	name: string;
+	lat: number;
+	lon: number;
+}
+
+interface AddressedStation {
+	address?: string | null;
+	lat: number;
+	lon: number;
+}
+
+/** Pilsēta ir tas, kas adresē seko pēdējam komatam; pasta indekss nost. */
+export function cityFromAddress(address: string | null | undefined): string | null {
+	if (!address) return null;
+	// Pasta indekss mēdz stāvēt AIZ pilsētas ("..., Rīga, LV-1006"), tāpēc to
+	// nogriežam no visas adreses, pirms meklējam pēdējo komatu.
+	const withoutPostcode = address.replace(/LV-?\d{4}/gi, "").replace(/[\s,]+$/, "");
+	if (!withoutPostcode.includes(",")) return null;
+	const city = withoutPostcode
+		.slice(withoutPostcode.lastIndexOf(",") + 1)
+		.replace(/\s+/g, " ")
+		.trim();
+	// Cipars pilsētas vietā nozīmē, ka adrese sadalījās nepareizi.
+	if (!city || /\d/.test(city)) return null;
+	return city;
+}
+
+export function buildCityOrigins(stations: AddressedStation[], minStations = 2): CityOrigin[] {
+	const groups = new Map<string, { lat: number; lon: number }[]>();
+	for (const station of stations) {
+		const city = cityFromAddress(station.address);
+		if (!city || !Number.isFinite(station.lat) || !Number.isFinite(station.lon)) continue;
+		const list = groups.get(city) ?? [];
+		list.push({ lat: station.lat, lon: station.lon });
+		groups.set(city, list);
+	}
+
+	const cities: CityOrigin[] = [];
+	for (const [name, points] of groups) {
+		if (points.length < minStations) continue;
+		cities.push({
+			name,
+			lat: points.reduce((sum, p) => sum + p.lat, 0) / points.length,
+			lon: points.reduce((sum, p) => sum + p.lon, 0) / points.length,
+		});
+	}
+	return cities.sort((a, b) => a.name.localeCompare(b.name, "lv"));
+}
