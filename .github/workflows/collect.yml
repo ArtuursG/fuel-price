@@ -70,3 +70,11 @@ jobs:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector eleport-ev --push
+
+      - name: Run Virsi EV tariffs and push
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
+        working-directory: collector
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: uv run python -m collector virsi-ev --push
