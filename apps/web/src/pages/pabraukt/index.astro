@@ -6,10 +6,10 @@ import { buildCityOrigins } from "../../lib/detour";
 import fuelData from "../../../public/data/fuel-stations.json";
 
 // Tikai tīkli, kuriem IR gan reāla OSM staciju atrašanās vieta, GAN reāli
-// nolasīta cena -- droši, apstiprināti nosaukumu sakritumi starp OSM "brand"
+// nolasīta cena - droši, apstiprināti nosaukumu sakritumi starp OSM "brand"
 // tagiem un mūsu iekšējiem tīklu id, NEVIS uzminēti (sk. lib/detour.ts
 // piezīmi par formulu). Neste/KOOL/Astarte/Gotika ir OSM datos, bet cenu
-// mums nav (nepublicē vai avots vēl nav ieviests), tāpēc nav iekļauti --
+// mums nav (nepublicē vai avots vēl nav ieviests), tāpēc nav iekļauti -
 // neskaidri nosaukumu varianti (piem. "Virāža A") apzināti nav mēģināti
 // piesaistīt nevienam tīklam.
 const OSM_NETWORK_TO_ID: Record<string, string> = {
@@ -33,7 +33,7 @@ for (const station of fuelData.stations as { network: string; lat: number; lon: 
 	stationsByNetwork.set(networkId, list);
 }
 
-// Produkti, kuriem VISMAZ 2 izsekotajiem tīkliem ir zināma cena -- tikai
+// Produkti, kuriem VISMAZ 2 izsekotajiem tīkliem ir zināma cena - tikai
 // tad ir jēga "tuvākais pret lētāko" salīdzinājumam.
 const comparableProducts = products
 	.map((row) => {
@@ -65,13 +65,13 @@ const hasData = payload.products.length > 0;
 	<h1>Vai ir vērts pabraukt?</h1>
 
 	{!hasData ? (
-		<p class="intro">Vēl nav pietiekami daudz datu šim salīdzinājumam -- vajag vismaz divus tīklus ar zināmu cenu.</p>
+		<p class="intro">Vēl nav pietiekami daudz datu šim salīdzinājumam - vajag vismaz divus tīklus ar zināmu cenu.</p>
 	) : (
 		<>
 			<p class="intro">
 				Salīdzina tavu tuvāko degvielas tīklu ar pašlaik lētāko zināmo. Attālums ir taisnes attālums &times; 1,3
 				(ceļa tuvinājums, nevis precīzs maršruts). Aptver tikai tīklus, kuriem zināma gan cena, gan stacijas
-				atrašanās vieta -- <a href="/karte/">pilns staciju saraksts kartē</a>.
+				atrašanās vieta - <a href="/karte/">pilns staciju saraksts kartē</a>.
 			</p>
 
 			<form id="detour-form" class="detour-form">
@@ -92,7 +92,7 @@ const hasData = payload.products.length > 0;
 				<label>
 					Vai izvēlies pilsētu
 					<select id="detour-city">
-						<option value="">-- nav izvēlēta --</option>
+						<option value="">Nav izvēlēta</option>
 						{payload.cities.map((city) => <option value={city.name}>{city.name}</option>)}
 					</select>
 				</label>
@@ -159,7 +159,7 @@ const hasData = payload.products.length > 0;
 
 					result.hidden = false;
 					if (nearest.networkId === cheapest.networkId) {
-						result.innerHTML = `<p>Tavs tuvākais zināmais tīkls (${NETWORK_LABELS[nearest.networkId]}) ir arī lētākais no salīdzinātajiem -- nav ko izlemt.</p>`;
+						result.innerHTML = `<p>Tavs tuvākais zināmais tīkls (${NETWORK_LABELS[nearest.networkId]}) ir arī lētākais no salīdzinātajiem - nav ko izlemt.</p>`;
 						return;
 					}
 

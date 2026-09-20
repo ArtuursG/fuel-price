@@ -2,7 +2,7 @@
 // Vietas, kur cena ir spēkā. Katra adrese savā rindā ar saiti uz Google Maps
 // un pogu, kas adresi ieliek starpliktuvē.
 //
-// Teksta sadalīšana notiek lib/places.ts -- tur ir arī paskaidrojums, kāpēc
+// Teksta sadalīšana notiek lib/places.ts - tur ir arī paskaidrojums, kāpēc
 // ne visu var sadalīt pēc komata.
 import { parseFuelPlaces, placeSearchUrl, placeWazeUrl, type FuelPlace } from "../lib/places";
 import type { NetworkPrice } from "../lib/prices";
@@ -14,7 +14,7 @@ interface Props {
 const { price } = Astro.props as Props;
 
 const parsed = parseFuelPlaces(price.networkId, price.whereText);
-// Ja formāts nav atpazīts, rādām tekstu vienā rindā -- nokopēt var arī to.
+// Ja formāts nav atpazīts, rādām tekstu vienā rindā - nokopēt var arī to.
 const places: FuelPlace[] =
 	parsed.length > 0 ? parsed : price.whereText ? [{ name: null, address: price.whereText }] : [];
 ---
@@ -79,7 +79,7 @@ const places: FuelPlace[] =
 }
 
 <script>
-	// Viens klausītājs uz visu lapu -- šis komponents lapā ir desmitiem reižu,
+	// Viens klausītājs uz visu lapu - šis komponents lapā ir desmitiem reižu,
 	// bet Astro skriptu iekļauj tikai vienreiz.
 	const clipboard = navigator.clipboard;
 	if (clipboard) {

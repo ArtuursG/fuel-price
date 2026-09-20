@@ -44,7 +44,7 @@ describe("buildSparklineArea", () => {
 	it("liek pēdējo punktu līnijas galā", () => {
 		const spark = buildSparklineArea([1900, 2000]);
 		expect(spark!.last.x).toBeCloseTo(SPARKLINE_WIDTH, 5);
-		// Augstākā cena -- augšā, tātad maza y vērtība.
+		// Augstākā cena - augšā, tātad maza y vērtība.
 		expect(spark!.last.y).toBeLessThan(SPARKLINE_HEIGHT / 2);
 	});
 

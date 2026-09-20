@@ -121,7 +121,7 @@ export const ORIGIN_LABELS: Record<Origin, string> = {
 	crowd: "kopienas dati",
 };
 
-// Katrai (network_id, scope, product) grupai -- jaunākā rinda UN tai
+// Katrai (network_id, scope, product) grupai - jaunākā rinda UN tai
 // tieši iepriekšējā (LAG), lai varētu rādīt izmaiņu, tiklīdz ir >1 novērojums.
 const QUERY = `
 	WITH ranked AS (
@@ -174,7 +174,7 @@ export function cheapest(row: ProductRow): NetworkPrice {
 }
 
 // Cenu vēsture pēdējo 90 dienu laikā, VISIEM (network_id, scope, product)
-// vienā pieprasījumā -- ne viens vaicājums par karti, sk. iepriekšējo mācību
+// vienā pieprasījumā - ne viens vaicājums par karti, sk. iepriekšējo mācību
 // ar EV tarifiem (D1 subrequest/rindu limiti). fuel_prices raksta rindu TIKAI
 // pie izmaiņām (ADR-004), tāpēc šī tabula paliek maza ilgi, pat ar plašu logu.
 const HISTORY_QUERY = `

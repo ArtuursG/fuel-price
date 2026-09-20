@@ -2,7 +2,7 @@
 //
 // Problēma: cena un stacija nāk no divām dažādām vietām. Cena nāk no tīkla
 // lapas ar brīva teksta adresi ("Brīvības gatve 297, Rīga, LV-1006"),
-// stacija -- no OpenStreetMap ar savu adreses pierakstu. Tās jāsavieno pēc
+// stacija - no OpenStreetMap ar savu adreses pierakstu. Tās jāsavieno pēc
 // teksta, un teksts nesakrīt burtiski: atšķiras pasta indeksi, pieturzīmes,
 // un OSM tīkla nosaukums mēdz būt cits ("Virši-A" pret "Virši").
 //
@@ -29,7 +29,7 @@ export function normalizeAddress(value: string): string {
 
 // Pirmais skaitlis adresē ir mājas numurs; tālāk tekstā var būt pasta
 // indekss vai citi cipari. Burts uzreiz aiz cipara pieder numuram ("25a"),
-// bet aiz atstarpes -- vairs ne ("297 Rīga").
+// bet aiz atstarpes - vairs ne ("297 Rīga").
 export function houseNumber(value: string): string | null {
 	const match = normalizeAddress(value).match(/\b\d+[\p{L}]?\b/u);
 	return match ? match[0] : null;

@@ -2,8 +2,8 @@
 // tos var testēt bez DOM (tāpat kā lib/calculator.ts).
 //
 // Divas formas, viens mērogs:
-//   "area" -- līnija ar pildījumu un izceltu pēdējo punktu (izmantotā)
-//   "bars" -- viens stabiņš par novērojumu, krāsots pēc dienas virziena
+//   "area" - līnija ar pildījumu un izceltu pēdējo punktu (izmantotā)
+//   "bars" - viens stabiņš par novērojumu, krāsots pēc dienas virziena
 //
 // Formu izvēlas SPARKLINE_STYLE; pāreja uz stabiņiem ir šīs vienas rindas
 // maiņa, jo abas formas rēķinās no tā paša mēroga un komponente zīmē to,
@@ -15,7 +15,7 @@ export const SPARKLINE_STYLE: SparklineStyle = "area";
 export const SPARKLINE_WIDTH = 100;
 export const SPARKLINE_HEIGHT = 22;
 
-/** Uz augšu, uz leju vai bez izmaiņām -- nosaka grafika krāsu. */
+/** Uz augšu, uz leju vai bez izmaiņām - nosaka grafika krāsu. */
 export type PriceDirection = "up" | "down" | "flat";
 
 export function sparklineDirection(values: number[]): PriceDirection {
@@ -36,7 +36,7 @@ function buildScale(values: number[], width: number, height: number, padding: nu
 	let min = Math.min(...values);
 	let max = Math.max(...values);
 	if (min === max) {
-		// Visas vērtības vienādas -- bez šī dalītu ar nulli.
+		// Visas vērtības vienādas - bez šī dalītu ar nulli.
 		min -= 1;
 		max += 1;
 	}
@@ -52,7 +52,7 @@ export interface SparklineArea {
 	line: string | null;
 	/** Pildījuma ceļš zem līnijas; null, ja ir tikai viens novērojums. */
 	area: string | null;
-	/** Pēdējais punkts -- tas, kur cena ir tagad. */
+	/** Pēdējais punkts - tas, kur cena ir tagad. */
 	last: { x: number; y: number };
 	direction: PriceDirection;
 }
@@ -68,7 +68,7 @@ export function buildSparklineArea(
 	const direction = sparklineDirection(values);
 
 	// Viens novērojums: tikai punkts. Līnija no viena punkta būtu izdomāta,
-	// tāpēc tās nav -- kartīte blakus jau saka "pirmā novērošana".
+	// tāpēc tās nav - kartīte blakus jau saka "pirmā novērošana".
 	if (values.length === 1) {
 		return { line: null, area: null, last: { x: width / 2, y: height / 2 }, direction };
 	}

@@ -73,7 +73,7 @@ describe("buildChartPaths", () => {
 			100,
 			50,
 		);
-		// Divi atsevišķi "M" -- līnija netiek novilkta pāri tukšumam.
+		// Divi atsevišķi "M" - līnija netiek novilkta pāri tukšumam.
 		expect(geometry!.paths[0].d.match(/M/g)).toHaveLength(2);
 	});
 });

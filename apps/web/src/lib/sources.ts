@@ -1,5 +1,5 @@
 // Avotu statusa lapas datu slānis. Reāli dati no `sources` + katra avota
-// jaunākais `scrape_runs` ieraksts -- nekādi izdomāti/placeholder statusi.
+// jaunākais `scrape_runs` ieraksts - nekādi izdomāti/placeholder statusi.
 
 export type SourceStatus = "todo" | "investigate" | "active" | "blocked" | "unpublished" | "disabled";
 export type RunStatus = "ok" | "not_modified" | "partial" | "error" | "blocked" | "unpublished";

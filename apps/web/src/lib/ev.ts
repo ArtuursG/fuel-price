@@ -1,7 +1,7 @@
 // EV uzlādes tarifu kopsavilkums. Katrs tīkls var rādīt SIMTIEM staciju ar
 // vienādu vai ļoti līdzīgu cenu vienam savienotāja tipam (piem., e-mobi ir
 // viena vienota cena visā tīklā), tāpēc MVP lapa rāda kopsavilkumu pa
-// (tīkls, savienotājs, strāvas tips), NE katru staciju atsevišķi -- pilna
+// (tīkls, savienotājs, strāvas tips), NE katru staciju atsevišķi - pilna
 // staciju karte apzināti nav 6. fāzes darba kārtā (sk. docs/PLAN.md 5. fāze).
 
 export interface EvTariffSummary {
@@ -13,7 +13,7 @@ export interface EvTariffSummary {
 	minEnergyMilliPerKwh: number | null;
 	minTimeMilliPerMin: number | null;
 	// Only meaningful (and only used) alongside minTimeMilliPerMin, to convert
-	// a per-minute tariff to a per-100km cost -- see lib/calculator.ts. Power
+	// a per-minute tariff to a per-100km cost - see lib/calculator.ts. Power
 	// is usually constant within a (network, connector, current_type) group,
 	// but not always (e.g. emobi TYPE2 spans 22-43 kW); this is an average,
 	// not an exact figure, and the calculator page says so.
@@ -38,8 +38,8 @@ export const CONNECTOR_LABELS: Record<string, string> = {
 };
 
 // Katrai (network_id, station_id, current_type, connector, payment) "slotam"
-// -- jaunākais tarifs (ADR-004 stila izmaiņu-tikai uzglabāšana, sk. ingest
-// computeTariffHash) -- tad sagrupēts pa (tīkls, savienotājs, strāvas tips),
+// - jaunākais tarifs (ADR-004 stila izmaiņu-tikai uzglabāšana, sk. ingest
+// computeTariffHash) - tad sagrupēts pa (tīkls, savienotājs, strāvas tips),
 // lai iegūtu lētāko zināmo cenu un cik vietās tā pieejama.
 const QUERY = `
 	WITH ranked AS (

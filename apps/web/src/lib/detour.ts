@@ -1,11 +1,11 @@
 // "Vai ir vērts pabraukt?" kalkulatora tīrās aprēķinu funkcijas (sk.
-// docs/IZPETE.md 9.2 "Kalkulatoru formulas" -- līkuma formula). Atdalītas no
+// docs/IZPETE.md 9.2 "Kalkulatoru formulas" - līkuma formula). Atdalītas no
 // lapas koda, lai testē bez DOM, tāpat kā lib/calculator.ts un lib/sparkline.ts.
 //
 // Formula: neto ietaupījums = (P_tuvā - P_lētā) x L - d x c/100 x P_lētā
 // P_tuvā/P_lētā milli-EUR/l, L litri, d papildu turp-atpakaļ attālums (km),
 // c patēriņš (l/100km). Attālums sākumā ir taisnes attālums x 1,3
-// (maršrutēšanas tuvinājums) -- maršrutēšanas API apzināti nav izmantota,
+// (maršrutēšanas tuvinājums) - maršrutēšanas API apzināti nav izmantota,
 // sk. pētījumu piezīmi ("API pievieno tikai tad, ja noteikumi/izmaksas to
 // atļauj").
 
@@ -45,7 +45,7 @@ export function nearestStation<T extends StationLocation>(origin: StationLocatio
 }
 
 // d (papildu turp-atpakaļ attālums): ja "lētākais" tīkls faktiski ir tuvāk
-// vai tikpat tuvu kā "tuvākais", nav nekāda liekā ceļa -- d=0, nevis negatīvs
+// vai tikpat tuvu kā "tuvākais", nav nekāda liekā ceļa - d=0, nevis negatīvs
 // (negatīvs d matemātiski uzpūstu ietaupījumu, kas neatbilst realitātei).
 export function extraRoundTripKm(distanceToCheapKm: number, distanceToNearKm: number): number {
 	return 2 * Math.max(0, distanceToCheapKm - distanceToNearKm);
@@ -82,7 +82,7 @@ export function breakEvenExtraKm(
 // Ģeolokācija ne vienmēr ir pieejama: lietotājs var to liegt, pārlūks var
 // to bloķēt, un uz stacionāra datora tā mēdz būt neprecīza vai lēna. Bez
 // alternatīvas lapa tādā gadījumā nedara neko. Tāpēc no staciju adresēm
-// atvasinām pilsētu sarakstu -- pilsētas centrs ir tās staciju koordinātu
+// atvasinām pilsētu sarakstu - pilsētas centrs ir tās staciju koordinātu
 // vidējais punkts, kas salīdzinājumam "cik tālu jābrauc" ir gana precīzi.
 
 export interface CityOrigin {

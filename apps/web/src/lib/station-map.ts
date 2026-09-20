@@ -90,7 +90,7 @@ export function tariffText(tariff: MapTariff): string {
   return parts.join("; ");
 }
 
-// Abas saites nes TIKAI galamērķi, nevis lietotāja atrašanās vietu -- maršrutu
+// Abas saites nes TIKAI galamērķi, nevis lietotāja atrašanās vietu - maršrutu
 // aprēķina pati lietotne, mēs neko par lietotāju neizpaužam.
 export function routeUrl(station: Pick<MapStation, "lat" | "lon">): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}`;
