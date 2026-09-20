@@ -9,7 +9,7 @@ const [tariffs, allSources] = await Promise.all([getEvTariffSummary(env.DB), get
 
 // A network can already have real data from a DIFFERENT source than its own
 // (e.g. Elektrum Drive's tariffs come via emobi-ev, not elektrum-ev, which
-// itself was never fetched) -- exclude those so the page doesn't show a
+// itself was never fetched) - exclude those so the page doesn't show a
 // network as both priced above and "still being investigated" below.
 const networksWithData = new Set(tariffs.map((t) => t.networkName));
 const pendingEvSources = allSources.filter(
@@ -21,11 +21,11 @@ const pendingEvSources = allSources.filter(
 	<h1>EV uzlāde</h1>
 
 	{tariffs.length === 0 ? (
-		<p class="intro">Vēl nav datu -- kolektors EV tarifus vēl nav nolasījis.</p>
+		<p class="intro">Vēl nav datu - kolektors EV tarifus vēl nav nolasījis.</p>
 	) : (
 		<>
 			<p class="intro">
-				Lētākā zināmā cena katram tīklam un savienotāja tipam. Vienā tīklā dažādās vietās cena var atšķirties --
+				Lētākā zināmā cena katram tīklam un savienotāja tipam. Vienā tīklā dažādās vietās cena var atšķirties -
 				šeit rādīta lētākā, ne vidējā.
 			</p>
 			<div class="table-wrap">

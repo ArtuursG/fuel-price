@@ -1,12 +1,12 @@
 // Cenu vēsture 30 dienām.
 //
 // ADR-004: rinda fuel_prices tabulā top TIKAI tad, kad cena mainās. Tas
-// nozīmē, ka dienā bez izmaiņām datu nav vispār -- bet cena tajā dienā
+// nozīmē, ka dienā bez izmaiņām datu nav vispār - bet cena tajā dienā
 // bija spēkā, vienkārši tā pati, kas iepriekš. Tāpēc dienas rinda te tiek
 // aizpildīta uz priekšu no pēdējā novērojuma; bez tā grafiks rādītu
 // pārrāvumus tur, kur patiesībā cena bija stabila.
 //
-// Pirms pirmā novērojuma vērtības nav -- tur paliek null, nevis izdomāts
+// Pirms pirmā novērojuma vērtības nav - tur paliek null, nevis izdomāts
 // skaitlis.
 
 export interface HistoryRow {
@@ -48,7 +48,7 @@ export function buildDailySeries(rows: HistoryRow[], days: string[]): NetworkSer
 		let cursor = 0;
 		let current: number | null = null;
 		for (const day of days) {
-			// Vairākas izmaiņas vienā dienā -- ņemam pēdējo.
+			// Vairākas izmaiņas vienā dienā - ņemam pēdējo.
 			while (cursor < sorted.length && sorted[cursor].localDate <= day) {
 				current = sorted[cursor].priceMilli;
 				cursor += 1;
@@ -65,7 +65,7 @@ export function buildDailySeries(rows: HistoryRow[], days: string[]): NetworkSer
 		});
 	}
 
-	// Lētākais šodien -- augšā.
+	// Lētākais šodien - augšā.
 	series.sort((a, b) => (a.lastMilli ?? Infinity) - (b.lastMilli ?? Infinity));
 	return series;
 }
@@ -76,7 +76,7 @@ export interface ChartGeometry {
 	paths: { networkId: string; networkName: string; d: string }[];
 }
 
-// Visām līnijām viena mēroga ass -- citādi tīklus nevar salīdzināt.
+// Visām līnijām viena mēroga ass - citādi tīklus nevar salīdzināt.
 export function buildChartPaths(series: NetworkSeries[], width: number, height: number): ChartGeometry | null {
 	const all = series.flatMap((s) => s.points).filter((p): p is number => p !== null);
 	if (all.length === 0) return null;
@@ -84,7 +84,7 @@ export function buildChartPaths(series: NetworkSeries[], width: number, height: 
 	let min = Math.min(...all);
 	let max = Math.max(...all);
 	if (min === max) {
-		// Viena vienīga cena -- citādi dalītu ar nulli un līnija pazustu.
+		// Viena vienīga cena - citādi dalītu ar nulli un līnija pazustu.
 		min -= 10;
 		max += 10;
 	}

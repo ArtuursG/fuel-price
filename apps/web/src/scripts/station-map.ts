@@ -1,5 +1,5 @@
 // MapLibre nāk no CDN kā globāls skripts (sk. karte/index.astro), NEVIS caur
-// bundli. Iemesls: sapakota v6 karte klusi uzkārās -- konstruktors izdevās,
+// bundli. Iemesls: sapakota v6 karte klusi uzkārās - konstruktors izdevās,
 // neviena kļūda netika izmesta, bet "load" nekad nenotika, kas ir tipiska
 // pazīme, ka MapLibre Web Worker (ko bundleris ieliek kā blob) nomirst, un
 // worker kļūdas neizplatās līdz kartes "error" notikumam. Tā pati versija
@@ -44,7 +44,7 @@ function element<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, c
 
 // Cloudflare's Workers types (worker-configuration.d.ts) declare their own
 // global `Element` interface for HTMLRewriter, with an `append(content,
-// options?)` method -- since it shares the DOM's `Element` interface name,
+// options?)` method - since it shares the DOM's `Element` interface name,
 // TypeScript merges the two declarations and corrupts `.append()`'s real
 // overload for every DOM element in this project. `appendChild` isn't part
 // of HTMLRewriter's Element, so it stays unaffected; used here instead.
@@ -61,7 +61,7 @@ function link(text: string, url: string): HTMLAnchorElement {
 // Navigācijas pogas ar ikonām, nevis teksta saitēm.
 //
 // Ikonas ir mūsu pašu zīmētas (kartes pilons un navigācijas bulta) lietotņu
-// firmas krāsās -- APZINĀTI nav pārzīmēts Google Maps vai Waze oriģinālais
+// firmas krāsās - APZINĀTI nav pārzīmēts Google Maps vai Waze oriģinālais
 // logotips, jo tās ir preču zīmes ar savām lietošanas prasībām. Nosaukums
 // paliek pieejams ar aria-label un title, tāpēc ekrānlasītājs un kursora
 // palīgteksts joprojām pasaka, uz kurieni saite ved.
@@ -131,12 +131,12 @@ async function registerLogoImages(target: MapLibreMap): Promise<void> {
       const bitmap = await loadBitmap(url);
       if (!target.hasImage(id)) target.addImage(id, bitmap, {pixelRatio: 2});
     } catch {
-      // Logo neielādējās -- marķieris paliek ar burtiem, karte strādā tālāk.
+      // Logo neielādējās - marķieris paliek ar burtiem, karte strādā tālāk.
     }
   }));
 }
 // Vai stacijai ir zemākā zināmā cena izvēlētajam produktam. Saraksts nāk
-// no servera (sk. lib/cheapest.ts) -- klienta pusē neko nesaskaņojam.
+// no servera (sk. lib/cheapest.ts) - klienta pusē neko nesaskaņojam.
 function isCheapest(station: MapStation): boolean {
   const product = cheapest?.value;
   if (!product) return false;
@@ -155,7 +155,7 @@ function loadBitmap(url: string): Promise<ImageData> {
       canvas.width = MARKER_PX; canvas.height = MARKER_PX;
       const ctx = canvas.getContext("2d");
       if (!ctx) { reject(new Error("nav 2d konteksta")); return; }
-      // Ietilpinām kvadrātā, saglabājot proporcijas -- logo ir dažādu formu.
+      // Ietilpinām kvadrātā, saglabājot proporcijas - logo ir dažādu formu.
       const scale = Math.min(MARKER_PX / img.width, MARKER_PX / img.height);
       const w = img.width * scale, h = img.height * scale;
       ctx.drawImage(img, (MARKER_PX - w) / 2, (MARKER_PX - h) / 2, w, h);
@@ -226,7 +226,7 @@ function showStation(station: MapStation, move = true) {
     if(station.products.length) extra.appendChild(element("p", `Degviela: ${station.products.join(", ")}`));
     extra.appendChild(element("p", `OpenStreetMap vietu dati: ${dateLabel(station.updatedAt)}. Tīkla zemākā cena nav katras stacijas cena.`));
   } else extra.appendChild(element("p", "Norādīts cenas novērojuma laiks, nevis garantēts operatora cenas maiņas brīdis. Uzlādes vietu aizņemtība nav pieejama."));
-  // Degvielas stacijām šeit vairs nav atsevišķas OpenStreetMap saites --
+  // Degvielas stacijām šeit vairs nav atsevišķas OpenStreetMap saites -
   // ODbL prasītā atsauce paliek lapas kājenē, kur tā attiecas uz visu datu
   // kopu. EV stacijām operatora avots paliek: tā ir cenas izcelsme.
   const source = safeSourceUrl(station.sourceUrl);
@@ -330,7 +330,7 @@ input<HTMLButtonElement>("locate-me").addEventListener("click", () => {
 });
 
 // Karte lasa krāsas TIEŠI no global.css mainīgajiem, nevis dublē tās kā
-// atsevišķas hex vērtības -- tā karte automātiski seko lapas paletei, ja tā
+// atsevišķas hex vērtības - tā karte automātiski seko lapas paletei, ja tā
 // mainās, nevis paliek nesalāgota (kā notika ar EV punktu violeto krāsu,
 // kas nebija daļa no lapas paletes vispār).
 const rootStyle = getComputedStyle(document.documentElement);
@@ -395,7 +395,7 @@ try {
     message.textContent=`Daļu kartes neizdevās ielādēt (${reason}). Staciju saraksts un filtri joprojām ir pieejami.`;
   });
   // Ja stils nekad neielādējas, "load" nenotiek un lietotājs paliek ar tukšu
-  // pelēku lauku un mūžīgu "Karte ielādējas" -- pasakām to skaidri.
+  // pelēku lauku un mūžīgu "Karte ielādējas" - pasakām to skaidri.
   setTimeout(() => {
     if (mapReady) return;
     const container = document.getElementById("station-map");

@@ -1,4 +1,4 @@
-// Tīklu saraksts un pamatinformācija -- pamats "tīklu lapām", kas ir
+// Tīklu saraksts un pamatinformācija - pamats "tīklu lapām", kas ir
 // obligāts rezultāts pēc docs/PROMPT_START.md "Galarezultāts" saraksta, bet
 // vēl nebija uzbūvēts.
 

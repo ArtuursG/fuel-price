@@ -59,7 +59,7 @@ describe("evTimeCostPer100km", () => {
 	it("roughly agrees with an equivalent per-kWh price at typical power", () => {
 		// Sanity cross-check between the two pricing models: e-mobi's
 		// 0,19 EUR/min at 50kW implies ~0,228 EUR/kWh, close to Elektrum
-		// Drive's real 0,230 EUR/kWh CCS2 rate from the same snapshot --
+		// Drive's real 0,230 EUR/kWh CCS2 rate from the same snapshot -
 		// not identical (different networks/pricing models), just plausible.
 		const timeBasedCost = evTimeCostPer100km(190, 50, 18);
 		const energyBasedCost = evEnergyCostPer100km(230, 18);

@@ -25,7 +25,7 @@ const rows: NetworkRow[] = networkIds.map((networkId) => {
 });
 
 // row.prices ir šķirots augoši (sk. getLatestFuelPrices), tāpēc [0] ir
-// lētākais katram produktam -- izceļam attiecīgo šūnu tabulā.
+// lētākais katram produktam - izceļam attiecīgo šūnu tabulā.
 const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId ?? null);
 ---
 

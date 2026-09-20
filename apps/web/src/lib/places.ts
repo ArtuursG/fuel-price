@@ -8,11 +8,11 @@
 //                   tāpēc komats atdala gan ierakstus, gan ielu no pilsētas
 //   Straujupīte  "Ainaži, Salacgrīvas nov."
 //                -> VIENA vieta, nevis divas. Sadalīšana pēc komata te uztaisītu
-//                   divas neesošas "adreses" -- tieši tāpēc te ir baltais saraksts,
+//                   divas neesošas "adreses" - tieši tāpēc te ir baltais saraksts,
 //                   nevis mēģinājums uzminēt no teksta formas.
 //
 // Ja formāts nav zināms, atgriežam tukšu sarakstu un lapa parāda tekstu tādu,
-// kāds tas ir -- labāk viena nesadalīta rinda nekā izdomātas adreses.
+// kāds tas ir - labāk viena nesadalīta rinda nekā izdomātas adreses.
 
 export interface FuelPlace {
 	name: string | null;
@@ -30,7 +30,7 @@ export function parseFuelPlaces(networkId: string, whereText: string | null): Fu
 	const text = whereText.trim();
 	if (!text) return [];
 
-	// "nosaukums : adrese" formāts -- ieraksts sākas tur, kur segmentā ir kols.
+	// "nosaukums : adrese" formāts - ieraksts sākas tur, kur segmentā ir kols.
 	if (text.includes(":")) {
 		const places: FuelPlace[] = [];
 		for (const segment of text.split(",")) {
@@ -67,7 +67,7 @@ export function placeSearchUrl(networkName: string, place: FuelPlace): string {
 }
 
 // Adresei nav koordinātu, tāpēc Waze saņem meklējamo tekstu (`q`), nevis
-// `ll` kā kartē. Abās saitēs ir tikai galamērķis -- lietotāja atrašanās
+// `ll` kā kartē. Abās saitēs ir tikai galamērķis - lietotāja atrašanās
 // vietu nesūtām nekur.
 export function placeWazeUrl(networkName: string, place: FuelPlace): string {
 	return `https://www.waze.com/ul?q=${encodeURIComponent(placeQuery(networkName, place))}&navigate=yes`;

@@ -1,12 +1,12 @@
 ---
 // Cenas papildu informācija zem viena "i" apzīmējuma: vecums, tvērums,
 // vietas, novērošanas laiks un avots. Pirms tam šīs rindas bija vienmēr
-// redzamas pie katras cenas -- tabulā tas nozīmēja četras sīkas rindiņas
+// redzamas pie katras cenas - tabulā tas nozīmēja četras sīkas rindiņas
 // KATRĀ šūnā.
 //
 // Pieejamība: panelis parādās gan uz :hover, gan uz :focus-within, tāpēc
 // tas darbojas ar peli, tastatūru (tab uz pogu) un pieskārienu (pieskāriens
-// pogai dod fokusu). Saturā ir saites, tāpēc `title` atribūts neder --
+// pogai dod fokusu). Saturā ir saites, tāpēc `title` atribūts neder -
 // to nevar noklikšķināt.
 import FuelPricePlaces from "./FuelPricePlaces.astro";
 import { AGE_LABELS, ORIGIN_LABELS, formatObservedAt, type NetworkPrice } from "../lib/prices";
@@ -107,7 +107,7 @@ const scopeLabel =
 
 	/* Šaurā ekrānā tabulai ir horizontālā ritināšana, un ritināšanas
 	   konteiners nogrieztu virs tā uzliktu paneli. Tur panelis parādās
-	   plūsmā (pabīda saturu) -- tas ir mazāk elegants, bet vienmēr
+	   plūsmā (pabīda saturu) - tas ir mazāk elegants, bet vienmēr
 	   redzams. Pieskāriena ierīcēs "hover" tik un tā nav. */
 	@media (max-width: 59.99rem) {
 		.price-info__panel {

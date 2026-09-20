@@ -50,20 +50,24 @@ def test_tariffs_are_network_wide():
     assert all(t.station_id is None for t in _parse_fixture())
 
 
+def _card(data_type: str, label: str, price: str) -> str:
+    return (
+        f'<div class="price-card charging-card" data-type="{data_type}">'
+        f"<span>{label}</span><span>{price}</span></div></div>"
+    )
+
+
 def test_ignores_unknown_connector_type():
-    html = '<div class="price-card charging-card" data-type="wireless"><span>X 40kW</span><span>0.28 EUR/kWh</span></div></div>'
-    assert parse(html) == []
+    assert parse(_card("wireless", "X 40kW", "0.28 EUR/kWh")) == []
 
 
 def test_rejects_price_outside_sane_range():
     # A stray decimal would otherwise store 28 EUR/kWh as a real tariff.
-    html = '<div class="price-card charging-card" data-type="ccs2"><span>CCS 2 40kW</span><span>28 EUR/kWh</span></div></div>'
-    assert parse(html) == []
+    assert parse(_card("ccs2", "CCS 2 40kW", "28 EUR/kWh")) == []
 
 
 def test_rejects_power_outside_sane_range():
-    html = '<div class="price-card charging-card" data-type="ccs2"><span>CCS 2 4000kW</span><span>0.28 EUR/kWh</span></div></div>'
-    assert parse(html) == []
+    assert parse(_card("ccs2", "CCS 2 4000kW", "0.28 EUR/kWh")) == []
 
 
 def test_returns_empty_for_page_without_cards():

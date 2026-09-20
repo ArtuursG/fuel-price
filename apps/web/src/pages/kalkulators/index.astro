@@ -5,7 +5,7 @@ import { getEvTariffSummary } from "../../lib/ev";
 import { PRODUCT_FULL_LABELS, cheapest, getLatestFuelPrices } from "../../lib/prices";
 
 // Tikai uz litru cenoti, uz ceļiem legāli degvielas veidi (sk. lib/prices.ts
-// DSL_AGRO piezīmi -- NEKAD nerādīt šeit). CNG izslēgts -- tā cena ir par kg,
+// DSL_AGRO piezīmi - NEKAD nerādīt šeit). CNG izslēgts - tā cena ir par kg,
 // ne litru, tāpēc nesader ar vienu kopīgu "L/100km" ievadlauku.
 const CALC_FUEL_PRODUCTS = new Set(["P95", "P98", "DSL", "DSL_PLUS", "LPG"]);
 
@@ -38,12 +38,12 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 	<h1>Degvielas kalkulators</h1>
 
 	{!hasData ? (
-		<p class="intro">Vēl nav datu -- kolektors avotus vēl nav nolasījis.</p>
+		<p class="intro">Vēl nav datu - kolektors avotus vēl nav nolasījis.</p>
 	) : (
 		<>
 			<p class="intro">
 				Rēķina pēc pašreizējām lētākajām zināmajām cenām, tāpēc cenu nav jāmeklē citur. Rezultāti
-				pārrēķinās uzreiz, mainot ievadi -- nekas netiek sūtīts uz serveri.
+				pārrēķinās uzreiz, mainot ievadi - nekas netiek sūtīts uz serveri.
 			</p>
 
 			<div class="calc-grid">
@@ -120,7 +120,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 				</label>
 			</div>
 			<p class="note">
-				Vienāds patēriņš pieņemts visiem degvielas veidiem vienkāršības labad -- reālais patēriņš atšķiras pēc
+				Vienāds patēriņš pieņemts visiem degvielas veidiem vienkāršības labad - reālais patēriņš atšķiras pēc
 				degvielas veida. EV laika tarifiem (&euro;/min) izmantota savienotāja vidējā jauda, ne precīza vērtība.
 			</p>
 
@@ -216,7 +216,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 				const distanceInput = document.getElementById("trip-distance") as HTMLInputElement;
 				const tripConsumptionInput = document.getElementById("trip-consumption") as HTMLInputElement;
 				// Workers tipi deklarē savu globālo `Element` (HTMLRewriter), kas
-				// sajaucas ar DOM `Element` -- tāpēc ne tiešs cast, ne
+				// sajaucas ar DOM `Element` - tāpēc ne tiešs cast, ne
 				// querySelector<T> neiet cauri. Pāreja caur `unknown` ir vienīgais
 				// ceļš, kamēr abi `Element` sadzīvo vienā projektā.
 				const productSelect = document.getElementById("trip-product") as unknown as HTMLSelectElement;
@@ -314,7 +314,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 		max-width: 42rem;
 		margin: 0 0 1.5rem;
 	}
-	/* Divas kolonnas, kamēr vietas pietiek; šaurāk -- cita zem citas. */
+	/* Divas kolonnas, kamēr vietas pietiek; šaurāk - cita zem citas. */
 	.calc-grid {
 		display: grid;
 		gap: 2rem;

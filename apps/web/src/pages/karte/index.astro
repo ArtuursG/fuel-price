@@ -19,13 +19,13 @@ catch (error) { console.error("DUS cenas nav pieejamas", error); }
 const stations = [...ev, ...fuelWithPrices];
 const networks = [...new Set(stations.map((station) => station.network))].sort((a,b) => a.localeCompare(b,"lv"));
 // Kurās stacijās ir zemākā zināmā cena. Cena nāk no tīkla lapas, stacija no
-// OSM, tāpēc daļa sakritību neizdodas -- tās nonāk `unlocated` un lapa par
+// OSM, tāpēc daļa sakritību neizdodas - tās nonāk `unlocated` un lapa par
 // tām pasaka skaidri, nevis izceļ nepareizo staciju (sk. lib/cheapest.ts).
 let cheapestFor = new Map<string, string[]>();
 let cheapestHighlights: import("../../lib/cheapest").Highlight[] = [];
 try {
   // DSL_AGRO NAV ceļiem legāla (sk. lib/prices.ts), un AdBlue nav degviela,
-  // ar ko brauc -- ne viena, ne otra nedrīkst nonākt izcelšanas izvēlnē.
+  // ar ko brauc - ne viena, ne otra nedrīkst nonākt izcelšanas izvēlnē.
   const HIGHLIGHT_PRODUCTS = new Set(["P95", "P98", "DSL", "DSL_PLUS", "HVO", "E85", "LPG", "CNG"]);
   const rows = (await getLatestFuelPrices(env.DB)).filter((row) => HIGHLIGHT_PRODUCTS.has(row.product));
   const marks = markCheapestStations(stations, rows, canonicalNetwork);
@@ -42,7 +42,7 @@ const cheapestProducts = [...cheapestHighlights]
   .sort((a,b) => (PRODUCT_FULL_LABELS[a.product] ?? a.product).localeCompare(PRODUCT_FULL_LABELS[b.product] ?? b.product, "lv"));
 // Skripts paziņo, kas tieši izcelts, kad izvēle mainās.
 const highlightNotes = Object.fromEntries(cheapestHighlights.map((h) => [h.product, {
-  text: `${h.networkName} ${formatPrice(h.priceMilli)} EUR/l -- ${h.stationCount === 1 ? "1 stacija" : `${h.stationCount} stacijas`}`,
+  text: `${h.networkName} ${formatPrice(h.priceMilli)} EUR/l - ${h.stationCount === 1 ? "1 stacija" : `${h.stationCount} stacijas`}`,
   caveat: h.isAbsoluteCheapest ? null
     : `Zemākā cena ir ${h.cheaperNetworkName} ${formatPrice(h.cheaperPriceMilli ?? 0)} EUR/l, bet avots nenorāda ielu, tāpēc to kartē novietot nevar.`,
 }]));
@@ -143,7 +143,7 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   #station-detail .station-title h2 { margin:0 0 0.25rem; font-size:1rem; }
   .detail-close { display:block; margin-left:auto; font-size:0.75rem; padding:0.3rem 0.5rem; }
   /* Navigācijas pogas. Krāsas ir lietotņu atpazīstamās krāsas, bet ikonas ir
-     mūsu pašu zīmētas -- oriģinālie logotipi ir preču zīmes (sk. station-map.ts). */
+     mūsu pašu zīmētas - oriģinālie logotipi ir preču zīmes (sk. station-map.ts). */
   .nav-buttons { display:flex; gap:0.3rem; margin:0.4rem 0 0.15rem; }
   .nav-button { display:inline-grid; place-items:center; width:1.7rem; height:1.7rem; border-radius:5px; color:white; text-decoration:none; transition:transform 0.1s ease, filter 0.1s ease; }
   .nav-button svg { width:13px; height:13px; }
