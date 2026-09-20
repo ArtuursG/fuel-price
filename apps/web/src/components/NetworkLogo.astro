@@ -5,6 +5,8 @@
 // Ja faila nav (piem., Gotika lapa robots.txt liedz jebko lejupielādēt),
 // rādām burtu plāksnīti tīkla krāsā -- tabulā tāpat vajag kaut ko vienāda
 // izmēra, un tukša vieta izskatītos pēc kļūdas.
+import { logoForId } from "../lib/logos";
+
 interface Props {
 	networkId: string;
 	networkName: string;
@@ -13,26 +15,14 @@ interface Props {
 
 const { networkId, networkName, size = 24 } = Astro.props as Props;
 
-const LOGO_FILES: Record<string, string> = {
-	astarte: "/logos/astarte.png",
-	circlek: "/logos/circlek.png",
-	elektrum: "/logos/elektrum.png",
-	eleport: "/logos/eleport.svg",
-	emobi: "/logos/emobi.svg",
-	ignitis: "/logos/ignitis.png",
-	straujupite: "/logos/straujupite.svg",
-	viada: "/logos/viada.png",
-	virsi: "/logos/virsi.png",
-};
 
+// Gotika ir vienīgā, kurai logo nav: gotikaauto.lv robots.txt ir
+// "Disallow: /", tāpēc no viņu lapas neko neņemam.
 const FALLBACK_COLORS: Record<string, string> = {
 	gotika: "#2f6b45",
-	kool: "#1f5fa8",
-	neste: "#00a0df",
-	enefit: "#4a4f8c",
 };
 
-const file = LOGO_FILES[networkId];
+const file = logoForId(networkId);
 const initials = networkName.slice(0, 2).toUpperCase();
 ---
 
