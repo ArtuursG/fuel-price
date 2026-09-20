@@ -2,7 +2,7 @@
 import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
 import PriceHistoryChart from "../../components/PriceHistoryChart.astro";
-import { buildDailySeries, dayKeys, distinctDays, getProductHistory } from "../../lib/history";
+import { buildDailySeries, dayKeys, getProductHistory } from "../../lib/history";
 import { PRODUCT_FULL_LABELS } from "../../lib/prices";
 
 const DAYS = 30;
@@ -19,13 +19,11 @@ const charts = await Promise.all(
 			product,
 			label: PRODUCT_FULL_LABELS[product] ?? product,
 			series: buildDailySeries(rows, days),
-			collectedDays: distinctDays(rows),
 		};
 	}),
 );
 
 const withData = charts.filter((c) => c.series.length > 0);
-const collectedDays = Math.max(0, ...charts.map((c) => c.collectedDays));
 ---
 
 <Layout title="Cenu vēsture - degvielas cenas">
@@ -37,29 +35,17 @@ const collectedDays = Math.max(0, ...charts.map((c) => c.collectedDays));
 		pirmais un kurš to samazina lēnāk, kā arī sekot līdzi starpībai starp dīzeļdegvielu un 95. benzīnu.
 	</p>
 
-	{collectedDays < DAYS && (
-		<p class="notice">
-			Vēsture vēl krājas: pagaidām savāktas <b>{collectedDays === 1 ? "1 diena" : `${collectedDays} dienas`}</b>.
-			Grafiks aizpildīsies pats, kolektoram strādājot -- līdz tam līnijas ir īsas un secinājumus no tām
-			vilkt vēl nevar.
-		</p>
-	)}
-
 	{withData.length === 0 ? (
 		<p class="notice">Vēl nav nevienas cenas, ko attēlot.</p>
 	) : (
 		<>
-			<div id="product-tabs" class="product-tabs" role="group" aria-label="Degvielas veids" hidden>
-				{withData.map((chart, i) => (
-					<button
-						type="button"
-						class="product-tabs__button"
-						data-product={chart.product}
-						aria-pressed={i === 0 ? "true" : "false"}
-					>
-						{chart.label}
-					</button>
-				))}
+			<div id="product-tabs" class="product-tabs" hidden>
+				<label for="product-select">Degviela</label>
+				<select id="product-select">
+					{withData.map((chart) => (
+						<option value={chart.product}>{chart.label}</option>
+					))}
+				</select>
 			</div>
 
 			{withData.map((chart) => (
@@ -73,34 +59,24 @@ const collectedDays = Math.max(0, ...charts.map((c) => c.collectedDays));
 
 	<script>
 		// Bez JS paliek visi grafiki cits zem cita -- tie ir pilnvērtīgi.
-		// Ar JS tie pārtop par vienu grafiku ar degvielas veida izvēli.
+		// Ar JS tie pārtop par vienu grafiku ar degvielas izvēli.
 		// Workers globālais `Element` (HTMLRewriter) sajaucas ar DOM `Element`,
-		// tāpēc querySelector atgriež tipu bez `hidden` -- ejam caur `unknown`.
+		// tāpēc ejam caur `unknown`.
 		const tabs = document.getElementById("product-tabs") as unknown as HTMLElement | null;
-		const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".product-tabs__button"));
+		const select = document.getElementById("product-select") as unknown as HTMLSelectElement | null;
 		const panels = Array.from(document.querySelectorAll<HTMLElement>(".chart-section"));
 
-		if (tabs && buttons.length > 1) {
+		if (tabs && select && panels.length > 1) {
 			tabs.hidden = false;
 
-			function select(product: string) {
+			const show = (product: string) => {
 				for (const panel of panels) {
 					panel.hidden = panel.dataset.product !== product;
 				}
-				for (const button of buttons) {
-					button.setAttribute("aria-pressed", String(button.dataset.product === product));
-				}
-			}
+			};
 
-			for (const button of buttons) {
-				button.addEventListener("click", () => {
-					const product = button.dataset.product;
-					if (product) select(product);
-				});
-			}
-
-			const first = buttons[0].dataset.product;
-			if (first) select(first);
+			select.addEventListener("change", () => show(select.value));
+			show(select.value);
 		}
 	</script>
 
@@ -127,28 +103,22 @@ const collectedDays = Math.max(0, ...charts.map((c) => c.collectedDays));
 	}
 	.product-tabs {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		margin-bottom: 1.25rem;
+		align-items: center;
+		gap: 0.6rem;
+		margin-bottom: 1.5rem;
 	}
-	.product-tabs__button {
-		padding: 0.45rem 0.85rem;
-		border: 1px solid var(--color-border);
-		border-radius: 999px;
-		background: var(--color-bg);
+	.product-tabs label {
+		font-size: 0.85rem;
 		color: var(--color-ink-muted);
+	}
+	.product-tabs select {
 		font: inherit;
-		font-size: 0.9rem;
-		cursor: pointer;
-	}
-	.product-tabs__button:hover {
-		border-color: var(--color-pylon);
-		color: var(--color-pylon);
-	}
-	.product-tabs__button[aria-pressed="true"] {
-		border-color: var(--color-pylon);
-		background: var(--color-pylon);
-		color: var(--color-pylon-ink);
+		font-size: 0.95rem;
+		padding: 0.45rem 0.6rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		background: var(--color-surface);
+		color: var(--color-ink);
 	}
 	.chart-section {
 		padding-bottom: 1.5rem;
