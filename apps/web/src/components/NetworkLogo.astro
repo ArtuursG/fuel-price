@@ -1,0 +1,71 @@
+---
+// Tīkla zīme. Logo faili ir tīklu pašu zīmoli, izmantoti tikai tīkla
+// atpazīšanai salīdzinājumā; tie nav mūsu īpašums un nav pārzīmēti.
+//
+// Ja faila nav (piem., Gotika lapa robots.txt liedz jebko lejupielādēt),
+// rādām burtu plāksnīti tīkla krāsā -- tabulā tāpat vajag kaut ko vienāda
+// izmēra, un tukša vieta izskatītos pēc kļūdas.
+interface Props {
+	networkId: string;
+	networkName: string;
+	size?: number;
+}
+
+const { networkId, networkName, size = 24 } = Astro.props as Props;
+
+const LOGO_FILES: Record<string, string> = {
+	astarte: "/logos/astarte.png",
+	circlek: "/logos/circlek.png",
+	elektrum: "/logos/elektrum.png",
+	eleport: "/logos/eleport.svg",
+	emobi: "/logos/emobi.svg",
+	ignitis: "/logos/ignitis.png",
+	straujupite: "/logos/straujupite.svg",
+	viada: "/logos/viada.png",
+	virsi: "/logos/virsi.png",
+};
+
+const FALLBACK_COLORS: Record<string, string> = {
+	gotika: "#2f6b45",
+	kool: "#1f5fa8",
+	neste: "#00a0df",
+	enefit: "#4a4f8c",
+};
+
+const file = LOGO_FILES[networkId];
+const initials = networkName.slice(0, 2).toUpperCase();
+---
+
+{
+	file ? (
+		<img class="network-logo" src={file} width={size} height={size} alt="" loading="lazy" style={`--logo-size: ${size}px`} />
+	) : (
+		<span
+			class="network-logo network-logo--text"
+			aria-hidden="true"
+			style={`--logo-size: ${size}px; --logo-color: ${FALLBACK_COLORS[networkId] ?? "var(--color-neutral)"}`}
+		>
+			{initials}
+		</span>
+	)
+}
+
+<style>
+	.network-logo {
+		flex: none;
+		width: var(--logo-size);
+		height: var(--logo-size);
+		object-fit: contain;
+		vertical-align: middle;
+	}
+	.network-logo--text {
+		display: inline-grid;
+		place-items: center;
+		border-radius: 3px;
+		background: var(--logo-color);
+		color: #fff;
+		font-size: calc(var(--logo-size) * 0.42);
+		font-weight: 700;
+		letter-spacing: 0.02em;
+	}
+</style>

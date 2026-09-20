@@ -2,7 +2,7 @@
 import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
 import { getEvTariffSummary } from "../../lib/ev";
-import { cheapest, getLatestFuelPrices } from "../../lib/prices";
+import { PRODUCT_FULL_LABELS, cheapest, getLatestFuelPrices } from "../../lib/prices";
 
 // Tikai uz litru cenoti, uz ceļiem legāli degvielas veidi (sk. lib/prices.ts
 // DSL_AGRO piezīmi -- NEKAD nerādīt šeit). CNG izslēgts -- tā cena ir par kg,
@@ -16,6 +16,7 @@ const calcData = {
 	fuel: fuelRows.map((row) => ({
 		product: row.product,
 		label: row.label,
+		fullLabel: PRODUCT_FULL_LABELS[row.product] ?? row.label,
 		priceMilli: cheapest(row).priceMilli,
 	})),
 	ev: evSummary
@@ -60,7 +61,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 					<label>
 						Degviela
 						<select id="trip-product">
-							{calcData.fuel.map((f) => <option value={f.product}>{f.label}</option>)}
+							{calcData.fuel.map((f) => <option value={f.product}>{f.fullLabel}</option>)}
 						</select>
 					</label>
 					<label>
@@ -141,7 +142,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 				import { formatPrice } from "../../lib/prices";
 
 				interface CalcData {
-					fuel: { product: string; label: string; priceMilli: number }[];
+					fuel: { product: string; label: string; fullLabel: string; priceMilli: number }[];
 					ev: {
 						networkName: string;
 						connector: string | null;
