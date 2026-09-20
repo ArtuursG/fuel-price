@@ -46,6 +46,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 				pārrēķinās uzreiz, mainot ievadi -- nekas netiek sūtīts uz serveri.
 			</p>
 
+			<div class="calc-grid">
 			<section class="calc-section">
 				<h2>Cik maksās brauciens?</h2>
 
@@ -125,6 +126,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 
 			<div id="results" class="results" aria-live="polite"></div>
 			</section>
+			</div>
 
 			<script type="application/json" id="calc-data" set:html={JSON.stringify(calcData)} />
 			<script>
@@ -312,10 +314,32 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 		max-width: 42rem;
 		margin: 0 0 1.5rem;
 	}
+	/* Divas kolonnas, kamēr vietas pietiek; šaurāk -- cita zem citas. */
+	.calc-grid {
+		display: grid;
+		gap: 2rem;
+		align-items: start;
+	}
+	@media (min-width: 62rem) {
+		.calc-grid {
+			grid-template-columns: 1fr 1fr;
+			gap: 2.5rem;
+		}
+	}
 	.calc-section {
+		min-width: 0;
 		padding-bottom: 2rem;
-		margin-bottom: 2rem;
 		border-bottom: 1px solid var(--color-border);
+	}
+	@media (min-width: 62rem) {
+		.calc-section {
+			padding-bottom: 0;
+			border-bottom: none;
+		}
+		/* Blakus esot, ievadlauki vairs neietilpst trijās kolonnās. */
+		.calc-section .inputs {
+			grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+		}
 	}
 	.calc-section:last-of-type {
 		border-bottom: none;
@@ -341,7 +365,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 		color: var(--color-ink);
 	}
 	.trip-results {
-		max-width: 30rem;
+		max-width: 34rem;
 		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		overflow: hidden;
@@ -380,7 +404,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 		margin: 0 0 2rem;
 	}
 	.results {
-		max-width: 30rem;
+		max-width: 34rem;
 		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		overflow: hidden;
