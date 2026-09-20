@@ -2,7 +2,8 @@
 import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
 import { attachFuelPrices, canonicalNetwork, getEvMapStations, routeUrl, wazeUrl, validCoordinates, type MapStation } from "../../lib/station-map";
-import { getLatestFuelPrices } from "../../lib/prices";
+import { PRODUCT_FULL_LABELS, formatPrice, getLatestFuelPrices } from "../../lib/prices";
+import { markCheapestStations } from "../../lib/cheapest";
 import fuelData from "../../../public/data/fuel-stations.json";
 
 let ev: MapStation[] = [];
@@ -17,7 +18,25 @@ try { fuelWithPrices = attachFuelPrices(fuel, await getLatestFuelPrices(env.DB))
 catch (error) { console.error("DUS cenas nav pieejamas", error); }
 const stations = [...ev, ...fuelWithPrices];
 const networks = [...new Set(stations.map((station) => station.network))].sort((a,b) => a.localeCompare(b,"lv"));
-const payload = JSON.stringify(stations).replace(/</g, "\\u003c");
+// Kurās stacijās ir zemākā zināmā cena. Cena nāk no tīkla lapas, stacija no
+// OSM, tāpēc daļa sakritību neizdodas -- tās nonāk `unlocated` un lapa par
+// tām pasaka skaidri, nevis izceļ nepareizo staciju (sk. lib/cheapest.ts).
+let cheapestFor = new Map<string, string[]>();
+let cheapestUnlocated: {product: string; networkName: string; priceMilli: number; whereText: string | null}[] = [];
+try {
+  const marks = markCheapestStations(stations, await getLatestFuelPrices(env.DB), canonicalNetwork);
+  cheapestFor = marks.byStation;
+  cheapestUnlocated = marks.unlocated;
+} catch (error) { console.error("Lētāko cenu piesaiste neizdevās", error); }
+
+const stationsWithCheapest = stations.map((station) => {
+  const products = cheapestFor.get(station.id);
+  return products ? {...station, cheapestFor: products} : station;
+});
+// Tikai tie produkti, kuriem tiešām ir ko izcelt.
+const cheapestProducts = [...new Set([...cheapestFor.values()].flat())]
+  .sort((a,b) => (PRODUCT_FULL_LABELS[a] ?? a).localeCompare(PRODUCT_FULL_LABELS[b] ?? b, "lv"));
+const payload = JSON.stringify(stationsWithCheapest).replace(/</g, "\\u003c");
 const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZone:"Europe/Riga"});
 ---
 
@@ -34,12 +53,28 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
     <label>Tīkls<select id="station-network"><option value="">Visi tīkli</option>{networks.map((network) => <option value={network}>{network}</option>)}</select></label>
     <label id="fuel-filter">Degviela<select id="station-product"><option value="">Visi / nav norādīts</option><option value="P95">95 benzīns</option><option value="P98">98 benzīns</option><option value="DSL">Dīzelis</option><option value="LPG">LPG</option><option value="CNG">CNG</option><option value="E85">E85</option></select></label>
     <label id="connector-filter">EV savienotājs<select id="station-connector"><option value="">Visi savienotāji</option><option value="CCS2">CCS2</option><option value="TYPE2">Type 2</option><option value="CHADEMO">CHAdeMO</option></select></label>
+    {cheapestProducts.length > 0 && (
+      <label id="cheapest-filter">Izcelt lētāko<select id="station-cheapest"><option value="">Neizcelt</option>{cheapestProducts.map((product) => <option value={product}>{PRODUCT_FULL_LABELS[product] ?? product}</option>)}</select></label>
+    )}
     <label id="power-filter">EV jauda<select id="station-power"><option value="0">Jebkura</option><option value="22">Vismaz 22 kW</option><option value="50">Vismaz 50 kW</option><option value="150">Vismaz 150 kW</option><option value="300">Vismaz 300 kW</option></select></label>
   </form>
   <div class="map-toolbar">
     <div><button type="button" id="locate-me">Man tuvumā</button><button type="button" id="fit-results">Rādīt visus rezultātus</button><button type="button" id="clear-filters">Notīrīt filtrus</button></div>
     <label><input type="checkbox" id="visible-only" checked /> Tikai redzamajā kartes apgabalā</label>
   </div>
+  {cheapestUnlocated.length > 0 && (
+    <details class="cheapest-gap">
+      <summary>{cheapestUnlocated.length === 1 ? "Viena zemākā cena kartē nav novietojama" : `${cheapestUnlocated.length} zemākās cenas kartē nav novietojamas`}</summary>
+      <ul>
+        {cheapestUnlocated.map((item) => (
+          <li>
+            <b>{PRODUCT_FULL_LABELS[item.product] ?? item.product}</b>: {item.networkName} {formatPrice(item.priceMilli)}&nbsp;&euro;
+            {item.whereText ? <> -- avots norāda "{item.whereText}", bet šāda stacija kartes datos nav atrasta.</> : <> -- avots nenorāda, kurā stacijā cena ir spēkā.</>}
+          </li>
+        ))}
+      </ul>
+    </details>
+  )}
   <p id="map-message" role="status" aria-live="polite" class="map-note">Karte ielādējas. Staciju saraksts pieejams arī zemāk.</p>
   <div class="map-workspace">
     <div id="station-map" role="region" aria-label="Degvielas un elektrouzlādes staciju karte"></div>
@@ -100,6 +135,10 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   .network-mark { display:inline-grid; place-items:center; flex:0 0 2.4rem; height:2.4rem; background:var(--color-pylon); color:white; font:bold 0.8rem var(--font-body); border-radius:4px; letter-spacing:-0.03em; }
   .network-mark--ev { background:var(--color-down); border-radius:50%; }
   /* Logo ir savās krāsās, tāpēc fons ir balts ar apmali, nevis tīkla krāsa. */
+  .cheapest-gap { max-width:48rem; margin:0 0 1rem; padding:0.6rem 0.8rem; border:1px solid var(--color-border); border-left:3px solid var(--color-cheapest-border); background:var(--color-surface); font-size:0.85rem; }
+  .cheapest-gap summary { cursor:pointer; }
+  .cheapest-gap ul { margin:0.5rem 0 0; padding-left:1.1rem; }
+  .cheapest-gap li { margin-bottom:0.35rem; }
   .network-mark--logo { width:2.4rem; background:#fff; border:1px solid var(--color-border); object-fit:contain; padding:0.2rem; border-radius:4px; }
   .network-mark--logo.network-mark--ev { border-radius:50%; }
   .station-subtitle { color:var(--color-ink-muted); font-size:0.75rem; }

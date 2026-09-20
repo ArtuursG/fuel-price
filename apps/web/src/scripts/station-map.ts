@@ -18,6 +18,7 @@ const input = <T = HTMLDivElement>(id: string) => document.getElementById(id) as
 const search = input<HTMLInputElement>("station-search");
 const kind = input<HTMLSelectElement>("station-kind");
 const network = input<HTMLSelectElement>("station-network");
+const cheapest = document.getElementById("station-cheapest") as unknown as HTMLSelectElement | null;
 const product = input<HTMLSelectElement>("station-product");
 const connector = input<HTMLSelectElement>("station-connector");
 const power = input<HTMLSelectElement>("station-power");
@@ -134,6 +135,14 @@ async function registerLogoImages(target: MapLibreMap): Promise<void> {
     }
   }));
 }
+// Vai stacijai ir zemākā zināmā cena izvēlētajam produktam. Saraksts nāk
+// no servera (sk. lib/cheapest.ts) -- klienta pusē neko nesaskaņojam.
+function isCheapest(station: MapStation): boolean {
+  const product = cheapest?.value;
+  if (!product) return false;
+  return (station as MapStation & {cheapestFor?: string[]}).cheapestFor?.includes(product) ?? false;
+}
+
 function markerImageId(networkName: string): string {
   return `logo-${networkName.toLocaleLowerCase("lv").replace(/[^a-z0-9]/g, "")}`;
 }
@@ -258,7 +267,7 @@ function renderList() {
 }
 
 function geojson(): FeatureCollection<Point> {
-  return {type:"FeatureCollection",features:filtered.map((station) => ({type:"Feature",geometry:{type:"Point",coordinates:[station.lon,station.lat]},properties:{id:station.id,kind:station.kind,mark:networkMark(station),logo:logoForNetworkName(canonicalNetwork(station.network))?markerImageId(canonicalNetwork(station.network)):""}}))};
+  return {type:"FeatureCollection",features:filtered.map((station) => ({type:"Feature",geometry:{type:"Point",coordinates:[station.lon,station.lat]},properties:{id:station.id,kind:station.kind,hl:isCheapest(station)?1:0,dim:(cheapest?.value && !isCheapest(station))?1:0,mark:networkMark(station),logo:logoForNetworkName(canonicalNetwork(station.network))?markerImageId(canonicalNetwork(station.network)):""}}))};
 }
 
 function applyFilters() {
@@ -272,6 +281,7 @@ function applyFilters() {
 input<HTMLFormElement>("map-filters").addEventListener("submit", (event) => event.preventDefault());
 search.addEventListener("input",applyFilters);
 network.addEventListener("change",applyFilters);
+cheapest?.addEventListener("change",applyFilters);
 kind.addEventListener("change", () => {
   product.value=""; connector.value=""; power.value="0";
   input("fuel-filter").hidden = kind.value === "ev";
@@ -313,6 +323,7 @@ const rootStyle = getComputedStyle(document.documentElement);
 const cssColor = (name: string, fallback: string) => rootStyle.getPropertyValue(name).trim() || fallback;
 const COLOR_FUEL = cssColor("--color-pylon", "#245779");
 const COLOR_EV = cssColor("--color-down", "#296448");
+const COLOR_CHEAPEST = cssColor("--color-cheapest-border", "#296448");
 const COLOR_INK = cssColor("--color-ink", "#202b35");
 
 // Diagnostika: kartes "load" var nenotikt pilnīgi klusi (apstājies Web
@@ -344,7 +355,9 @@ try {
     map.addLayer({id:"cluster-count",type:"symbol",source:"stations",filter:["has","point_count"],layout:{"text-field":["get","point_count_abbreviated"],"text-font":["Noto Sans Regular"],"text-size":12},paint:{"text-color":"#fff"}});
     // Ar logo aplis ir balts (krāsains fons logo nomāktu), un tīkla krāsa
     // pāriet uz apmali; bez logo viss paliek kā bijis.
-    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["case",["!=",["get","logo"],""],"#ffffff",["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL]],"circle-radius":["interpolate",["linear"],["zoom"],10,15,14,19],"circle-stroke-color":["case",["!=",["get","logo"],""],["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"#ffffff"],"circle-stroke-width":3}});
+    // Izcēluma gredzens zīmējas ZEM staciju apļa, tāpēc pievienots pirms tā.
+    map.addLayer({id:"cheapest-ring",type:"circle",source:"stations",filter:["all",["!",["has","point_count"]],["==",["get","hl"],1]],paint:{"circle-color":COLOR_CHEAPEST,"circle-radius":["interpolate",["linear"],["zoom"],10,22,14,27],"circle-opacity":0.9}});
+    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["case",["!=",["get","logo"],""],"#ffffff",["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL]],"circle-radius":["interpolate",["linear"],["zoom"],10,15,14,19],"circle-stroke-color":["case",["!=",["get","logo"],""],["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"#ffffff"],"circle-stroke-width":3,"circle-opacity":["case",["==",["get","dim"],1],0.35,1],"circle-stroke-opacity":["case",["==",["get","dim"],1],0.35,1]}});
     map.addLayer({id:"station-logos",type:"symbol",source:"stations",filter:["all",["!",["has","point_count"]],["!=",["get","logo"],""]],layout:{"icon-image":["get","logo"],"icon-size":["interpolate",["linear"],["zoom"],10,0.62,14,0.82],"icon-allow-overlap":true,"icon-ignore-placement":true}});
     map.addLayer({id:"station-labels",type:"symbol",source:"stations",filter:["all",["!",["has","point_count"]],["==",["get","logo"],""]],layout:{"text-field":["get","mark"],"text-font":["Noto Sans Regular"],"text-size":12,"text-allow-overlap":true},paint:{"text-color":"#fff"}});
     mapReady=true; message.textContent="Pietuvini karti vai izvēlies staciju sarakstā. Skaitļi apļos norāda staciju skaitu.";renderList();
