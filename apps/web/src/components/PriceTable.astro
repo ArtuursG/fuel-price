@@ -1,4 +1,5 @@
 ---
+import NetworkLogo from "./NetworkLogo.astro";
 import PriceInfo from "./PriceInfo.astro";
 import { formatPrice, type NetworkPrice, type ProductRow } from "../lib/prices";
 
@@ -41,7 +42,12 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 		<tbody>
 			{rows.map((row) => (
 				<tr>
-					<th scope="row"><a href={`/tikli/${row.networkId}/`}>{row.networkName}</a></th>
+					<th scope="row">
+							<a class="network-cell" href={`/tikli/${row.networkId}/`}>
+								<NetworkLogo networkId={row.networkId} networkName={row.networkName} size={22} />
+								<span>{row.networkName}</span>
+							</a>
+						</th>
 					{row.cells.map((cell, i) => (
 						<td class={cell && cheapestNetworkByProduct[i] === row.networkId ? "cheapest" : undefined}>
 							{cell ? (
@@ -62,6 +68,11 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 </div>
 
 <style>
+	.network-cell {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
 	.price-cell {
 		display: inline-flex;
 		align-items: center;

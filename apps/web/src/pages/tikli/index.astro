@@ -1,6 +1,7 @@
 ---
 import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
+import NetworkLogo from "../../components/NetworkLogo.astro";
 import { getAllNetworks } from "../../lib/networks";
 
 const networks = await getAllNetworks(env.DB);
@@ -16,6 +17,7 @@ const KIND_LABELS: Record<string, string> = { fuel: "degviela", ev: "EV uzlāde"
 		{networks.map((n) => (
 			<li>
 				<a href={`/tikli/${n.id}/`} class="network-list__link">
+					<NetworkLogo networkId={n.id} networkName={n.name} size={34} />
 					<span class="network-list__name">{n.name}</span>
 					<span class="network-list__kinds">{n.kinds.map((k) => KIND_LABELS[k] ?? k).join(", ")}</span>
 				</a>
@@ -39,9 +41,12 @@ const KIND_LABELS: Record<string, string> = { fuel: "degviela", ev: "EV uzlāde"
 		gap: 0.75rem;
 	}
 	.network-list__link {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
+		display: grid;
+		grid-template-columns: auto 1fr;
+		grid-template-rows: auto auto;
+		align-items: center;
+		column-gap: 0.7rem;
+		row-gap: 0.15rem;
 		padding: 1rem 1.1rem;
 		border: 1px solid var(--color-border);
 		border-radius: 6px;
@@ -55,6 +60,10 @@ const KIND_LABELS: Record<string, string> = { fuel: "degviela", ev: "EV uzlāde"
 	.network-list__link:hover {
 		border-color: var(--color-pylon);
 		transform: translateY(-1px);
+	}
+	/* Logo aizņem abas rindas kreisajā kolonnā. */
+	.network-list__link > :first-child {
+		grid-row: span 2;
 	}
 	.network-list__name {
 		font-weight: 600;

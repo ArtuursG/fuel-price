@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
 import PriceHistoryChart from "../../components/PriceHistoryChart.astro";
 import { buildDailySeries, dayKeys, distinctDays, getProductHistory } from "../../lib/history";
-import { PRODUCT_LABELS } from "../../lib/prices";
+import { PRODUCT_FULL_LABELS } from "../../lib/prices";
 
 const DAYS = 30;
 // Tikai tie produkti, kuriem ir vērts salīdzināt tīklus. DSL_AGRO nav uz
@@ -17,7 +17,7 @@ const charts = await Promise.all(
 		const rows = await getProductHistory(env.DB, product);
 		return {
 			product,
-			label: PRODUCT_LABELS[product] ?? product,
+			label: PRODUCT_FULL_LABELS[product] ?? product,
 			series: buildDailySeries(rows, days),
 			collectedDays: distinctDays(rows),
 		};
@@ -48,13 +48,61 @@ const collectedDays = Math.max(0, ...charts.map((c) => c.collectedDays));
 	{withData.length === 0 ? (
 		<p class="notice">Vēl nav nevienas cenas, ko attēlot.</p>
 	) : (
-		withData.map((chart) => (
-			<section class="chart-section">
-				<h2>{chart.label}</h2>
-				<PriceHistoryChart series={chart.series} days={days} />
-			</section>
-		))
+		<>
+			<div id="product-tabs" class="product-tabs" role="group" aria-label="Degvielas veids" hidden>
+				{withData.map((chart, i) => (
+					<button
+						type="button"
+						class="product-tabs__button"
+						data-product={chart.product}
+						aria-pressed={i === 0 ? "true" : "false"}
+					>
+						{chart.label}
+					</button>
+				))}
+			</div>
+
+			{withData.map((chart) => (
+				<section class="chart-section" data-product={chart.product}>
+					<h2>{chart.label}</h2>
+					<PriceHistoryChart series={chart.series} days={days} />
+				</section>
+			))}
+		</>
 	)}
+
+	<script>
+		// Bez JS paliek visi grafiki cits zem cita -- tie ir pilnvērtīgi.
+		// Ar JS tie pārtop par vienu grafiku ar degvielas veida izvēli.
+		// Workers globālais `Element` (HTMLRewriter) sajaucas ar DOM `Element`,
+		// tāpēc querySelector atgriež tipu bez `hidden` -- ejam caur `unknown`.
+		const tabs = document.getElementById("product-tabs") as unknown as HTMLElement | null;
+		const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".product-tabs__button"));
+		const panels = Array.from(document.querySelectorAll<HTMLElement>(".chart-section"));
+
+		if (tabs && buttons.length > 1) {
+			tabs.hidden = false;
+
+			function select(product: string) {
+				for (const panel of panels) {
+					panel.hidden = panel.dataset.product !== product;
+				}
+				for (const button of buttons) {
+					button.setAttribute("aria-pressed", String(button.dataset.product === product));
+				}
+			}
+
+			for (const button of buttons) {
+				button.addEventListener("click", () => {
+					const product = button.dataset.product;
+					if (product) select(product);
+				});
+			}
+
+			const first = buttons[0].dataset.product;
+			if (first) select(first);
+		}
+	</script>
 
 	<p class="note">
 		Cena tiek saglabāta tikai tad, kad tā mainās, tāpēc dienās bez izmaiņām grafikā turpinās iepriekšējā
@@ -76,6 +124,31 @@ const collectedDays = Math.max(0, ...charts.map((c) => c.collectedDays));
 		border-left: 3px solid var(--color-pylon);
 		background: var(--color-surface);
 		font-size: 0.9rem;
+	}
+	.product-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		margin-bottom: 1.25rem;
+	}
+	.product-tabs__button {
+		padding: 0.45rem 0.85rem;
+		border: 1px solid var(--color-border);
+		border-radius: 999px;
+		background: var(--color-bg);
+		color: var(--color-ink-muted);
+		font: inherit;
+		font-size: 0.9rem;
+		cursor: pointer;
+	}
+	.product-tabs__button:hover {
+		border-color: var(--color-pylon);
+		color: var(--color-pylon);
+	}
+	.product-tabs__button[aria-pressed="true"] {
+		border-color: var(--color-pylon);
+		background: var(--color-pylon);
+		color: var(--color-pylon-ink);
 	}
 	.chart-section {
 		padding-bottom: 1.5rem;

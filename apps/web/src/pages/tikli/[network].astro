@@ -1,6 +1,7 @@
 ---
 import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
+import NetworkLogo from "../../components/NetworkLogo.astro";
 import { CONNECTOR_LABELS, getEvTariffSummary } from "../../lib/ev";
 import { getNetwork } from "../../lib/networks";
 import { AGE_LABELS, ORIGIN_LABELS, formatPrice, getLatestFuelPrices } from "../../lib/prices";
@@ -36,7 +37,10 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 	) : (
 		<>
 			<p class="breadcrumb"><a href="/tikli/">Tīkli</a> / {network.name}</p>
-			<h1>{network.name}</h1>
+			<h1 class="network-title">
+				<NetworkLogo networkId={network.id} networkName={network.name} size={40} />
+				{network.name}
+			</h1>
 			{network.website && (
 				<p class="intro">
 					<a href={network.website} rel="noopener noreferrer" target="_blank">{network.website}</a>
@@ -147,6 +151,12 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 </Layout>
 
 <style>
+	.network-title {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+	}
+
 	/* Izmērs nāk no global.css; te tikai atkāpe, jo virs virsraksta ir
 	   maizes drupatu rinda. */
 	h1 {
