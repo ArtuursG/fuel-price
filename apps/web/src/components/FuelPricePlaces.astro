@@ -1,0 +1,15 @@
+---
+import type {NetworkPrice} from "../lib/prices";
+interface Props {price: NetworkPrice}
+const {price} = Astro.props;
+// Only Circle K's source has a known comma-separated list of individual addresses.
+const addresses = price.networkId === "circlek" && price.whereText
+  ? price.whereText.split(",").map(address => address.trim()).filter(Boolean) : [];
+---
+{price.scope === "network" ? <p>Visā tīklā</p> : addresses.length ? <ul class="price-addresses">{addresses.map(address => <li><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${price.networkName}, ${address}, Latvija`)}`} target="_blank" rel="noopener noreferrer">{address} ↗</a></li>)}</ul> : <p>{price.whereText || "Avotā adrese nav norādīta"}</p>}
+<style>
+.price-addresses { list-style:none; padding:0; margin:0 0 0.65rem; font-weight:400; }
+.price-addresses li { padding:0.35rem 0; border-bottom:1px solid var(--color-border); }
+.price-addresses a { color:var(--color-pylon); text-decoration:none; }
+.price-addresses a:hover { text-decoration:underline; }
+</style>
