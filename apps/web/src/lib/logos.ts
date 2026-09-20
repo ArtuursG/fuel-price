@@ -1,7 +1,7 @@
 // Tīklu zīmolu attēli. Faili ir tīklu pašu logo, izmantoti tikai tīkla
-// atpazīšanai salīdzinājumā. Katrs ņemts no attiecīgā tīkla lapas, kur
-// robots.txt to atļauj; Gotikas lapa ir "Disallow: /", tāpēc tai logo nav
-// un paliek burtu plāksnīte.
+// atpazīšanai salīdzinājumā. Lielākā daļa ņemta no attiecīgā tīkla lapas,
+// kur robots.txt to atļauj; Gotikas un KOOL failus iedeva lapas īpašnieks,
+// jo gotikaauto.lv atbild ar "Disallow: /" un no turienes neko neņemam.
 //
 // Viens saraksts abām vietām: lapas komponentei (pēc tīkla id) un kartei
 // (pēc tīkla nosaukuma, jo staciju avotos id nav).
@@ -13,6 +13,7 @@ export const LOGO_BY_ID: Record<string, string> = {
 	eleport: "/logos/eleport.svg",
 	emobi: "/logos/emobi.svg",
 	enefit: "/logos/enefit.png",
+	gotika: "/logos/gotika.png",
 	ignitis: "/logos/ignitis.png",
 	kool: "/logos/kool.png",
 	neste: "/logos/neste.svg",
@@ -36,6 +37,8 @@ const ID_BY_NAME: Record<string, string> = {
 	"ignitis on": "ignitis",
 	eleport: "eleport",
 	enefit: "enefit",
+	gotika: "gotika",
+	"gotika auto": "gotika",
 };
 
 export function logoForId(id: string): string | null {

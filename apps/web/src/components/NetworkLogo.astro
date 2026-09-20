@@ -16,11 +16,9 @@ interface Props {
 const { networkId, networkName, size = 24 } = Astro.props as Props;
 
 
-// Gotika ir vienīgā, kurai logo nav: gotikaauto.lv robots.txt ir
-// "Disallow: /", tāpēc no viņu lapas neko neņemam.
-const FALLBACK_COLORS: Record<string, string> = {
-	gotika: "#2f6b45",
-};
+// Tīkliem bez logo paliek burtu plāksnīte -- tabulā tāpat vajag kaut ko
+// vienāda izmēra, un tukša vieta izskatītos pēc kļūdas.
+const FALLBACK_COLORS: Record<string, string> = {};
 
 const file = logoForId(networkId);
 const initials = networkName.slice(0, 2).toUpperCase();
