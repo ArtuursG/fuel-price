@@ -1,3 +1,4 @@
+import type { NetworkPrice, ProductRow } from "./prices";
 export interface MapTariff {
   connector: string | null;
   power: number | null;
@@ -30,6 +31,7 @@ export interface MapStation {
   sourceUrl: string | null;
   updatedAt: string | null;
   tariffs: MapTariff[];
+  fuelPrices?: (NetworkPrice & {product: string; label: string})[];
 }
 
 export interface StationFilters {
@@ -88,8 +90,14 @@ export function tariffText(tariff: MapTariff): string {
   return parts.join("; ");
 }
 
+// Abas saites nes TIKAI galamērķi, nevis lietotāja atrašanās vietu -- maršrutu
+// aprēķina pati lietotne, mēs neko par lietotāju neizpaužam.
 export function routeUrl(station: Pick<MapStation, "lat" | "lon">): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}`;
+}
+
+export function wazeUrl(station: Pick<MapStation, "lat" | "lon">): string {
+  return `https://waze.com/ul?ll=${station.lat},${station.lon}&navigate=yes`;
 }
 
 interface EvRow {
@@ -156,4 +164,34 @@ export async function getEvMapStations(db: D1Database): Promise<MapStation[]> {
     });
   }
   return [...stations.values()];
+}
+
+// Exact aliases only: location identity and raw OSM download stay unchanged.
+export function canonicalNetwork(value: string): string {
+  const aliases: Record<string, string> = {
+    'as "viada baltija"': "Viada", 'as viada baltija': "Viada", viada: "Viada",
+    'sia circle k latvia': "Circle K", 'circle k': "Circle K",
+    'virši-a': "Virši", virši: "Virši", kool: "KOOL",
+    'latvijas nafta': "Latvijas Nafta", 'latvijas propāna gāze': "Latvijas Propāna Gāze",
+    'sia "gotika auto"': "Gotika", gotika: "Gotika",
+  };
+  const trimmed = value.trim().replace(/\s+/g, " ");
+  return aliases[trimmed.toLocaleLowerCase("lv")] ?? trimmed;
+}
+
+/** Only join explicit Circle K Riga addresses; never apply a network minimum to all locations.
+ * Other source address formats need their own parsing rules before they can be joined safely.
+ */
+export function attachFuelPrices(stations: MapStation[], products: ProductRow[]): MapStation[] {
+  const normalize = (value: string) => value.normalize("NFC").toLocaleLowerCase("lv").replace(/\s+/g, " ").trim();
+  return stations.map(station => {
+    if(station.kind !== "fuel" || canonicalNetwork(station.network) !== "Circle K") return station;
+    const parts = station.address.split(",").map(normalize);
+    if(parts.length !== 2 || parts[1] !== "rīga" || !parts[0]) return station;
+    const fuelPrices = products.flatMap(product => product.prices
+      .filter(price => price.networkId === "circlek" && price.scope === "cheapest_riga" &&
+        price.whereText?.split(",").some(address => normalize(address) === parts[0]))
+      .map(price => ({...price, product:product.product, label:product.label})));
+    return {...station, fuelPrices, products:[...new Set([...station.products,...fuelPrices.map(price => price.product)])]};
+  });
 }

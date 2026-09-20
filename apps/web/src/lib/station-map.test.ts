@@ -1,5 +1,6 @@
+import { attachFuelPrices } from "./station-map";
 import {describe, expect, it} from "vitest";
-import {filterStations, getEvMapStations, routeUrl, safeSourceUrl, tariffText, validCoordinates, type MapStation, type MapTariff, type StationFilters} from "./station-map";
+import {canonicalNetwork, filterStations, getEvMapStations, routeUrl, wazeUrl, safeSourceUrl, tariffText, validCoordinates, type MapStation, type MapTariff, type StationFilters} from "./station-map";
 
 const tariff: MapTariff = {
   connector:"CCS2",power:50,current:"DC",payment:"app",energy:390,time:null,
@@ -41,7 +42,37 @@ it("route URL includes only the destination, not the user's coordinates",() => {
   expect(routeUrl(ev)).toBe("https://www.google.com/maps/dir/?api=1&destination=57,24");
 });
 
+it("Waze URL also carries only the destination",() => {
+  expect(wazeUrl(ev)).toBe("https://waze.com/ul?ll=57,24&navigate=yes");
+});
+
 it("skips station rows with null coordinates instead of putting them near 0,0",async() => {
   const db={prepare:()=>({all:async()=>({results:[{id:"bad",lat:null,lon:null}]})})} as unknown as D1Database;
   expect(await getEvMapStations(db)).toEqual([]);
+});
+
+it("groups known network aliases without merging unrelated brands", () => {
+  expect(canonicalNetwork('AS "VIADA Baltija"')).toBe("Viada");
+  expect(canonicalNetwork("Kool")).toBe("KOOL");
+  expect(canonicalNetwork("  Virši-A  ")).toBe("Virši");
+  expect(canonicalNetwork("Neatkarīgs tīkls")).toBe("Neatkarīgs tīkls");
+});
+
+
+describe("attachFuelPrices", () => {
+  const price = {networkId:"circlek", networkName:"Circle K", priceMilli:1914, changeMilli:null, age:"today" as const, origin:null, sourceUrl:null, observedAt:"2026-09-18T10:00:00Z",scope:"cheapest_riga",whereText:"Brīvības gatve 265, Dzirciema iela 40"};
+  const products = [{product:"P95",label:"95",prices:[price]}];
+  const station = {...ev,kind:"fuel" as const,network:"Circle K",address:"Brīvības gatve 265, Rīga",tariffs:[]};
+  it("joins the exact operator and full Riga address, preserving product and timestamp", () => {
+    expect(attachFuelPrices([station],products)[0].fuelPrices).toEqual([{...price,product:"P95",label:"95"}]);
+    expect(attachFuelPrices([station],products)[0].products).toContain("P95");
+  });
+  it("does not copy minima to another house, city, network or an unspecified address", () => {
+    for(const change of [{address:"Brīvības gatve 26, Rīga"},{address:"Brīvības gatve 265A, Rīga"},{address:"Brīvības gatve 265, Liepāja"},{network:"Viada"},{address:""}]) {
+      expect(attachFuelPrices([{...station,...change}],products)[0].fuelPrices ?? []).toEqual([]);
+    }
+  });
+  it("does not treat an unsupported source scope as a station quote", () => {
+    expect(attachFuelPrices([station],[{...products[0],prices:[{...price,scope:"network"}]}])[0].fuelPrices).toEqual([]);
+  });
 });

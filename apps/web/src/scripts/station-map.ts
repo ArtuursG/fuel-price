@@ -8,7 +8,7 @@
 // paliek pilnvērtīga.
 import type {GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker} from "maplibre-gl";
 import type {FeatureCollection, Point} from "geojson";
-import {filterStations, connectorLabel, routeUrl, safeSourceUrl, tariffText, type MapStation, type StationFilters} from "../lib/station-map";
+import {filterStations, euro, connectorLabel, routeUrl, wazeUrl, safeSourceUrl, tariffText, type MapStation, type StationFilters} from "../lib/station-map";
 
 declare const maplibregl: typeof import("maplibre-gl");
 
@@ -56,45 +56,125 @@ function link(text: string, url: string): HTMLAnchorElement {
   return node;
 }
 
-function dateLabel(value: string | null): string {
-  if (!value || !Number.isFinite(Date.parse(value))) return "nav zināms";
-  return new Date(value).toLocaleDateString("lv-LV", {timeZone:"Europe/Riga"});
+// Navigācijas pogas ar ikonām, nevis teksta saitēm.
+//
+// Ikonas ir mūsu pašu zīmētas (kartes pilons un navigācijas bulta) lietotņu
+// firmas krāsās -- APZINĀTI nav pārzīmēts Google Maps vai Waze oriģinālais
+// logotips, jo tās ir preču zīmes ar savām lietošanas prasībām. Nosaukums
+// paliek pieejams ar aria-label un title, tāpēc ekrānlasītājs un kursora
+// palīgteksts joprojām pasaka, uz kurieni saite ved.
+const NAV_ICONS: Record<string, string> = {
+  google:
+    '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>',
+  waze:
+    '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M12 2.5 20.5 21 12 17.2 3.5 21z"/></svg>',
+};
+
+function navButton(kind: "google" | "waze", label: string, url: string): HTMLAnchorElement {
+  const node = element("a", undefined, `nav-button nav-button--${kind}`);
+  node.href = url; node.target = "_blank"; node.rel = "noopener noreferrer";
+  node.setAttribute("aria-label", label); node.title = label;
+  node.innerHTML = NAV_ICONS[kind];
+  return node;
 }
 
+function navButtons(station: MapStation): HTMLDivElement {
+  const wrap = element("div", undefined, "nav-buttons");
+  appendAll(
+    wrap,
+    navButton("google", "Atvērt Google Maps", routeUrl(station)),
+    navButton("waze", "Atvērt Waze", wazeUrl(station)),
+  );
+  return wrap;
+}
+
+function dateLabel(value: string | null): string {
+  if (!value || !Number.isFinite(Date.parse(value))) return "nav zināms";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(`${value}T00:00:00Z`).toLocaleDateString("lv-LV", {timeZone:"Europe/Riga"});
+  return new Date(value).toLocaleString("lv-LV", {timeZone:"Europe/Riga",dateStyle:"short",timeStyle:"short"});
+}
+
+// These are compact network labels, not official operator artwork.
+function networkMark(station: MapStation): string {
+  const known: Record<string,string> = {"Circle K":"CK", "Viada":"VI", "Virši":"V", "Neste":"N", "KOOL":"KO", "Latvijas Nafta":"LN", "Latvijas Propāna Gāze":"LPG", "Gotika":"G", "Shell":"SH", "Astarte":"AS", "e-mobi":"e", "Elektrum Drive":"ED", "Ignitis ON":"ON"};
+  return known[station.network] ?? station.network.replace(/[^\p{L}\p{N}]/gu, "").slice(0,2).toLocaleUpperCase("lv");
+}
+function badge(station: MapStation) {
+  const mark = element("span", networkMark(station) || "D", `network-mark network-mark--${station.kind}`);
+  mark.title = station.network; mark.setAttribute("aria-hidden", "true");
+  return mark;
+}
+function priceLabel(tariff: MapStation["tariffs"][number]): string {
+  const parts = [];
+  if (tariff.energy !== null) parts.push(`${euro(tariff.energy)} €/kWh`);
+  if (tariff.time !== null) parts.push(`${euro(tariff.time)} €/min`);
+  return parts.join(" + ") || "Cena nav pieejama";
+}
 function showStation(station: MapStation, move = true) {
   selectedId = station.id;
   detail.replaceChildren(); detail.hidden = false;
-  const close = element("button", "Aizvērt detaļas", "detail-close"); close.type = "button";
+  const close = element("button", "Aizvērt ×", "detail-close"); close.type = "button";
   close.addEventListener("click", () => { detail.hidden = true; selectedId = null; });
-  appendAll(detail, close, element("h2", station.name), element("p", `${station.network} / ${station.kind === "ev" ? "EV uzlāde" : "Degviela"}`), element("p", station.address || "Adrese nav norādīta"));
-  if (station.kind === "fuel") {
-    detail.appendChild(element("p", "Šīs stacijas cena nav zināma. Tīkla zemākā cena uz šo vietu netiek attiecināta."));
-    detail.appendChild(element("p", station.products.length ? `OSM norādītie produkti: ${station.products.join(", ")}` : "Degvielas veidi nav norādīti."));
-    detail.appendChild(element("p", `Atrašanās vietas avots: OpenStreetMap. Dati izgūti ${dateLabel(station.updatedAt)}`));
-  } else {
-    detail.appendChild(element("p", "Operatora pēdējie novērotie tarifi. Uzlādes vietu aizņemtības dati nav pieejami."));
-    if (!station.tariffs.length) detail.appendChild(element("p", "Šīs stacijas tarifs un savienotāji nav zināmi. Pārbaudi operatora avotā."));
-    const tariffs = element("ul");
-    for (const tariff of station.tariffs) {
-      const item = element("li");
-      const payment = {app:"lietotnē",adhoc:"bez līguma",subscription:"abonementam"}[tariff.payment] ?? tariff.payment;
-      item.appendChild(element("strong", `${connectorLabel(tariff.connector)} / ${tariff.current}${tariff.power !== null ? ` / ${tariff.power} kW` : ""}`));
-      item.appendChild(element("p", `${tariffText(tariff)}. Maksājums: ${payment}.`));
-      item.appendChild(element("span", `Cena novērota ${dateLabel(tariff.observedAt)} Avota pārbaude ${dateLabel(tariff.checkedAt)}`, "tariff-age"));
-      const checked = tariff.checkedAt ? Date.parse(tariff.checkedAt) : NaN;
-      if (!Number.isFinite(checked) || Date.now() - checked > 24 * 60 * 60 * 1000) item.appendChild(element("p", "Avots nav veiksmīgi pārbaudīts pēdējās 24 stundās. Pārbaudi cenu pie operatora.", "stale-note"));
-      const source = safeSourceUrl(tariff.sourceUrl);
-      if (source) item.appendChild(link("Tarifa avots", source));
-      tariffs.appendChild(item);
+  const title = element("div", undefined, "station-title");
+  const names = element("div");
+  appendAll(names, element("h2", station.name), element("span", `${station.network} · ${station.kind === "ev" ? "EV" : "DUS"}`, "station-subtitle"));
+  appendAll(title, badge(station), names);
+  appendAll(detail, close, title);
+  if (station.address) detail.appendChild(element("p", station.address, "station-address"));
+  detail.appendChild(navButtons(station));
+  if (!station.tariffs.length && !station.fuelPrices?.length) detail.appendChild(element("p", "Cena nav pieejama", "missing-price"));
+  const fuelPrices = station.fuelPrices ?? [];
+  if(fuelPrices.length) {
+    const prices = element("div",undefined,"fuel-price-grid");
+    for(const price of fuelPrices) {
+      const item=element("div");
+      appendAll(item,element("span",price.label),element("strong",`${euro(price.priceMilli)} €/l`,"station-price"));
+      prices.appendChild(item);
     }
-    detail.appendChild(tariffs);
+    detail.appendChild(prices);
+    const observed = [...new Set(fuelPrices.map(price => price.observedAt))];
+    if(observed.length === 1) detail.appendChild(element("span",`Cena novērota ${dateLabel(observed[0])}`,"tariff-age"));
+    if(fuelPrices.some(price => price.age !== "today")) detail.appendChild(element("span","Pārbaudi cenu pirms brauciena","stale-note tariff-age"));
+    const sources=element("details",undefined,"station-extra");
+    sources.appendChild(element("summary","Cenu avots un laiks"));
+    for(const price of fuelPrices) {
+      const row=element("p",`${price.label} · ${dateLabel(price.observedAt)} `);
+      const source=safeSourceUrl(price.sourceUrl); if(source) row.appendChild(link("Avots ↗",source));
+      sources.appendChild(row);
+    }
+    detail.appendChild(sources);
   }
+  for (const tariff of station.tariffs) {
+    const item = element("div", undefined, "tariff-card");
+    appendAll(item, element("strong", priceLabel(tariff), "station-price"), element("p", `${connectorLabel(tariff.connector)}${tariff.power !== null ? ` · ${tariff.power} kW` : ""} · ${tariff.current}`));
+    const payment = {app:"Lietotnē", adhoc:"Bez līguma", subscription:"Abonementam"}[tariff.payment] ?? tariff.payment;
+    item.appendChild(element("span", `${payment}${tariff.vatIncluded ? " · ar PVN" : " · bez PVN"}`, "tariff-age"));
+    item.appendChild(element("span", `Cena novērota ${dateLabel(tariff.observedAt)}`, "tariff-age"));
+    const checked = tariff.checkedAt ? Date.parse(tariff.checkedAt) : NaN;
+    if (!Number.isFinite(checked) || Date.now()-checked > 86400000) item.appendChild(element("span", "Pārbaudi cenu pie operatora", "stale-note tariff-age"));
+    const extra = element("details", undefined, "station-extra");
+    const hasConditions = (tariff.session ?? 0)>0 || (tariff.minimum ?? 0)>0 || (tariff.idle ?? 0)>0 || tariff.timeFrom || tariff.timeTo || tariff.weekdays;
+    appendAll(extra, element("summary", hasConditions ? "Papildu maksas un nosacījumi" : "Avots un pārbaudes laiks"), element("p", tariffText(tariff)), element("p", `Avots pārbaudīts ${dateLabel(tariff.checkedAt)}`));
+    const source = safeSourceUrl(tariff.sourceUrl);
+    if(source) extra.appendChild(link("Operatora avots ↗",source));
+    item.appendChild(extra); detail.appendChild(item);
+  }
+  const extra = element("details", undefined, "station-extra");
+  extra.appendChild(element("summary", "Par stacijas datiem"));
+  if(station.kind === "fuel") {
+    if(station.products.length) extra.appendChild(element("p", `Degviela: ${station.products.join(", ")}`));
+    extra.appendChild(element("p", `OpenStreetMap vietu dati: ${dateLabel(station.updatedAt)}. Tīkla zemākā cena nav katras stacijas cena.`));
+  } else extra.appendChild(element("p", "Norādīts cenas novērojuma laiks, nevis garantēts operatora cenas maiņas brīdis. Uzlādes vietu aizņemtība nav pieejama."));
+  // Degvielas stacijām šeit vairs nav atsevišķas OpenStreetMap saites --
+  // ODbL prasītā atsauce paliek lapas kājenē, kur tā attiecas uz visu datu
+  // kopu. EV stacijām operatora avots paliek: tā ir cenas izcelsme.
   const source = safeSourceUrl(station.sourceUrl);
-  if (source) { const p = element("p"); p.appendChild(link(station.kind === "fuel" ? "Vieta OpenStreetMap" : "Operatora avots", source)); detail.appendChild(p); }
-  const route = element("p"); route.appendChild(link("Atvērt maršrutu Google Maps", routeUrl(station))); detail.appendChild(route);
-  detail.scrollIntoView({block:"nearest",behavior:"instant"});
-  close.focus({preventScroll:true});
-  if (move && map) map.easeTo({center:[station.lon,station.lat],zoom:Math.max(map.getZoom(),13),duration:matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 350});
+  if(source && station.kind !== "fuel") extra.appendChild(link("Operatora avots ↗",source));
+  detail.appendChild(extra);
+  detail.scrollIntoView({block:"nearest",behavior:"instant"}); close.focus({preventScroll:true});
+  if(move && map) map.easeTo({center:[station.lon,station.lat],zoom:Math.max(map.getZoom(),13),duration:matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 350});
 }
 
 function renderList() {
@@ -106,10 +186,21 @@ function renderList() {
     const row = element("article",undefined,"station-list-item");
     const button = element("button",station.name,"station-select"); button.type="button";
     button.addEventListener("click",() => showStation(station));
-    appendAll(row, button,element("p",`${station.kind === "ev" ? "E / EV" : "D / Degviela"} - ${station.network}`),element("p",station.address || "Adrese nav norādīta"));
-    if (station.kind === "ev") {
-      row.appendChild(element("p",[...new Set(station.tariffs.map((tariff) => `${connectorLabel(tariff.connector)}${tariff.power !== null ? ` ${tariff.power} kW` : ""}`))].join(", ")));
-    } else row.appendChild(element("p","Stacijas cena nav zināma"));
+    const title = element("div", undefined, "station-title");
+    const names = element("div");
+    appendAll(names, button, element("p", `${station.network} · ${station.kind === "ev" ? "EV" : "DUS"}`));
+    appendAll(title, badge(station), names); row.appendChild(title);
+    if (station.address && station.address !== station.name) row.appendChild(element("p", station.address));
+    const tariff = station.tariffs.find(t => (!connector.value || t.connector === connector.value) && (!Number(power.value) || (t.power ?? 0) >= Number(power.value)));
+    if (tariff) {
+      row.appendChild(element("strong", `${station.tariffs.length > 1 ? "Piem., " : ""}${priceLabel(tariff)}`, "list-price"));
+      row.appendChild(element("p", `${connectorLabel(tariff.connector)}${tariff.power !== null ? ` · ${tariff.power} kW` : ""}${station.tariffs.length > 1 ? ` · ${station.tariffs.length} tarifi` : ""}`));
+    } else {
+      const prices = (station.fuelPrices ?? []).filter(price => !product.value || price.product === product.value);
+      if(prices.length) row.appendChild(element("strong", `${prices[0].label} · ${euro(prices[0].priceMilli)} €/l${prices.length > 1 ? ` · +${prices.length-1} veidi` : ""}`, "list-price"));
+      else row.appendChild(element("p", "Cena nav pieejama"));
+    }
+    row.appendChild(navButtons(station));
     fragment.append(row);
   }
   if (!shown.length) fragment.append(element("p", "Šajā apgabalā nav atbilstošu staciju. Samazini filtrus vai spied “Rādīt visus rezultātus”.", "station-list-item"));
@@ -117,7 +208,7 @@ function renderList() {
 }
 
 function geojson(): FeatureCollection<Point> {
-  return {type:"FeatureCollection",features:filtered.map((station) => ({type:"Feature",geometry:{type:"Point",coordinates:[station.lon,station.lat]},properties:{id:station.id,kind:station.kind}}))};
+  return {type:"FeatureCollection",features:filtered.map((station) => ({type:"Feature",geometry:{type:"Point",coordinates:[station.lon,station.lat]},properties:{id:station.id,kind:station.kind,mark:networkMark(station)}}))};
 }
 
 function applyFilters() {
@@ -199,8 +290,8 @@ try {
     map.addSource("stations",{type:"geojson",data:geojson(),cluster:true,clusterMaxZoom:12,clusterRadius:40});
     map.addLayer({id:"clusters",type:"circle",source:"stations",filter:["has","point_count"],paint:{"circle-color":COLOR_INK,"circle-radius":["step",["get","point_count"],17,25,22,100,28],"circle-stroke-color":"#fff","circle-stroke-width":2}});
     map.addLayer({id:"cluster-count",type:"symbol",source:"stations",filter:["has","point_count"],layout:{"text-field":["get","point_count_abbreviated"],"text-font":["Noto Sans Regular"],"text-size":12},paint:{"text-color":"#fff"}});
-    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"circle-radius":10,"circle-stroke-color":"#fff","circle-stroke-width":2}});
-    map.addLayer({id:"station-labels",type:"symbol",source:"stations",filter:["!",["has","point_count"]],layout:{"text-field":["match",["get","kind"],"ev","E","D"],"text-font":["Noto Sans Regular"],"text-size":10,"text-allow-overlap":true},paint:{"text-color":"#fff"}});
+    map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"circle-radius":16,"circle-stroke-color":"#fff","circle-stroke-width":2}});
+    map.addLayer({id:"station-labels",type:"symbol",source:"stations",filter:["!",["has","point_count"]],layout:{"text-field":["get","mark"],"text-font":["Noto Sans Regular"],"text-size":10,"text-allow-overlap":true},paint:{"text-color":"#fff"}});
     mapReady=true; message.textContent="Pietuvini karti vai izvēlies staciju sarakstā. Skaitļi apļos norāda staciju skaitu.";renderList();
   });
   map.on("moveend",renderList);
