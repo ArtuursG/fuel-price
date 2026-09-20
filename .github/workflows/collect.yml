@@ -2,10 +2,20 @@ name: Collect
 
 on:
   workflow_dispatch: {}
-  # Cron schedule (7,37 * * * *, per docs/PROMPT_START.md) is added once
-  # INGEST_URL points to a real deployed ingest Worker -- running this on a
-  # schedule against a placeholder URL would just fail every time. Trigger
-  # manually via Actions -> Collect -> Run workflow until then.
+  schedule:
+    # Degvielas cenas: 7,37 * * * * pēc docs/PROMPT_START.md. Ieslēgts
+    # 2026-09-20, kad INGEST_URL jau norāda uz reālu ingest Worker un visi
+    # pieci degvielas avoti strādā produkcijā.
+    # Slodze uz avotu lapām: 2 pieprasījumi stundā vienam avotam -- atbilst
+    # sources.yaml refresh_minutes: 30. D1 bezmaksas limits netiek apdraudēts:
+    # fuel_prices rinda top TIKAI pie cenas izmaiņas (ADR-004), tāpēc vairums
+    # nolasījumu pieraksta vienu scrape_runs rindu, ne cenu rindas.
+    - cron: "7,37 * * * *"
+    # EV tarifi un ES nedēļas biļetens reizi dienā, NEVIS ik pēc 30 minūtēm:
+    # biļetens mainās reizi nedēļā, un EV avoti ir lieli faili (e-mobi ~430KB,
+    # Ignitis ~530KB). To vilkšana 48x dienā būtu bezjēdzīga slodze svešiem
+    # serveriem; tarifi tik bieži nemainās.
+    - cron: "17 4 * * *"
 
 jobs:
   collect:
@@ -18,31 +28,43 @@ jobs:
       - name: Install collector
         working-directory: collector
         run: uv sync
+
+      # Manuāla palaišana (workflow_dispatch) izpilda VISUS avotus; grafiks
+      # izpilda tikai to daļu, kas attiecīgajam cron pierakstam pieder.
       - name: Run all fuel sources and push
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7,37 * * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector run --all --push
+
       - name: Run EU weekly oil bulletin and push
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector official-weekly --push
+
       - name: Run e-mobi EV stations/tariffs and push
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector emobi-ev --push
+
       - name: Run Ignitis ON EV stations/tariffs and push
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector ignitis-ev --push
+
       - name: Run Eleport EV tariffs and push
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
