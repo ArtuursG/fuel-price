@@ -1,4 +1,4 @@
-"""CLI entry point: run | snapshot | check | official-weekly | emobi/ignitis/eleport-ev."""
+"""CLI entry point: run | snapshot | check | official-weekly | emobi/ignitis/eleport/virsi-ev."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from collector.core.push import PushConfigError, push_batch
 from collector.core.registry import get_source, list_sources
 from collector.core.runner import check_fuel_source, run_fuel_source, snapshot_fuel_source
 from collector.sources.ev import eleport, emobi, ignitis
+from collector.sources.ev import virsi as virsi_ev
 from collector.sources.official import eu_weekly_oil_bulletin
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures"
@@ -68,6 +69,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     eleport_p.add_argument("--dry-run", action="store_true", help="Neko nesūta, tikai izvada JSON")
     eleport_p.add_argument("--push", action="store_true", help="Sūta uz INGEST_URL (3. fāze)")
+
+    virsi_ev_p = sub.add_parser(
+        "virsi-ev",
+        help="Nolasa Viršu uzlādes tarifus (tā pati lapa, kas degvielai, sk. sources/ev/virsi.py)",
+    )
+    virsi_ev_p.add_argument("--dry-run", action="store_true", help="Neko nesūta, tikai izvada JSON")
+    virsi_ev_p.add_argument("--push", action="store_true", help="Sūta uz INGEST_URL (3. fāze)")
 
     return parser
 
@@ -426,6 +434,74 @@ def _cmd_eleport_ev(args: argparse.Namespace) -> int:
     return exit_code
 
 
+def _cmd_virsi_ev(args: argparse.Namespace) -> int:
+    if not args.dry_run and not args.push:
+        print("Norādi --dry-run (izvadīt JSON) vai --push (sūtīt uz INGEST_URL).", file=sys.stderr)
+        return 1
+
+    started_at = datetime.now(UTC)
+    client = http.make_client()
+    try:
+        if not robots.check_allowed(virsi_ev.URL, http.DEFAULT_USER_AGENT, client):
+            report = RunReport(
+                source_id=virsi_ev.SOURCE_ID,
+                started_at=started_at,
+                finished_at=datetime.now(UTC),
+                status="blocked",
+                error="robots.txt disallows this path",
+            )
+            tariffs = []
+        else:
+            response = http.get_with_retries(client, virsi_ev.URL)
+            if response.status_code >= 400:
+                report = RunReport(
+                    source_id=virsi_ev.SOURCE_ID,
+                    started_at=started_at,
+                    finished_at=datetime.now(UTC),
+                    status="error",
+                    http_status=response.status_code,
+                    error=f"HTTP {response.status_code}",
+                )
+                tariffs = []
+            else:
+                tariffs = virsi_ev.parse(response.text)
+                report = RunReport(
+                    source_id=virsi_ev.SOURCE_ID,
+                    started_at=started_at,
+                    finished_at=datetime.now(UTC),
+                    status="ok" if tariffs else "partial",
+                    http_status=response.status_code,
+                    items=len(tariffs),
+                    content_sha256=hashlib.sha256(response.content).hexdigest(),
+                    parser_version="virsi-ev@1",
+                )
+    finally:
+        client.close()
+
+    exit_code = 1 if report.status in ("error", "blocked") else 0
+    batch = IngestBatch(run=report, fuel=[], ev=tariffs)
+
+    if args.dry_run:
+        print(batch.model_dump_json(indent=2))
+
+    if args.push:
+        try:
+            response = push_batch(batch)
+        except PushConfigError as exc:
+            print(f"{virsi_ev.SOURCE_ID}: {exc}", file=sys.stderr)
+            return 1
+        if response.status_code >= 400:
+            print(
+                f"{virsi_ev.SOURCE_ID}: ingest atbildēja {response.status_code}: {response.text}",
+                file=sys.stderr,
+            )
+            exit_code = 1
+        else:
+            print(f"{virsi_ev.SOURCE_ID}: pushots (HTTP {response.status_code})")
+
+    return exit_code
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -442,6 +518,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_emobi_ev(args)
     if args.command == "ignitis-ev":
         return _cmd_ignitis_ev(args)
+    if args.command == "virsi-ev":
+        return _cmd_virsi_ev(args)
     if args.command == "eleport-ev":
         return _cmd_eleport_ev(args)
     return 2  # pragma: no cover -- argparse's `required=True` already prevents this
