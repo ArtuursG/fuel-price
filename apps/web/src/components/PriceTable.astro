@@ -45,10 +45,10 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 					{row.cells.map((cell, i) => (
 						<td class={cell && cheapestNetworkByProduct[i] === row.networkId ? "cheapest" : undefined}>
 							{cell ? (
-								<span class="price-cell">
+								<div class="price-cell">
 									<span class="price-cell__value">{formatPrice(cell.priceMilli)}&nbsp;&euro;</span>
 									<PriceInfo price={cell} />
-								</span>
+								</div>
 							) : (
 								<span class="table-dash" aria-label="nav datu">-</span>
 							)}
