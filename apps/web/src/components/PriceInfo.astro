@@ -25,11 +25,11 @@ const scopeLabel =
 			: "Zemākā tīklā";
 ---
 
-<span class="price-info">
+<div class="price-info">
 	<button type="button" class="price-info__trigger" aria-label={`Cenas detaļas: ${AGE_LABELS[price.age]}, ${scopeLabel}`}>
 		i
 	</button>
-	<span class="price-info__panel" role="note">
+	<div class="price-info__panel" role="note">
 		<span class="price-info__row" data-age={price.age}>{AGE_LABELS[price.age]}</span>
 		<span class="price-info__row">{scopeLabel}</span>
 		<FuelPricePlaces price={price} />
@@ -41,8 +41,8 @@ const scopeLabel =
 				{price.origin ? ORIGIN_LABELS[price.origin] : "Cenas avots"} ↗
 			</a>
 		)}
-	</span>
-</span>
+	</div>
+</div>
 
 <style>
 	.price-info {
@@ -81,7 +81,9 @@ const scopeLabel =
 		top: calc(100% + 0.35rem);
 		left: 0;
 		width: max-content;
-		max-width: 16rem;
+		max-width: 20rem;
+		max-height: 18rem;
+		overflow-y: auto;
 		padding: 0.6rem 0.7rem;
 		border: 1px solid var(--color-border);
 		border-radius: 4px;
@@ -111,6 +113,7 @@ const scopeLabel =
 		.price-info__panel {
 			position: static;
 			max-width: none;
+			max-height: none;
 			margin-top: 0.35rem;
 			box-shadow: none;
 		}

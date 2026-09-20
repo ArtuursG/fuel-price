@@ -1,15 +1,183 @@
 ---
-import type {NetworkPrice} from "../lib/prices";
-interface Props {price: NetworkPrice}
-const {price} = Astro.props;
-// Only Circle K's source has a known comma-separated list of individual addresses.
-const addresses = price.networkId === "circlek" && price.whereText
-  ? price.whereText.split(",").map(address => address.trim()).filter(Boolean) : [];
+// Vietas, kur cena ir spēkā. Katra adrese savā rindā ar saiti uz Google Maps
+// un pogu, kas adresi ieliek starpliktuvē.
+//
+// Teksta sadalīšana notiek lib/places.ts -- tur ir arī paskaidrojums, kāpēc
+// ne visu var sadalīt pēc komata.
+import { parseFuelPlaces, placeSearchUrl, type FuelPlace } from "../lib/places";
+import type { NetworkPrice } from "../lib/prices";
+
+interface Props {
+	price: NetworkPrice;
+}
+
+const { price } = Astro.props as Props;
+
+const parsed = parseFuelPlaces(price.networkId, price.whereText);
+// Ja formāts nav atpazīts, rādām tekstu vienā rindā -- nokopēt var arī to.
+const places: FuelPlace[] =
+	parsed.length > 0 ? parsed : price.whereText ? [{ name: null, address: price.whereText }] : [];
 ---
-{price.scope === "network" ? <p>Visā tīklā</p> : addresses.length ? <ul class="price-addresses">{addresses.map(address => <li><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${price.networkName}, ${address}, Latvija`)}`} target="_blank" rel="noopener noreferrer">{address} ↗</a></li>)}</ul> : <p>{price.whereText || "Avotā adrese nav norādīta"}</p>}
+
+{
+	price.scope === "network" ? (
+		<p class="price-places__none">Visā tīklā</p>
+	) : places.length > 0 ? (
+		<ul class="price-places">
+			{places.map((place) => (
+				<li class="price-places__item">
+					<a
+						class="price-places__link"
+						href={placeSearchUrl(price.networkName, place)}
+						target="_blank"
+						rel="noopener noreferrer"
+					>
+						{place.name && <span class="price-places__name">{place.name}</span>}
+						<span class="price-places__address">{place.address}</span>
+					</a>
+					<button
+						type="button"
+						class="price-places__copy"
+						data-copy={place.address}
+						aria-label={`Kopēt adresi: ${place.address}`}
+						title="Kopēt adresi"
+						hidden
+					>
+						<svg class="price-places__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+							<rect x="5.5" y="5.5" width="8" height="9" rx="1.5" />
+							<path d="M10.5 3.5v-1a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1" />
+						</svg>
+						<svg class="price-places__icon price-places__icon--done" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+							<path d="M3 8.5 6.5 12 13 4.5" />
+						</svg>
+					</button>
+				</li>
+			))}
+		</ul>
+	) : (
+		<p class="price-places__none">Avotā adrese nav norādīta</p>
+	)
+}
+
+<script>
+	// Viens klausītājs uz visu lapu -- šis komponents lapā ir desmitiem reižu,
+	// bet Astro skriptu iekļauj tikai vienreiz.
+	const clipboard = navigator.clipboard;
+	if (clipboard) {
+		// Pogas ir paslēptas servera pusē, lai tās neparādītos tur, kur
+		// kopēšana nestrādā (piem., bez HTTPS).
+		for (const button of document.querySelectorAll<HTMLButtonElement>(".price-places__copy")) {
+			button.hidden = false;
+		}
+
+		document.addEventListener("click", (event) => {
+			const target = event.target as HTMLElement | null;
+			const button = target?.closest<HTMLButtonElement>(".price-places__copy");
+			const address = button?.dataset.copy;
+			if (!button || !address) return;
+
+			clipboard.writeText(address).then(
+				() => {
+					const label = button.getAttribute("aria-label") ?? "";
+					button.dataset.state = "done";
+					button.setAttribute("title", "Nokopēts");
+					button.setAttribute("aria-label", `Nokopēts: ${address}`);
+					window.setTimeout(() => {
+						delete button.dataset.state;
+						button.setAttribute("title", "Kopēt adresi");
+						button.setAttribute("aria-label", label);
+					}, 1600);
+				},
+				() => {
+					button.dataset.state = "failed";
+					button.setAttribute("title", "Neizdevās nokopēt");
+				},
+			);
+		});
+	}
+</script>
+
 <style>
-.price-addresses { list-style:none; padding:0; margin:0 0 0.65rem; font-weight:400; }
-.price-addresses li { padding:0.35rem 0; border-bottom:1px solid var(--color-border); }
-.price-addresses a { color:var(--color-pylon); text-decoration:none; }
-.price-addresses a:hover { text-decoration:underline; }
+	.price-places {
+		list-style: none;
+		padding: 0;
+		margin: 0 0 0.35rem;
+		font-weight: 400;
+	}
+	.price-places__item {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.35rem;
+		padding: 0.3rem 0;
+		border-bottom: 1px solid var(--color-border);
+	}
+	.price-places__item:last-child {
+		border-bottom: none;
+	}
+	.price-places__link {
+		flex: 1;
+		min-width: 0;
+		color: var(--color-pylon);
+		text-decoration: none;
+	}
+	.price-places__link:hover {
+		text-decoration: underline;
+	}
+	.price-places__name {
+		display: block;
+		color: var(--color-ink);
+		font-weight: 600;
+	}
+	.price-places__address {
+		display: block;
+	}
+
+	.price-places__copy {
+		flex: none;
+		display: inline-grid;
+		place-items: center;
+		width: 1.4rem;
+		height: 1.4rem;
+		padding: 0;
+		border: 1px solid var(--color-border);
+		border-radius: 3px;
+		background: var(--color-bg);
+		color: var(--color-ink-muted);
+		cursor: pointer;
+	}
+	.price-places__copy svg {
+		grid-area: 1 / 1;
+		width: 11px;
+		height: 11px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.4;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.price-places__icon--done,
+	.price-places__copy[data-state="done"] .price-places__icon {
+		display: none;
+	}
+	.price-places__copy[data-state="done"] .price-places__icon--done {
+		display: block;
+	}
+	.price-places__copy:hover {
+		border-color: var(--color-pylon);
+		color: var(--color-pylon);
+	}
+	.price-places__copy[data-state="done"] {
+		border-color: var(--color-cheapest-border);
+		background: var(--color-cheapest-bg);
+		color: var(--color-cheapest-ink);
+	}
+	.price-places__copy[data-state="failed"] {
+		border-color: var(--color-up);
+		color: var(--color-up);
+	}
+
+	.price-places__none {
+		margin: 0;
+		font-weight: 400;
+	}
 </style>
