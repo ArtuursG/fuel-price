@@ -24,7 +24,11 @@ const networks = [...new Set(stations.map((station) => station.network))].sort((
 let cheapestFor = new Map<string, string[]>();
 let cheapestUnlocated: {product: string; networkName: string; priceMilli: number; whereText: string | null}[] = [];
 try {
-  const marks = markCheapestStations(stations, await getLatestFuelPrices(env.DB), canonicalNetwork);
+  // DSL_AGRO NAV ceļiem legāla (sk. lib/prices.ts), un AdBlue nav degviela,
+  // ar ko brauc -- ne viena, ne otra nedrīkst nonākt izcelšanas izvēlnē.
+  const HIGHLIGHT_PRODUCTS = new Set(["P95", "P98", "DSL", "DSL_PLUS", "HVO", "E85", "LPG", "CNG"]);
+  const rows = (await getLatestFuelPrices(env.DB)).filter((row) => HIGHLIGHT_PRODUCTS.has(row.product));
+  const marks = markCheapestStations(stations, rows, canonicalNetwork);
   cheapestFor = marks.byStation;
   cheapestUnlocated = marks.unlocated;
 } catch (error) { console.error("Lētāko cenu piesaiste neizdevās", error); }
