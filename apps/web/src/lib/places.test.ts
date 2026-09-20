@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseFuelPlaces, placeSearchUrl } from "./places";
+import { parseFuelPlaces, placeSearchUrl, placeWazeUrl } from "./places";
 
 describe("parseFuelPlaces", () => {
 	it("sadala Viada ierakstus, saglabājot pilsētu pie ielas", () => {
@@ -56,5 +56,20 @@ describe("placeSearchUrl", () => {
 	it("izlaiž nosaukumu, ja tā nav", () => {
 		const url = placeSearchUrl("Circle K", { name: null, address: "Dzirciema iela 40" });
 		expect(decodeURIComponent(url)).toContain("Circle K, Dzirciema iela 40, Latvija");
+	});
+});
+
+describe("placeWazeUrl", () => {
+	it("meklē pēc teksta, jo adresei nav koordinātu", () => {
+		const url = placeWazeUrl("Viada", { name: "DUS Astras", address: "G.Astras iela 7, Rīga" });
+		expect(url).toContain("waze.com/ul?q=");
+		expect(url).toContain("navigate=yes");
+		expect(decodeURIComponent(url)).toContain("Viada, DUS Astras, G.Astras iela 7, Rīga, Latvija");
+	});
+
+	it("nesūta lietotāja atrašanās vietu", () => {
+		const url = placeWazeUrl("KOOL", { name: null, address: "Brīvības gatve 265" });
+		expect(url).not.toContain("ll=");
+		expect(url).not.toContain("from=");
 	});
 });

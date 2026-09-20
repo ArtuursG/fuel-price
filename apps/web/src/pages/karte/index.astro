@@ -21,7 +21,7 @@ const payload = JSON.stringify(stations).replace(/</g, "\\u003c");
 const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZone:"Europe/Riga"});
 ---
 
-<Layout title="Degvielas un EV staciju karte - fuel-price">
+<Layout title="Degvielas un EV staciju karte - degvielas cenas">
   <header class="map-heading">
     <div><h1>Uzpildīt vai uzlādēt</h1><p>Atrodi staciju. Pārbaudi tarifu. Atver maršrutu.</p></div>
     <div class="map-legend"><span><b class="fuel-key">D</b> {fuel.length} degvielas vietas</span><span><b class="ev-key">E</b> {ev.length} EV vietas</span></div>

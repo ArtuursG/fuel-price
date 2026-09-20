@@ -4,7 +4,7 @@
 //
 // Teksta sadalīšana notiek lib/places.ts -- tur ir arī paskaidrojums, kāpēc
 // ne visu var sadalīt pēc komata.
-import { parseFuelPlaces, placeSearchUrl, type FuelPlace } from "../lib/places";
+import { parseFuelPlaces, placeSearchUrl, placeWazeUrl, type FuelPlace } from "../lib/places";
 import type { NetworkPrice } from "../lib/prices";
 
 interface Props {
@@ -26,14 +26,33 @@ const places: FuelPlace[] =
 		<ul class="price-places">
 			{places.map((place) => (
 				<li class="price-places__item">
+					<span class="price-places__text">
+						{place.name && <span class="price-places__name">{place.name}</span>}
+						<span class="price-places__address">{place.address}</span>
+					</span>
 					<a
-						class="price-places__link"
+						class="price-places__nav"
 						href={placeSearchUrl(price.networkName, place)}
 						target="_blank"
 						rel="noopener noreferrer"
+						aria-label={`Atvērt Google Maps: ${place.address}`}
+						title="Google Maps"
 					>
-						{place.name && <span class="price-places__name">{place.name}</span>}
-						<span class="price-places__address">{place.address}</span>
+						<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+							<path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" />
+						</svg>
+					</a>
+					<a
+						class="price-places__nav price-places__nav--waze"
+						href={placeWazeUrl(price.networkName, place)}
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label={`Atvērt Waze: ${place.address}`}
+						title="Waze"
+					>
+						<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+							<path d="M12 2.5 20.5 21 12 17.2 3.5 21z" />
+						</svg>
 					</a>
 					<button
 						type="button"
@@ -114,14 +133,31 @@ const places: FuelPlace[] =
 	.price-places__item:last-child {
 		border-bottom: none;
 	}
-	.price-places__link {
+	.price-places__text {
 		flex: 1;
 		min-width: 0;
-		color: var(--color-pylon);
-		text-decoration: none;
 	}
-	.price-places__link:hover {
-		text-decoration: underline;
+
+	/* Navigācijas pogas: tīri glifi mūsu pašu krāsās, nevis svešas
+	   preču zīmes. Lietotni nosauc aria-label un title. */
+	.price-places__nav {
+		flex: none;
+		display: inline-grid;
+		place-items: center;
+		width: 1.4rem;
+		height: 1.4rem;
+		border: 1px solid var(--color-border);
+		border-radius: 3px;
+		color: var(--color-ink-muted);
+	}
+	.price-places__nav svg {
+		width: 12px;
+		height: 12px;
+		fill: currentColor;
+	}
+	.price-places__nav:hover {
+		border-color: var(--color-pylon);
+		color: var(--color-pylon);
 	}
 	.price-places__name {
 		display: block;
