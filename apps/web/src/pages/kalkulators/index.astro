@@ -42,90 +42,96 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 	) : (
 		<>
 			<p class="intro">
-				Rēķina pēc pašreizējām lētākajām zināmajām cenām, tāpēc cenu nav jāmeklē citur. Rezultāti
-				pārrēķinās uzreiz, mainot ievadi - nekas netiek sūtīts uz serveri.
+				Rēķina pēc pašreizējām lētākajām zināmajām cenām. Rezultāti mainās uzreiz, kad maini ievadi - nekas
+				netiek sūtīts uz serveri.
 			</p>
 
 			<div class="calc-grid">
-			<section class="calc-section">
-				<h2>Cik maksās brauciens?</h2>
+				<section class="calc-section" aria-labelledby="trip-heading">
+					<h2 id="trip-heading">Cik maksās brauciens?</h2>
 
-				<div class="inputs">
-					<label>
-						Attālums (km)
-						<input type="number" id="trip-distance" value="100" min="0" step="1" />
+					<div class="inputs">
+						<label class="field">
+							Attālums (km)
+							<input type="number" id="trip-distance" value="100" min="0" step="1" inputmode="decimal" />
+						</label>
+						<label class="field">
+							Patēriņš (l/100&nbsp;km)
+							<input type="number" id="trip-consumption" value="7" min="0" step="0.1" inputmode="decimal" />
+						</label>
+						<label class="field">
+							Degviela
+							<select id="trip-product">
+								{calcData.fuel.map((f) => <option value={f.product}>{f.fullLabel}</option>)}
+							</select>
+						</label>
+						<label class="field">
+							Cena (&euro;/l)
+							<input type="number" id="trip-price" value="0" min="0" step="0.001" inputmode="decimal" />
+						</label>
+						<label class="field">
+							Tvertne (l)
+							<input type="number" id="trip-tank" value="50" min="0" step="1" inputmode="decimal" />
+						</label>
+					</div>
+
+					<label class="check">
+						<input type="checkbox" id="trip-return" />
+						Turp un atpakaļ
 					</label>
-					<label>
-						Patēriņš (l/100&nbsp;km)
-						<input type="number" id="trip-consumption" value="7" min="0" step="0.1" />
-					</label>
-					<label>
-						Degviela
-						<select id="trip-product">
-							{calcData.fuel.map((f) => <option value={f.product}>{f.fullLabel}</option>)}
-						</select>
-					</label>
-					<label>
-						Cena (&euro;/l)
-						<input type="number" id="trip-price" value="0" min="0" step="0.001" />
-					</label>
-					<label>
-						Tvertne (l)
-						<input type="number" id="trip-tank" value="50" min="0" step="1" />
-					</label>
-				</div>
 
-				<label class="checkbox">
-					<input type="checkbox" id="trip-return" />
-					Turp un atpakaļ
-				</label>
+					{/* Galvenā atbilde liela, pārējie skaitļi mazāk uzkrītoši. */}
+					<div class="trip-result" aria-live="polite">
+						<p class="trip-result__label" id="trip-total-label">Brauciens</p>
+						<p class="trip-result__total" id="trip-total">-</p>
+						<dl class="trip-result__stats" id="trip-stats"></dl>
+					</div>
 
-				<div id="trip-results" class="trip-results" aria-live="polite"></div>
+					<h3>Ikdienas braucieni</h3>
+					<div class="inputs inputs--two">
+						<label class="field">
+							Kilometri dienā
+							<input type="number" id="daily-km" value="40" min="0" step="1" inputmode="decimal" />
+						</label>
+						<label class="field">
+							Dienu skaits
+							<input type="number" id="daily-days" value="21" min="0" step="1" inputmode="decimal" />
+						</label>
+					</div>
+					<p id="daily-result" class="daily-result" aria-live="polite"></p>
 
-				<h3>Ikdienas brauciens</h3>
-				<div class="inputs">
-					<label>
-						Kilometri dienā
-						<input type="number" id="daily-km" value="40" min="0" step="1" />
-					</label>
-					<label>
-						Dienu skaits
-						<input type="number" id="daily-days" value="21" min="0" step="1" />
-					</label>
-				</div>
-				<p id="daily-result" class="daily-result" aria-live="polite"></p>
+					<p class="note">
+						Cena sākotnēji ņemta no lētākā tīkla izvēlētajai degvielai, bet to var pārrakstīt ar savu.
+						CO<sub>2</sub> ir aptuvens, rēķināts pēc degvielas veida oglekļa koeficienta, ne konkrēta auto.
+					</p>
+				</section>
 
-				<p class="note">
-					Cena sākotnēji ņemta no lētākā tīkla izvēlētajai degvielai, bet to var pārrakstīt ar savu.
-					CO<sub>2</sub> ir aptuvens, rēķināts pēc degvielas veida oglekļa koeficienta, ne konkrēta auto.
-				</p>
-			</section>
+				<section class="calc-section" aria-labelledby="compare-heading">
+					<h2 id="compare-heading">Cik maksā nobraukt 100 km?</h2>
+					<p class="section-intro">Degviela pret publisko un mājas EV uzlādi, no lētākā.</p>
 
-			<section class="calc-section">
-				<h2>Cik maksā nobraukt 100 km?</h2>
-				<p class="intro">Salīdzina degvielu ar publisko un mājas EV uzlādi.</p>
+					<div class="inputs">
+						<label class="field">
+							Degvielas patēriņš (l/100&nbsp;km)
+							<input type="number" id="fuel-consumption" value="7" min="0" step="0.1" inputmode="decimal" />
+						</label>
+						<label class="field">
+							EV patēriņš (kWh/100&nbsp;km)
+							<input type="number" id="ev-consumption" value="18" min="0" step="0.5" inputmode="decimal" />
+						</label>
+						<label class="field">
+							Mājas elektrība (&euro;/kWh)
+							<input type="number" id="home-price" value="0.20" min="0" step="0.01" inputmode="decimal" />
+						</label>
+					</div>
 
-			<div class="inputs">
-				<label>
-					Degvielas patēriņš (l/100&nbsp;km)
-					<input type="number" id="fuel-consumption" value="7" min="0" step="0.1" />
-				</label>
-				<label>
-					EV patēriņš (kWh/100&nbsp;km)
-					<input type="number" id="ev-consumption" value="18" min="0" step="0.5" />
-				</label>
-				<label>
-					Mājas elektrības cena (&euro;/kWh)
-					<input type="number" id="home-price" value="0.20" min="0" step="0.01" />
-				</label>
-			</div>
-			<p class="note">
-				Vienāds patēriņš pieņemts visiem degvielas veidiem vienkāršības labad - reālais patēriņš atšķiras pēc
-				degvielas veida. EV laika tarifiem (&euro;/min) izmantota savienotāja vidējā jauda, ne precīza vērtība.
-			</p>
+					<ol id="results" class="cost-list" aria-live="polite"></ol>
 
-			<div id="results" class="results" aria-live="polite"></div>
-			</section>
+					<p class="note">
+						Vienāds patēriņš pieņemts visiem degvielas veidiem vienkāršības labad - reālais patēriņš atšķiras pēc
+						degvielas veida. EV laika tarifiem (&euro;/min) izmantota savienotāja vidējā jauda, ne precīza vērtība.
+					</p>
+				</section>
 			</div>
 
 			<script type="application/json" id="calc-data" set:html={JSON.stringify(calcData)} />
@@ -137,9 +143,11 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 					evTimeCostPer100km,
 					fuelCostPer100km,
 					litersForTrip,
+					mergeSameCost,
 					periodCostMilli,
 					rangeKm,
 					tripCostMilli,
+					type CostRow,
 				} from "../../lib/calculator";
 				import { formatMoney, formatPrice } from "../../lib/prices";
 
@@ -158,53 +166,76 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 				const dataEl = document.getElementById("calc-data");
 				const data: CalcData = JSON.parse(dataEl?.textContent ?? "{}");
 
-				const fuelInput = document.getElementById("fuel-consumption") as HTMLInputElement;
-				const evInput = document.getElementById("ev-consumption") as HTMLInputElement;
-				const homeInput = document.getElementById("home-price") as HTMLInputElement;
-				const resultsEl = document.getElementById("results") as HTMLElement;
+				// Workers tipi deklarē savu globālo `Element` (HTMLRewriter), kas
+				// sajaucas ar DOM `Element` - tāpēc ne tiešs cast, ne
+				// querySelector<T> neiet cauri. Pāreja caur `unknown` ir vienīgais
+				// ceļš, kamēr abi `Element` sadzīvo vienā projektā.
+				const byId = <T,>(id: string) => document.getElementById(id) as unknown as T;
+				const numberFormat = new Intl.NumberFormat("lv-LV", { maximumFractionDigits: 1 });
+				const num = (input: HTMLInputElement) => Number(input.value) || 0;
+
+				function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string) {
+					const node = document.createElement(tag);
+					if (className) node.className = className;
+					if (text !== undefined) node.textContent = text;
+					return node;
+				}
+
+				// --- Cik maksā nobraukt 100 km ---
+				const fuelInput = byId<HTMLInputElement>("fuel-consumption");
+				const evInput = byId<HTMLInputElement>("ev-consumption");
+				const homeInput = byId<HTMLInputElement>("home-price");
+				const resultsEl = byId<HTMLOListElement>("results");
 
 				const CONNECTOR_LABELS: Record<string, string> = { CCS2: "CCS2", CHADEMO: "CHAdeMO", TYPE2: "Type 2" };
+				const KIND_LABELS: Record<CostRow["kind"], string> = { fuel: "degviela", ev: "uzlāde", home: "mājās" };
 
 				function render() {
-					const fuelConsumption = Number(fuelInput.value) || 0;
-					const evConsumption = Number(evInput.value) || 0;
-					const homePriceMilli = (Number(homeInput.value) || 0) * 1000;
+					const fuelConsumption = num(fuelInput);
+					const evConsumption = num(evInput);
+					const homePriceMilli = num(homeInput) * 1000;
 
-					const rows: { label: string; costMilli: number }[] = [];
-
+					const rows: CostRow[] = [];
 					for (const f of data.fuel) {
-						rows.push({ label: f.label, costMilli: fuelCostPer100km(f.priceMilli, fuelConsumption) });
+						rows.push({ kind: "fuel", name: f.label, detail: null, costMilli: fuelCostPer100km(f.priceMilli, fuelConsumption) });
 					}
-
 					for (const t of data.ev) {
-						const connectorLabel = t.connector ? (CONNECTOR_LABELS[t.connector] ?? t.connector) : t.currentType;
-						const label = `${t.networkName} (${connectorLabel})`;
+						const detail = t.connector ? (CONNECTOR_LABELS[t.connector] ?? t.connector) : t.currentType;
 						if (t.minEnergyMilliPerKwh !== null) {
-							rows.push({ label, costMilli: evEnergyCostPer100km(t.minEnergyMilliPerKwh, evConsumption) });
+							rows.push({ kind: "ev", name: t.networkName, detail, costMilli: evEnergyCostPer100km(t.minEnergyMilliPerKwh, evConsumption) });
 						} else if (t.minTimeMilliPerMin !== null && t.avgPowerKw) {
 							rows.push({
-								label,
+								kind: "ev",
+								name: t.networkName,
+								detail,
 								costMilli: evTimeCostPer100km(t.minTimeMilliPerMin, t.avgPowerKw, evConsumption),
 							});
 						}
 					}
-
 					if (homePriceMilli > 0) {
-						rows.push({ label: "Uzlāde mājās", costMilli: evEnergyCostPer100km(homePriceMilli, evConsumption) });
+						rows.push({ kind: "home", name: "Uzlāde mājās", detail: null, costMilli: evEnergyCostPer100km(homePriceMilli, evConsumption) });
 					}
 
-					rows.sort((a, b) => a.costMilli - b.costMilli);
-
-					resultsEl.innerHTML = rows
-						.map(
-							(r) => `
-						<div class="result-row">
-							<span class="result-label">${r.label}</span>
-							<span class="result-cost">${formatMoney(r.costMilli)}&nbsp;&euro;</span>
-						</div>
-					`,
-						)
-						.join("");
+					const sorted = mergeSameCost(rows);
+					const max = Math.max(...sorted.map((r) => r.costMilli), 1);
+					resultsEl.replaceChildren(
+						...sorted.map((r) => {
+							const item = el("li", "cost-row");
+							item.dataset.kind = r.kind;
+							const label = el("span", "cost-row__label");
+							label.appendChild(el("span", "cost-row__name", r.name));
+							if (r.detail) label.appendChild(el("span", "cost-row__detail", r.detail));
+							label.appendChild(el("span", "cost-row__kind", KIND_LABELS[r.kind]));
+							const track = el("span", "cost-row__track");
+							const bar = el("span", "cost-row__bar");
+							bar.style.width = `${(r.costMilli / max) * 100}%`;
+							track.appendChild(bar);
+							item.appendChild(label);
+							item.appendChild(el("span", "cost-row__value", `${formatMoney(r.costMilli)}\u00a0€`));
+							item.appendChild(track);
+							return item;
+						}),
+					);
 				}
 
 				for (const input of [fuelInput, evInput, homeInput]) {
@@ -213,22 +244,18 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 				render();
 
 				// --- Brauciena kalkulators ---
-				const distanceInput = document.getElementById("trip-distance") as HTMLInputElement;
-				const tripConsumptionInput = document.getElementById("trip-consumption") as HTMLInputElement;
-				// Workers tipi deklarē savu globālo `Element` (HTMLRewriter), kas
-				// sajaucas ar DOM `Element` - tāpēc ne tiešs cast, ne
-				// querySelector<T> neiet cauri. Pāreja caur `unknown` ir vienīgais
-				// ceļš, kamēr abi `Element` sadzīvo vienā projektā.
-				const productSelect = document.getElementById("trip-product") as unknown as HTMLSelectElement;
-				const priceInput = document.getElementById("trip-price") as HTMLInputElement;
-				const tankInput = document.getElementById("trip-tank") as HTMLInputElement;
-				const returnInput = document.getElementById("trip-return") as HTMLInputElement;
-				const dailyKmInput = document.getElementById("daily-km") as HTMLInputElement;
-				const dailyDaysInput = document.getElementById("daily-days") as HTMLInputElement;
-				const tripResultsEl = document.getElementById("trip-results") as HTMLElement;
-				const dailyResultEl = document.getElementById("daily-result") as HTMLElement;
-
-				const numberFormat = new Intl.NumberFormat("lv-LV", { maximumFractionDigits: 1 });
+				const distanceInput = byId<HTMLInputElement>("trip-distance");
+				const tripConsumptionInput = byId<HTMLInputElement>("trip-consumption");
+				const productSelect = byId<HTMLSelectElement>("trip-product");
+				const priceInput = byId<HTMLInputElement>("trip-price");
+				const tankInput = byId<HTMLInputElement>("trip-tank");
+				const returnInput = byId<HTMLInputElement>("trip-return");
+				const dailyKmInput = byId<HTMLInputElement>("daily-km");
+				const dailyDaysInput = byId<HTMLInputElement>("daily-days");
+				const totalEl = byId<HTMLElement>("trip-total");
+				const totalLabelEl = byId<HTMLElement>("trip-total-label");
+				const statsEl = byId<HTMLElement>("trip-stats");
+				const dailyResultEl = byId<HTMLElement>("daily-result");
 
 				function fillPriceFromProduct() {
 					const match = data.fuel.find((f) => f.product === productSelect.value);
@@ -236,61 +263,50 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 				}
 
 				function renderTrip() {
-					const oneWayKm = Number(distanceInput.value) || 0;
+					const oneWayKm = num(distanceInput);
 					const distanceKm = returnInput.checked ? oneWayKm * 2 : oneWayKm;
-					const consumption = Number(tripConsumptionInput.value) || 0;
-					const priceMilli = (Number(priceInput.value) || 0) * 1000;
-					const tank = Number(tankInput.value) || 0;
+					const consumption = num(tripConsumptionInput);
+					const priceMilli = num(priceInput) * 1000;
+					const tank = num(tankInput);
 
 					const liters = litersForTrip(distanceKm, consumption);
 					const totalMilli = tripCostMilli(distanceKm, consumption, priceMilli);
 					const co2 = co2KgForLiters(liters, productSelect.value);
 					const range = rangeKm(tank, consumption);
 
-					const rows: { label: string; value: string }[] = [
-						{ label: "Kopā", value: `${formatMoney(totalMilli)}&nbsp;&euro;` },
-						{ label: "Degviela", value: `${numberFormat.format(liters)} l` },
-						{ label: "Uz kilometru", value: `${formatPrice(costPerKmMilli(distanceKm, totalMilli))}&nbsp;&euro;` },
-						{
-							label: "Uz 100 km",
-							value: `${formatMoney(fuelCostPer100km(priceMilli, consumption))}&nbsp;&euro;`,
-						},
+					totalLabelEl.textContent = `Brauciens ${numberFormat.format(distanceKm)} km${returnInput.checked ? " (turp un atpakaļ)" : ""}`;
+					totalEl.textContent = `${formatMoney(totalMilli)}\u00a0€`;
+
+					const stats: [string, string][] = [
+						["Degviela", `${numberFormat.format(liters)} l`],
+						["Uz kilometru", `${formatPrice(costPerKmMilli(distanceKm, totalMilli))} €`],
+						["Uz 100 km", `${formatMoney(fuelCostPer100km(priceMilli, consumption))} €`],
 					];
-					if (range > 0) {
-						rows.push({ label: "Ar pilnu tvertni", value: `${numberFormat.format(range)} km` });
-					}
-					if (co2 !== null) {
-						rows.push({ label: "CO2 (aptuveni)", value: `${numberFormat.format(co2)} kg` });
-					}
-					if (returnInput.checked) {
-						rows.push({ label: "Rēķināts attālumam", value: `${numberFormat.format(distanceKm)} km` });
-					}
+					if (range > 0) stats.push(["Ar pilnu tvertni", `${numberFormat.format(range)} km`]);
+					if (co2 !== null) stats.push(["CO₂ (aptuveni)", `${numberFormat.format(co2)} kg`]);
+					statsEl.replaceChildren(
+						...stats.map(([term, value]) => {
+							const wrap = el("div");
+							wrap.appendChild(el("dt", undefined, term));
+							wrap.appendChild(el("dd", undefined, value));
+							return wrap;
+						}),
+					);
 
-					tripResultsEl.innerHTML = rows
-						.map(
-							(r) => `
-						<div class="result-row">
-							<span class="result-label">${r.label}</span>
-							<span class="result-cost">${r.value}</span>
-						</div>
-					`,
-						)
-						.join("");
-
-					const dailyKm = Number(dailyKmInput.value) || 0;
-					const days = Number(dailyDaysInput.value) || 0;
-					const periodMilli = periodCostMilli(dailyKm, days, consumption, priceMilli);
-					dailyResultEl.innerHTML =
-						days > 0 && dailyKm > 0
-							? `${numberFormat.format(dailyKm * days)} km ${days} dienās izmaksās <strong>${formatMoney(periodMilli)}&nbsp;&euro;</strong>`
-							: "";
+					const dailyKm = num(dailyKmInput);
+					const days = num(dailyDaysInput);
+					dailyResultEl.replaceChildren();
+					if (days > 0 && dailyKm > 0) {
+						dailyResultEl.appendChild(document.createTextNode(`${numberFormat.format(dailyKm * days)} km ${days} dienās izmaksās `));
+						dailyResultEl.appendChild(el("strong", undefined, `${formatMoney(periodCostMilli(dailyKm, days, consumption, priceMilli))}\u00a0€`));
+					}
 				}
 
 				productSelect.addEventListener("change", () => {
 					fillPriceFromProduct();
 					renderTrip();
 				});
-				for (const el of [
+				for (const input of [
 					distanceInput,
 					tripConsumptionInput,
 					priceInput,
@@ -299,7 +315,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 					dailyKmInput,
 					dailyDaysInput,
 				]) {
-					el.addEventListener("input", renderTrip);
+					input.addEventListener("input", renderTrip);
 				}
 				fillPriceFromProduct();
 				renderTrip();
@@ -309,11 +325,6 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 </Layout>
 
 <style>
-	.intro {
-		color: var(--color-ink-muted);
-		max-width: 42rem;
-		margin: 0 0 1.5rem;
-	}
 	/* Divas kolonnas, kamēr vietas pietiek; šaurāk - cita zem citas. */
 	.calc-grid {
 		display: grid;
@@ -323,104 +334,129 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 	@media (min-width: 62rem) {
 		.calc-grid {
 			grid-template-columns: 1fr 1fr;
-			gap: 2.5rem;
+			gap: 3rem;
 		}
 	}
 	.calc-section {
 		min-width: 0;
-		padding-bottom: 2rem;
-		border-bottom: 1px solid var(--color-border);
 	}
-	@media (min-width: 62rem) {
-		.calc-section {
-			padding-bottom: 0;
-			border-bottom: none;
-		}
-		/* Blakus esot, ievadlauki vairs neietilpst trijās kolonnās. */
-		.calc-section .inputs {
-			grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-		}
-	}
-	.calc-section:last-of-type {
-		border-bottom: none;
+	.calc-section h2 {
+		margin-top: 0.5rem;
 	}
 	.calc-section h3 {
 		font-size: 1rem;
-		margin: 1.75rem 0 0.75rem;
+		margin: 2rem 0 0.75rem;
 	}
-	.checkbox {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45rem;
-		margin-bottom: 1rem;
-		font-size: 0.9rem;
+	.section-intro {
+		margin: -0.5rem 0 1rem;
 		color: var(--color-ink-muted);
-	}
-	.inputs select {
-		font-size: 1rem;
-		padding: 0.5rem 0.6rem;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
-		background: var(--color-surface);
-		color: var(--color-ink);
-	}
-	.trip-results {
-		max-width: 34rem;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
-		overflow: hidden;
-	}
-	.daily-result {
-		margin: 0.5rem 0 0;
-		font-size: 0.95rem;
 	}
 	.inputs {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-		gap: 1rem;
-		max-width: 42rem;
-		margin-bottom: 0.75rem;
+		grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+		gap: 0.85rem;
+		margin-bottom: 0.85rem;
 	}
-	.inputs label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
+	.inputs--two {
+		max-width: 24rem;
+	}
+	.check {
+		margin-bottom: 1rem;
+	}
+
+	.trip-result {
+		padding: 1rem 1.15rem;
+		border: 1px solid var(--color-border);
+		border-top: 2px solid var(--color-ink);
+		border-radius: 0 0 var(--radius) var(--radius);
+	}
+	.trip-result p {
+		margin: 0;
+	}
+	.trip-result__label {
 		font-size: 0.85rem;
 		color: var(--color-ink-muted);
 	}
-	.inputs input {
-		font-family: var(--font-mono);
-		font-size: 1rem;
-		padding: 0.5rem 0.6rem;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
-		background: var(--color-surface);
-		color: var(--color-ink);
+	.trip-result__total {
+		font-size: clamp(2rem, 5vw, 2.75rem);
+		font-weight: 600;
+		letter-spacing: -0.03em;
+		line-height: 1.2;
 	}
-	.note {
+	.trip-result__stats {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+		gap: 0.75rem 1rem;
+		margin: 0.85rem 0 0;
+		padding-top: 0.85rem;
+		border-top: 1px solid var(--color-border);
+	}
+	.trip-result__stats :global(dt) {
+		font-size: 0.75rem;
 		color: var(--color-ink-muted);
-		font-size: 0.8rem;
-		max-width: 42rem;
-		margin: 0 0 2rem;
 	}
-	.results {
-		max-width: 34rem;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
-		overflow: hidden;
-	}
-	:global(.result-row) {
-		display: flex;
-		justify-content: space-between;
-		padding: 0.65rem 0.9rem;
-		border-bottom: 1px solid var(--color-border);
-		font-size: 0.95rem;
-	}
-	:global(.result-row:last-child) {
-		border-bottom: none;
-	}
-	:global(.result-cost) {
+	.trip-result__stats :global(dd) {
+		margin: 0.1rem 0 0;
 		font-family: var(--font-mono);
 		font-weight: 600;
+	}
+	.daily-result {
+		margin: 0.25rem 0 0;
+	}
+
+	/* Salīdzinājums: nosaukums un summa vienā rindā, zem tiem stabiņš.
+	   Viena krāsa visiem - garums jau nes vērtību, un degvielu no uzlādes
+	   atšķir teksta birka, nevis krāsa. */
+	.cost-list {
+		list-style: none;
+		margin: 0.5rem 0 0;
+		padding: 0;
+		border-top: 1px solid var(--color-border);
+	}
+	.cost-list :global(.cost-row) {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		align-items: baseline;
+		gap: 0.3rem 1rem;
+		padding: 0.55rem 0.25rem 0.6rem;
+		border-bottom: 1px solid var(--color-border);
+	}
+	.cost-list :global(.cost-row:hover) {
+		background: var(--color-surface);
+	}
+	.cost-list :global(.cost-row__label) {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0 0.45rem;
+		min-width: 0;
+	}
+	.cost-list :global(.cost-row__name) {
+		font-weight: 500;
+	}
+	.cost-list :global(.cost-row__detail) {
+		font-size: 0.8rem;
+		color: var(--color-ink-muted);
+	}
+	.cost-list :global(.cost-row__kind) {
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-ink-muted);
+	}
+	.cost-list :global(.cost-row__value) {
+		font-family: var(--font-mono);
+		font-weight: 600;
+	}
+	.cost-list :global(.cost-row__track) {
+		grid-column: 1 / -1;
+		height: 6px;
+	}
+	.cost-list :global(.cost-row__bar) {
+		display: block;
+		height: 100%;
+		min-width: 2px;
+		border-radius: 0 3px 3px 0;
+		background: var(--color-pylon);
 	}
 </style>

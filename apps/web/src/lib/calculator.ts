@@ -87,3 +87,33 @@ export function periodCostMilli(
 ): number {
 	return tripCostMilli(dailyKm * days, consumptionLPer100km, priceMilliPerLiter);
 }
+
+// --- Salīdzinājuma saraksts ------------------------------------------------
+
+export interface CostRow {
+	kind: "fuel" | "ev" | "home";
+	/** Degviela vai tīkls. */
+	name: string;
+	/** Savienotājs(-i) vai cits precizējums. */
+	detail: string | null;
+	costMilli: number;
+}
+
+// Viena tīkla savienotāji ar vienādām izmaksām kļūst par vienu rindu
+// ("CCS2, CHAdeMO") - citādi saraksts bija 19 rindas garš, un puse no tām
+// atkārtoja to pašu skaitli. Rezultāts sakārtots no lētākā.
+export function mergeSameCost(rows: CostRow[]): CostRow[] {
+	const merged = new Map<string, CostRow>();
+	for (const row of rows) {
+		const key = `${row.kind}|${row.name}|${Math.round(row.costMilli)}`;
+		const existing = merged.get(key);
+		if (existing) {
+			if (row.detail && !existing.detail?.split(", ").includes(row.detail)) {
+				existing.detail = existing.detail ? `${existing.detail}, ${row.detail}` : row.detail;
+			}
+		} else {
+			merged.set(key, { ...row });
+		}
+	}
+	return [...merged.values()].sort((a, b) => a.costMilli - b.costMilli);
+}

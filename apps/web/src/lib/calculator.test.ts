@@ -7,6 +7,7 @@ import {
 	evTimeCostPer100km,
 	fuelCostPer100km,
 	litersForTrip,
+	mergeSameCost,
 	periodCostMilli,
 	rangeKm,
 	tripCostMilli,
@@ -102,5 +103,29 @@ describe("brauciena kalkulators", () => {
 	it("rēķina perioda izmaksas", () => {
 		// 40 km dienā * 21 diena = 840 km
 		expect(periodCostMilli(40, 21, 7, 1947)).toBeCloseTo(tripCostMilli(840, 7, 1947));
+	});
+});
+
+describe("mergeSameCost", () => {
+	it("apvieno viena tīkla savienotājus ar vienādām izmaksām un kārto no lētākā", () => {
+		const rows = mergeSameCost([
+			{ kind: "ev", name: "e-mobi", detail: "CCS2", costMilli: 4104 },
+			{ kind: "fuel", name: "Benzīns 95", detail: null, costMilli: 13118 },
+			{ kind: "ev", name: "e-mobi", detail: "CHAdeMO", costMilli: 4104 },
+			{ kind: "ev", name: "e-mobi", detail: "Type 2", costMilli: 4806 },
+		]);
+		expect(rows).toEqual([
+			{ kind: "ev", name: "e-mobi", detail: "CCS2, CHAdeMO", costMilli: 4104 },
+			{ kind: "ev", name: "e-mobi", detail: "Type 2", costMilli: 4806 },
+			{ kind: "fuel", name: "Benzīns 95", detail: null, costMilli: 13118 },
+		]);
+	});
+
+	it("neapvieno dažādus tīklus ar vienādu cenu", () => {
+		const rows = mergeSameCost([
+			{ kind: "ev", name: "A", detail: "CCS2", costMilli: 4000 },
+			{ kind: "ev", name: "B", detail: "CCS2", costMilli: 4000 },
+		]);
+		expect(rows).toHaveLength(2);
 	});
 });
