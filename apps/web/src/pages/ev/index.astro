@@ -72,7 +72,6 @@ const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.
 						<tr>
 							<th scope="col">Tīkls</th>
 							<th scope="col">Savienotājs</th>
-							<th scope="col">Strāva</th>
 							<th scope="col">Lētākā cena</th>
 							<th scope="col">Vietu skaits</th>
 						</tr>
@@ -89,9 +88,10 @@ const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.
 											</a>
 										</th>
 									)}
-									<td>{t.connector ? (CONNECTOR_LABELS[t.connector] ?? t.connector) : "-"}</td>
 									<td>
-										<span class="current" data-current={t.currentType}>
+										{/* Bez savienotāja (piem. Eleport) - tarifs visai strāvas grupai. */}
+										{t.connector && (CONNECTOR_LABELS[t.connector] ?? t.connector)}
+										<span class="current" data-current={t.currentType} data-alone={t.connector ? undefined : ""}>
 											{t.currentType === "DC" ? "DC ātrā" : "AC"}
 										</span>
 									</td>
@@ -173,9 +173,18 @@ const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.
 	.grouped tbody:last-of-type th[scope="rowgroup"] {
 		border-bottom: none;
 	}
+	@media (max-width: 40rem) {
+		.grouped th[scope="rowgroup"] {
+			white-space: normal;
+		}
+	}
 	.current {
-		font-size: 0.8rem;
+		margin-left: 0.4rem;
+		font-size: 0.75rem;
 		color: var(--color-ink-muted);
+	}
+	.current[data-alone] {
+		margin-left: 0;
 	}
 	.current[data-current="DC"] {
 		color: var(--color-ink);

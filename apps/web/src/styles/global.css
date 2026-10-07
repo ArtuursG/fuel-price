@@ -116,11 +116,17 @@ body { font-variant-numeric: tabular-nums; }
 /* Datu tabulas. Agrāk šie stili bija nokopēti piecās lapās ar sīkām
    atšķirībām (galvene ar un bez lielajiem burtiem, lētākā šūna ar ēnu vai
    ar apmalēm abās pusēs), tāpēc katra lapa izskatījās mazliet citāda. */
+/* Ēna labajā malā, kamēr tabulai ir neredzama daļa pa labi: pirmais
+   slānis ("local") ritinās līdzi saturam un ēnu aizsedz, kad sasniegta
+   beigu mala; otrais ("scroll") stāv uz vietas. */
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-bg);
+  background:
+    linear-gradient(to left, var(--color-bg) 40%, rgb(255 255 255 / 0)) right / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, rgb(32 43 53 / 0.16), transparent) right / 0.9rem 100% no-repeat scroll,
+    var(--color-bg);
 }
 .table-wrap table {
   font-size: 0.9rem;
@@ -142,6 +148,12 @@ body { font-variant-numeric: tabular-nums; }
 }
 .table-wrap tbody th {
   font-weight: 600;
+}
+@media (max-width: 40rem) {
+  .table-wrap th,
+  .table-wrap td {
+    padding: 0.55rem 0.6rem;
+  }
 }
 .table-wrap tbody:last-of-type > tr:last-child > * {
   border-bottom: none;

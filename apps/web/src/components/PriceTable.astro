@@ -5,9 +5,11 @@ import { formatPrice, type NetworkPrice, type ProductRow } from "../lib/prices";
 
 interface Props {
 	products: ProductRow[];
+	/** Paskaidrojums virs tabulas; sākumlapā to rāda tikai galvenajai tabulai. */
+	legend?: boolean;
 }
 
-const { products } = Astro.props as Props;
+const { products, legend = false } = Astro.props as Props;
 
 // Dati sakārtoti pēc produkta; tabulai sakārtojam pēc tīkla.
 const networkIds = [...new Set(products.flatMap((row) => row.prices.map((p) => p.networkId)))];
@@ -25,42 +27,56 @@ const rows: NetworkRow[] = networkIds.map((networkId) => {
 });
 
 // row.prices ir šķirots augoši (sk. getLatestFuelPrices), tāpēc [0] ir
-// lētākais katram produktam - izceļam attiecīgo šūnu tabulā.
-const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId ?? null);
+// lētākais katram produktam - izceļam attiecīgo šūnu un pārējās rādām
+// kā starpību pret to. Lasītājs gribēja zināt "cik es pārmaksāju", un
+// agrāk to vajadzēja rēķināt galvā.
+const cheapestByProduct = products.map((row) => row.prices[0] ?? null);
 ---
 
-<div class="table-wrap" tabindex="0" role="region" aria-label="Degvielas cenu tabula, ritināma horizontāli">
+{legend && (
+	<p class="table-legend">
+		<span class="table-legend__swatch" aria-hidden="true"></span> lētākā cena attiecīgajai degvielai; pārējās šūnās -
+		cik dārgāk. Tīkli sakārtoti pēc pirmās kolonnas cenas.
+	</p>
+)}
+<div class="table-wrap price-table" tabindex="0" role="region" aria-label="Degvielas cenu tabula, ritināma horizontāli">
 	<table>
 		<caption class="sr-only">Visu tīklu degvielas cenas šodien, salīdzinājumā pa produktiem</caption>
 		<thead>
 			<tr>
 				<th scope="col">Tīkls</th>
 				{products.map((row) => <th scope="col">{row.label}</th>)}
-
 			</tr>
 		</thead>
 		<tbody>
 			{rows.map((row) => (
 				<tr>
 					<th scope="row">
-							<a class="network-cell" href={`/tikli/${row.networkId}/`}>
-								<NetworkLogo networkId={row.networkId} networkName={row.networkName} size={22} />
-								<span>{row.networkName}</span>
-							</a>
-						</th>
-					{row.cells.map((cell, i) => (
-						<td class={cell && cheapestNetworkByProduct[i] === row.networkId ? "cheapest" : undefined}>
-							{cell ? (
-								<div class="price-cell">
-									<span class="price-cell__value">{formatPrice(cell.priceMilli)}&nbsp;&euro;</span>
-									<PriceInfo price={cell} />
-								</div>
-							) : (
-								<span class="table-dash" aria-label="nav datu">-</span>
-							)}
-						</td>
-					))}
-
+						<a class="network-cell" href={`/tikli/${row.networkId}/`}>
+							<NetworkLogo networkId={row.networkId} networkName={row.networkName} size={22} />
+							<span>{row.networkName}</span>
+						</a>
+					</th>
+					{row.cells.map((cell, i) => {
+						const best = cheapestByProduct[i];
+						const isCheapest = cell !== null && best?.networkId === row.networkId;
+						const diff = cell && best ? cell.priceMilli - best.priceMilli : null;
+						return (
+							<td class:list={["num", { cheapest: isCheapest }]}>
+								{cell ? (
+									<div class="price-cell">
+										<span class="price-cell__value">{formatPrice(cell.priceMilli)}&nbsp;&euro;</span>
+										<PriceInfo price={cell} />
+										<span class="price-cell__diff">
+											{isCheapest ? "lētākā" : diff === 0 ? "tikpat lēta" : <>+{formatPrice(diff ?? 0)}</>}
+										</span>
+									</div>
+								) : (
+									<span class="table-dash" aria-label="nav datu">-</span>
+								)}
+							</td>
+						);
+					})}
 				</tr>
 			))}
 		</tbody>
@@ -68,6 +84,21 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 </div>
 
 <style>
+	.table-legend {
+		margin: 0 0 0.75rem;
+		font-size: 0.8rem;
+		color: var(--color-ink-muted);
+	}
+	.table-legend__swatch {
+		display: inline-block;
+		width: 0.8rem;
+		height: 0.8rem;
+		margin-right: 0.2rem;
+		vertical-align: -0.1rem;
+		background: var(--color-cheapest-bg);
+		box-shadow: inset 3px 0 0 var(--color-cheapest-border);
+	}
+
 	/* Bez pasvītrojuma, bet saite paliek saite: krāsa, kursors un
 	   pasvītrojums uz hover/fokusu to joprojām parāda. */
 	.network-cell {
@@ -82,13 +113,53 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 		color: var(--color-pylon);
 		text-decoration: underline;
 	}
-	.price-cell {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
+
+	.price-table table {
+		font-size: 0.95rem;
 	}
-	.price-cell__value {
-		font-family: var(--font-mono);
+	.price-table td {
+		vertical-align: top;
+	}
+	.price-table tbody th {
+		vertical-align: middle;
+	}
+	.price-cell {
+		display: grid;
+		grid-template-columns: auto auto;
+		justify-content: start;
+		align-items: center;
+		column-gap: 0.4rem;
+	}
+	.price-cell__diff {
+		grid-column: 1 / -1;
+		font-size: 0.75rem;
+		font-weight: 400;
+		color: var(--color-ink-muted);
+	}
+	.cheapest .price-cell__diff {
+		color: var(--color-cheapest-ink);
+		font-family: var(--font-body);
+	}
+
+	/* Ar peli "i" parādās tikai rindai, uz kuras ir kursors (vai kad tam ir
+	   fokuss) - agrāk tabulā bija ~25 aplīši, kas konkurēja ar cenām.
+	   Skārienekrānā hover nav, tur tie paliek redzami. */
+	@media (hover: hover) {
+		.price-table :global(.price-info__trigger) {
+			opacity: 0;
+			transition: opacity 0.1s ease;
+		}
+		.price-table tr:hover :global(.price-info__trigger),
+		.price-table :global(.price-info:focus-within .price-info__trigger) {
+			opacity: 1;
+		}
+	}
+
+	tbody tr {
+		transition: background-color 0.1s ease;
+	}
+	tbody tr:hover {
+		background: var(--color-surface);
 	}
 
 	/* Uznirstošais panelis ir absolūti pozicionēts, tāpēc to nogrieztu
@@ -96,70 +167,30 @@ const cheapestNetworkByProduct = products.map((row) => row.prices[0]?.networkId 
 	   overflow nav vajadzīgs, tāpēc ļaujam panelim iziet ārpus rāmja;
 	   šaurā ekrānā tabulai ritināšana ir vajadzīga, un tur panelis
 	   parādās šūnā nevis virs tās (sk. PriceInfo). */
-	.table-wrap {
-		overflow-x: auto;
-		border: 1px solid var(--color-border);
-		border-radius: 0;
-	}
 	@media (min-width: 60rem) {
-		.table-wrap {
+		.price-table {
 			overflow: visible;
 		}
 	}
-	table {
-		font-size: 0.95rem;
-	}
-	th,
-	td {
-		padding: 0.65rem 0.85rem;
-		text-align: left;
-		border-bottom: 1px solid var(--color-border);
-		white-space: nowrap;
-	}
-	thead th {
-		font-size: 0.8rem;
 
-
-		color: var(--color-ink-muted);
-		background: var(--color-surface);
-	}
-	tbody th {
-		font-weight: 600;
-	}
-	tbody tr:last-child td,
-	tbody tr:last-child th {
-		border-bottom: none;
-	}
-	tbody tr {
-		transition: background-color 0.1s ease;
-	}
-	tbody tr:hover {
-		background: var(--color-surface);
-	}
-	td {
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-	}
-	td.cheapest {
-		background: var(--color-cheapest-bg);
-		color: var(--color-cheapest-ink);
-		font-weight: 700;
-		box-shadow: inset 3px 0 0 var(--color-cheapest-border);
-	}
-	.table-note {
-        display: block;
-		font-family: var(--font-body);
-		color: var(--color-ink-muted);
-		font-size: 0.75rem;
-	}
-	.table-dash {
-		color: var(--color-neutral);
-	}
-	.sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
+	/* Šaurā ekrānā tabula ritinās, un tīkla kolonna paliek vietā, lai būtu
+	   redzams, kuram tīklam cena pieder. */
+	@media (max-width: 59.99rem) {
+		.price-table th:first-child {
+			position: sticky;
+			left: 0;
+			z-index: 1;
+			background: var(--color-bg);
+			box-shadow: inset -1px 0 0 var(--color-border);
+		}
+		.price-table thead th:first-child {
+			background: var(--color-surface);
+		}
+		.price-table tbody tr:hover th:first-child {
+			background: var(--color-surface);
+		}
+		.network-cell span {
+			white-space: normal;
+		}
 	}
 </style>
