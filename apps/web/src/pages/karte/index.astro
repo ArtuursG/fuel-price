@@ -2,7 +2,7 @@
 import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
 import { attachFuelPrices, canonicalNetwork, getEvMapStations, routeUrl, wazeUrl, validCoordinates, type MapStation } from "../../lib/station-map";
-import { PRODUCT_FULL_LABELS, formatPrice, getLatestFuelPrices } from "../../lib/prices";
+import { PRODUCT_FULL_LABELS, PRODUCT_LABELS, formatPrice, getLatestFuelPrices } from "../../lib/prices";
 import { markCheapestStations } from "../../lib/cheapest";
 import fuelData from "../../../public/data/fuel-stations.json";
 
@@ -46,31 +46,38 @@ const highlightNotes = Object.fromEntries(cheapestHighlights.map((h) => [h.produ
   caveat: h.isAbsoluteCheapest ? null
     : `Zemākā cena ir ${h.cheaperNetworkName} ${formatPrice(h.cheaperPriceMilli ?? 0)} EUR/l, bet avots nenorāda ielu, tāpēc to kartē novietot nevar.`,
 }]));
+// Degvielas filtra izvēles (tikai tās, ko OSM stacijas mēdz norādīt).
+const FILTER_PRODUCTS = ["P95", "P98", "DSL", "LPG", "CNG", "E85"];
 const payload = JSON.stringify(stationsWithCheapest).replace(/</g, "\\u003c");
 const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZone:"Europe/Riga"});
 ---
 
 <Layout title="Degvielas un EV staciju karte - degvielas cenas">
   <header class="map-heading">
-    <div><h1>Uzpildīt vai uzlādēt</h1><p>Atrodi staciju. Pārbaudi tarifu. Atver maršrutu.</p></div>
+    <div><h1>Uzpildīt vai uzlādēt</h1><p>Degvielas un EV uzlādes stacijas vienā kartē. Cena redzama, ja tā zināma konkrētajai stacijai.</p></div>
     <div class="map-legend"><span><b class="fuel-key">D</b> {fuel.length} degvielas vietas</span><span><b class="ev-key">E</b> {ev.length} EV vietas</span></div>
   </header>
-  <p class="map-note">DUS atrašanās vietas un EV tarifi vienā kartē. Cena redzama, ja tā zināma konkrētajai stacijai.</p>
   {evUnavailable && <p role="alert" class="map-warning">EV datus pašlaik nevar ielādēt. Degvielas staciju karte ir pieejama. Mēģini pārlādēt lapu vēlāk.</p>}
+  {/* Šaurā ekrānā redzama tikai meklēšana; pārējie filtri ir zem pogas
+      "Filtri", lai karte nesāktos ~900px zemāk (sk. scripts/station-map.ts).
+      Bez JS viss paliek atvērts. */}
   <form id="map-filters" class="map-filters" role="search" aria-label="Staciju filtri">
-    <label>Meklēt vietu vai adresi<input id="station-search" type="search" placeholder="Piemēram, Rīga vai Brīvības" autocomplete="off" /></label>
-    <label>Stacijas veids<select id="station-kind"><option value="">Visas stacijas</option><option value="fuel">Degviela</option><option value="ev">EV uzlāde</option></select></label>
-    <label>Tīkls<select id="station-network"><option value="">Visi tīkli</option>{networks.map((network) => <option value={network}>{network}</option>)}</select></label>
-    <label id="fuel-filter">Degviela<select id="station-product"><option value="">Visi / nav norādīts</option><option value="P95">95 benzīns</option><option value="P98">98 benzīns</option><option value="DSL">Dīzelis</option><option value="LPG">LPG</option><option value="CNG">CNG</option><option value="E85">E85</option></select></label>
-    <label id="connector-filter">EV savienotājs<select id="station-connector"><option value="">Visi savienotāji</option><option value="CCS2">CCS2</option><option value="TYPE2">Type 2</option><option value="CHADEMO">CHAdeMO</option></select></label>
-    {cheapestProducts.length > 0 && (
-      <label id="cheapest-filter">Izcelt lētāko<select id="station-cheapest"><option value="">Neizcelt</option>{cheapestProducts.map((h) => <option value={h.product}>{PRODUCT_FULL_LABELS[h.product] ?? h.product}</option>)}</select></label>
-    )}
-    <label id="power-filter">EV jauda<select id="station-power"><option value="0">Jebkura</option><option value="22">Vismaz 22 kW</option><option value="50">Vismaz 50 kW</option><option value="150">Vismaz 150 kW</option><option value="300">Vismaz 300 kW</option></select></label>
+    <label class="field map-filters__search">Meklēt vietu vai adresi<input id="station-search" type="search" placeholder="Piemēram, Rīga vai Brīvības" autocomplete="off" /></label>
+    <button type="button" id="filters-toggle" class="button map-filters__toggle" aria-expanded="true" aria-controls="filter-fields" hidden>Filtri <span id="filters-count" class="filters-count" hidden></span></button>
+    <div id="filter-fields" class="map-filters__fields">
+      <label class="field">Stacijas veids<select id="station-kind"><option value="">Visas stacijas</option><option value="fuel">Degviela</option><option value="ev">EV uzlāde</option></select></label>
+      <label class="field">Tīkls<select id="station-network"><option value="">Visi tīkli</option>{networks.map((network) => <option value={network}>{network}</option>)}</select></label>
+      <label class="field" id="fuel-filter">Degviela<select id="station-product"><option value="">Visi / nav norādīts</option>{FILTER_PRODUCTS.map((code) => <option value={code}>{PRODUCT_LABELS[code]}</option>)}</select></label>
+      <label class="field" id="connector-filter">EV savienotājs<select id="station-connector"><option value="">Visi savienotāji</option><option value="CCS2">CCS2</option><option value="TYPE2">Type 2</option><option value="CHADEMO">CHAdeMO</option></select></label>
+      <label class="field" id="power-filter">EV jauda<select id="station-power"><option value="0">Jebkura</option><option value="22">Vismaz 22 kW</option><option value="50">Vismaz 50 kW</option><option value="150">Vismaz 150 kW</option><option value="300">Vismaz 300 kW</option></select></label>
+      {cheapestProducts.length > 0 && (
+        <label class="field" id="cheapest-filter">Izcelt lētāko<select id="station-cheapest"><option value="">Neizcelt</option>{cheapestProducts.map((h) => <option value={h.product}>{PRODUCT_FULL_LABELS[h.product] ?? h.product}</option>)}</select></label>
+      )}
+    </div>
   </form>
   <div class="map-toolbar">
-    <div><button type="button" id="locate-me">Man tuvumā</button><button type="button" id="fit-results">Rādīt visus rezultātus</button><button type="button" id="clear-filters">Notīrīt filtrus</button></div>
-    <label><input type="checkbox" id="visible-only" checked /> Tikai redzamajā kartes apgabalā</label>
+    <div><button type="button" class="button" id="locate-me">Man tuvumā</button><button type="button" class="button" id="fit-results">Rādīt visus<span class="wide-only"> rezultātus</span></button><button type="button" class="button" id="clear-filters">Notīrīt<span class="wide-only"> filtrus</span></button></div>
+    <label class="check"><input type="checkbox" id="visible-only" checked /> Tikai redzamajā kartes apgabalā</label>
   </div>
   <p id="cheapest-note" class="cheapest-note" role="status" aria-live="polite" hidden></p>
   <script type="application/json" id="highlight-notes" set:html={JSON.stringify(highlightNotes)} />
@@ -107,17 +114,23 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   .fuel-key,.ev-key { display:inline-grid; place-items:center; width:1.35rem; height:1.35rem; font-size:0.7rem; color:white; margin-right:0.25rem; }
   .fuel-key { background:var(--color-pylon); } .ev-key { background:var(--color-down); border-radius:50%; }
   .map-note,.map-attribution { font-size:0.8rem; color:var(--color-ink-muted); }
+  #map-message { margin:0.75rem 0; }
   .map-warning { border-left:3px solid var(--color-up); padding:0.75rem; background:var(--color-surface); }
   /* auto-fit, nevis fiksēts kolonnu skaits: lauku skaits mainās (izcelšana
      ir tikai tad, ja ir ko izcelt; EV/degvielas lauki slēpjas pēc veida). */
+  /* auto-fit, nevis fiksēts kolonnu skaits: lauku skaits mainās (izcelšana
+     ir tikai tad, ja ir ko izcelt; EV/degvielas lauki slēpjas pēc veida).
+     Lauku konteiners platā ekrānā ir "display: contents", lai lauki būtu
+     tajā pašā režģī, kur meklēšana. */
   .map-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr)); gap:0.7rem; border-top:2px solid var(--color-ink); padding-top:1rem; margin-top:1.25rem; }
-  .map-filters label:first-child { grid-column:span 2; }
-  .map-filters label { display:flex; flex-direction:column; gap:0.35rem; font-size:0.75rem; min-width:0; }
-  .map-filters input,.map-filters select { width:100%; height:2.6rem; padding:0.5rem; border:1px solid var(--color-border); background:var(--color-bg); color:var(--color-ink); font:inherit; font-size:0.85rem; border-radius:0; }
+  .map-filters__search { grid-column:span 2; }
+  .map-filters__fields { display:contents; }
+  .map-filters__toggle { display:none; }
+  .filters-count { display:inline-grid; place-items:center; min-width:1.3rem; height:1.3rem; padding:0 0.3rem; border-radius:999px; background:var(--color-pylon); color:var(--color-pylon-ink); font-size:0.72rem; }
   .map-toolbar { display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:0.75rem; margin-top:0.85rem; font-size:0.8rem; }
   .map-toolbar>div { display:flex; gap:0.5rem; flex-wrap:wrap; }
-  .map-toolbar button,#more-stations,.detail-close { border:1px solid var(--color-border); background:var(--color-bg); padding:0.6rem 0.8rem; color:var(--color-pylon); font:inherit; cursor:pointer; }
-  .map-toolbar button:disabled { opacity:0.5; cursor:wait; }
+  .map-toolbar .button { margin:0; }
+  #more-stations,.detail-close { border:1px solid var(--color-border); border-radius:var(--radius); background:var(--color-bg); padding:0.6rem 0.8rem; color:var(--color-pylon); font:inherit; cursor:pointer; }
   .map-workspace { display:grid; grid-template-columns:minmax(0,1fr) 24rem; border:1px solid var(--color-border); height:calc(100vh - 13rem); min-height:620px; }
   #station-map { min-width:0; min-height:420px; background:var(--color-surface); }
   .station-sidebar { min-width:0; overflow:auto; border-left:1px solid var(--color-border); background:var(--color-bg); }
@@ -163,5 +176,17 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   .missing-price { color:var(--color-ink-muted); padding:0.6rem 0; }
   [hidden] { display:none !important; }
   @media(max-width:1000px) { .map-workspace { grid-template-columns:minmax(0,1fr) 19rem; } }
-  @media(max-width:640px) { .map-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .map-workspace { display:flex; flex-direction:column; height:auto; max-height:none; } #station-map { height:400px; } .station-sidebar { max-height:520px; border-left:0; border-top:1px solid var(--color-border); } }
+  @media(max-width:640px) {
+    .map-filters { display:flex; flex-wrap:wrap; align-items:end; gap:0.6rem; }
+    .map-filters__search { flex:1 1 12rem; }
+    .map-filters__toggle:not([hidden]) { display:inline-flex; }
+    .map-filters__fields { display:grid; flex:1 0 100%; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.6rem; }
+    .map-filters__fields[data-collapsed] { display:none; }
+    .map-toolbar>div { width:100%; }
+    .map-toolbar .button { flex:1 1 0; padding:0 0.5rem; }
+    .wide-only { display:none; }
+    .map-workspace { display:flex; flex-direction:column; height:auto; max-height:none; }
+    #station-map { height:400px; }
+    .station-sidebar { max-height:520px; border-left:0; border-top:1px solid var(--color-border); }
+  }
 </style>

@@ -273,7 +273,31 @@ function geojson(): FeatureCollection<Point> {
   return {type:"FeatureCollection",features:filtered.map((station) => ({type:"Feature",geometry:{type:"Point",coordinates:[station.lon,station.lat]},properties:{id:station.id,kind:station.kind,hl:isCheapest(station)?1:0,dim:(cheapest?.value && !isCheapest(station))?1:0,mark:networkMark(station),logo:logoForNetworkName(canonicalNetwork(station.network))?markerImageId(canonicalNetwork(station.network)):""}}))};
 }
 
+// Šaurā ekrānā filtri (izņemot meklēšanu) ir salocīti zem pogas "Filtri";
+// poga rāda, cik filtru ir ieslēgts, lai salocīti tie nepazūd no prāta.
+const filtersToggle = document.getElementById("filters-toggle") as unknown as HTMLButtonElement | null;
+const filterFields = document.getElementById("filter-fields") as unknown as HTMLElement | null;
+const filtersCount = document.getElementById("filters-count") as unknown as HTMLElement | null;
+const narrowScreen = matchMedia("(max-width: 640px)");
+function setFiltersOpen(open: boolean): void {
+  filterFields?.toggleAttribute("data-collapsed", !open);
+  filtersToggle?.setAttribute("aria-expanded", String(open));
+}
+function renderFiltersCount(): void {
+  if (!filtersCount) return;
+  const active = [kind.value, network.value, product.value, connector.value, Number(power.value) > 0 ? "1" : "", cheapest?.value ?? ""].filter(Boolean).length;
+  filtersCount.textContent = String(active);
+  filtersCount.hidden = active === 0;
+}
+if (filtersToggle && filterFields) {
+  filtersToggle.hidden = false;
+  setFiltersOpen(!narrowScreen.matches);
+  filtersToggle.addEventListener("click", () => setFiltersOpen(filterFields.hasAttribute("data-collapsed")));
+  narrowScreen.addEventListener("change", () => setFiltersOpen(!narrowScreen.matches));
+}
+
 function applyFilters() {
+  renderFiltersCount();
   const filters: StationFilters = {kind:kind.value,network:network.value,query:search.value,product:product.value,connector:connector.value,power:Number(power.value)};
   filtered = filterStations(stations,filters); limit=50;
   if (selectedId && !filtered.some((station) => station.id === selectedId)) {detail.hidden=true; selectedId=null;}
