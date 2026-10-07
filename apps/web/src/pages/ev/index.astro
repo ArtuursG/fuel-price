@@ -1,8 +1,9 @@
 ---
 import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
+import NetworkLogo from "../../components/NetworkLogo.astro";
 import { formatPrice } from "../../lib/prices";
-import { CONNECTOR_LABELS, getEvTariffSummary } from "../../lib/ev";
+import { CONNECTOR_LABELS, getEvTariffSummary, type EvTariffSummary } from "../../lib/ev";
 import { getSourceStatuses, STATUS_LABELS } from "../../lib/sources";
 
 const [tariffs, allSources] = await Promise.all([getEvTariffSummary(env.DB), getSourceStatuses(env.DB)]);
@@ -12,10 +13,46 @@ const [tariffs, allSources] = await Promise.all([getEvTariffSummary(env.DB), get
 // itself was never fetched) - exclude those so the page doesn't show a
 // network as both priced above and "still being investigated" below.
 const networksWithData = new Set(tariffs.map((t) => t.networkName));
+// Tikai īsti tīkli - reģistri bez tīkla (piem. NAP) te neko nepasaka.
 const pendingEvSources = allSources.filter(
-	(s) => s.kind === "ev" && s.status !== "active" && !(s.networkName && networksWithData.has(s.networkName)),
+	(s) => s.kind === "ev" && s.status !== "active" && s.networkName !== null && !networksWithData.has(s.networkName),
 );
+
+// Viena tīkla rindas kopā: tīkls ir tas, ko lasītājs izvēlas, savienotājs -
+// detaļa. Tīkli sakārtoti pēc lētākās €/kWh cenas; tīkli ar tikai minūšu
+// tarifu nāk beigās, jo tos ar €/kWh tieši salīdzināt nevar.
+const CONNECTOR_ORDER = ["CCS2", "CHADEMO", "TYPE2"];
+const byNetwork = new Map<string, EvTariffSummary[]>();
+for (const t of tariffs) byNetwork.set(t.networkId, [...(byNetwork.get(t.networkId) ?? []), t]);
+const groups = [...byNetwork.values()]
+	.map((rows) => {
+		const energy = rows.map((r) => r.minEnergyMilliPerKwh).filter((v): v is number => v !== null);
+		return {
+			networkId: rows[0].networkId,
+			networkName: rows[0].networkName,
+			minEnergy: energy.length > 0 ? Math.min(...energy) : null,
+			rows: [...rows].sort(
+				(a, b) =>
+					a.currentType.localeCompare(b.currentType) * -1 ||
+					CONNECTOR_ORDER.indexOf(a.connector ?? "") - CONNECTOR_ORDER.indexOf(b.connector ?? ""),
+			),
+		};
+	})
+	.sort((a, b) => (a.minEnergy ?? Infinity) - (b.minEnergy ?? Infinity) || a.networkName.localeCompare(b.networkName, "lv"));
+
+// Lētākā €/kWh cena atsevišķi ātrajai (DC) un parastajai (AC) uzlādei -
+// tās ir divas dažādas izvēles, un viena kopēja "lētākā" vienmēr būtu AC.
+const cheapestByCurrent = new Map<string, number>();
+for (const t of tariffs) {
+	if (t.minEnergyMilliPerKwh === null) continue;
+	const current = cheapestByCurrent.get(t.currentType);
+	if (current === undefined || t.minEnergyMilliPerKwh < current) cheapestByCurrent.set(t.currentType, t.minEnergyMilliPerKwh);
+}
+const isCheapest = (t: EvTariffSummary) =>
+	t.minEnergyMilliPerKwh !== null && t.minEnergyMilliPerKwh === cheapestByCurrent.get(t.currentType);
+const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.minTimeMilliPerMin !== null);
 ---
+
 
 <Layout title="EV uzlāde - degvielas cenas">
 	<h1>EV uzlāde</h1>
@@ -29,7 +66,7 @@ const pendingEvSources = allSources.filter(
 				šeit rādīta lētākā, ne vidējā.
 			</p>
 			<div class="table-wrap">
-				<table>
+				<table class="grouped">
 					<caption class="sr-only">EV uzlādes tarifi pa tīkliem un savienotāju tipiem</caption>
 					<thead>
 						<tr>
@@ -40,27 +77,45 @@ const pendingEvSources = allSources.filter(
 							<th scope="col">Vietu skaits</th>
 						</tr>
 					</thead>
-					<tbody>
-						{tariffs.map((t) => (
-							<tr>
-								<th scope="row">{t.networkName}</th>
-								<td>{t.connector ? (CONNECTOR_LABELS[t.connector] ?? t.connector) : "-"}</td>
-								<td>{t.currentType}</td>
-								<td>
-									{t.minEnergyMilliPerKwh !== null && (
-										<>{formatPrice(t.minEnergyMilliPerKwh)}&nbsp;&euro;/kWh</>
+					{groups.map((group) => (
+						<tbody>
+							{group.rows.map((t, i) => (
+								<tr>
+									{i === 0 && (
+										<th scope="rowgroup" rowspan={group.rows.length}>
+											<a class="network-cell" href={`/tikli/${group.networkId}/`}>
+												<NetworkLogo networkId={group.networkId} networkName={group.networkName} size={22} />
+												<span>{group.networkName}</span>
+											</a>
+										</th>
 									)}
-									{t.minEnergyMilliPerKwh !== null && t.minTimeMilliPerMin !== null && " / "}
-									{t.minTimeMilliPerMin !== null && (
-										<>{formatPrice(t.minTimeMilliPerMin)}&nbsp;&euro;/min</>
-									)}
-								</td>
-								<td>{t.stationCount}</td>
-							</tr>
-						))}
-					</tbody>
+									<td>{t.connector ? (CONNECTOR_LABELS[t.connector] ?? t.connector) : "-"}</td>
+									<td>
+										<span class="current" data-current={t.currentType}>
+											{t.currentType === "DC" ? "DC ātrā" : "AC"}
+										</span>
+									</td>
+									<td class:list={["num", { cheapest: isCheapest(t) }]}>
+										{t.minEnergyMilliPerKwh !== null && <>{formatPrice(t.minEnergyMilliPerKwh)}&nbsp;&euro;/kWh</>}
+										{t.minEnergyMilliPerKwh !== null && t.minTimeMilliPerMin !== null && " / "}
+										{t.minTimeMilliPerMin !== null && <>{formatPrice(t.minTimeMilliPerMin)}&nbsp;&euro;/min</>}
+									</td>
+									<td class="num">{t.stationCount}</td>
+								</tr>
+							))}
+						</tbody>
+					))}
 				</table>
 			</div>
+			<p class="note">
+				Zaļā šūna - lētākā €/kWh cena ātrajai (DC) un parastajai (AC) uzlādei.
+				{hasTimeTariffs && (
+					<>
+						{" "}Minūšu tarifu (€/min) ar €/kWh tieši salīdzināt nevar - cik tas maksā uz 100 km, aptuveni
+						parāda <a href="/kalkulators/">kalkulators</a>.
+					</>
+				)}
+			</p>
 		</>
 	)}
 
@@ -80,7 +135,7 @@ const pendingEvSources = allSources.filter(
 						{pendingEvSources.map((source) => (
 							<tr>
 								<th scope="row">
-									<a href={source.url} rel="noopener noreferrer" target="_blank">{source.networkName ?? source.id}</a>
+									<a href={source.url} rel="noopener noreferrer" target="_blank">{source.networkName}</a>
 								</th>
 								<td><span class="badge" data-status={source.status}>{STATUS_LABELS[source.status]}</span></td>
 							</tr>
@@ -93,49 +148,37 @@ const pendingEvSources = allSources.filter(
 </Layout>
 
 <style>
-	.intro {
-		color: var(--color-ink-muted);
-		max-width: 42rem;
-		margin: 0 0 1.5rem;
+	h2 {
+		margin-top: 3rem;
 	}
-	.table-wrap {
-		overflow-x: auto;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
+	.network-cell {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--color-ink);
+		text-decoration: none;
 	}
-	table {
-		font-size: 0.9rem;
+	.network-cell:hover,
+	.network-cell:focus-visible {
+		color: var(--color-pylon);
+		text-decoration: underline;
 	}
-	th,
-	td {
-		padding: 0.6rem 0.85rem;
-		text-align: left;
-		border-bottom: 1px solid var(--color-border);
-		white-space: nowrap;
+	/* Tīkla rindu grupa: iekšā tikai gaiša līnija, starp tīkliem - pilna. */
+	.grouped th[scope="rowgroup"] {
+		vertical-align: top;
 	}
-	thead th {
-		font-size: 0.78rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--color-ink-muted);
-		background: var(--color-surface);
+	.grouped tr:not(:last-child) td {
+		border-bottom-color: var(--color-surface);
 	}
-	tbody tr:last-child td,
-	tbody tr:last-child th {
+	.grouped tbody:last-of-type th[scope="rowgroup"] {
 		border-bottom: none;
 	}
-	.badge {
-		font-size: 0.75rem;
-		padding: 0.15rem 0.55rem;
-		border-radius: 999px;
-		border: 1px solid var(--color-border);
+	.current {
+		font-size: 0.8rem;
 		color: var(--color-ink-muted);
 	}
-	.sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
+	.current[data-current="DC"] {
+		color: var(--color-ink);
+		font-weight: 600;
 	}
 </style>

@@ -31,7 +31,7 @@ interface BorderQueryRow {
 }
 
 const PRODUCT_ORDER = ["P95", "DSL", "LPG"];
-const PRODUCT_LABELS: Record<string, string> = { P95: "95", DSL: "D", LPG: "LPG" };
+const PRODUCT_LABELS: Record<string, string> = { P95: "Benzīns 95", DSL: "Dīzeļdegviela", LPG: "Gāze (LPG)" };
 
 // Tikai jaunākā zināmā nedēļa - vecāku nedēļu vēsture pagaidām nav rādīta
 // (var pievienot vēlāk, ja vajag trendu skatu).

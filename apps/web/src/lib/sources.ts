@@ -68,6 +68,18 @@ export const STATUS_LABELS: Record<SourceStatus, string> = {
 	disabled: "izslēgts",
 };
 
+// `sources.kind` ir iekšējs identifikators; lapā to rāda šādi.
+export const KIND_LABELS: Record<string, string> = {
+	fuel: "Degvielas cenas",
+	ev: "EV uzlādes tarifi",
+	official: "Oficiālie dati",
+	electricity: "Elektrības cenas",
+};
+
+export function kindLabel(kind: string): string {
+	return KIND_LABELS[kind] ?? kind;
+}
+
 export const RUN_STATUS_LABELS: Record<RunStatus, string> = {
 	ok: "veiksmīgs",
 	not_modified: "nav izmaiņu",

@@ -5,7 +5,7 @@ import NetworkLogo from "../../components/NetworkLogo.astro";
 import { CONNECTOR_LABELS, getEvTariffSummary } from "../../lib/ev";
 import { getNetwork } from "../../lib/networks";
 import { AGE_LABELS, ORIGIN_LABELS, formatPrice, getLatestFuelPrices } from "../../lib/prices";
-import { RUN_STATUS_LABELS, STATUS_LABELS, getSourceStatuses } from "../../lib/sources";
+import { RUN_STATUS_LABELS, STATUS_LABELS, getSourceStatuses, kindLabel } from "../../lib/sources";
 
 const networkId = Astro.params.network;
 const network = networkId ? await getNetwork(env.DB, networkId) : null;
@@ -18,9 +18,15 @@ const [allProducts, allEvSummary, allSources] = network
 	? await Promise.all([getLatestFuelPrices(env.DB), getEvTariffSummary(env.DB), getSourceStatuses(env.DB)])
 	: [[], [], []];
 
+// Katram produktam arī lētākā cena visos tīklos, lai var parādīt, cik
+// šis tīkls atpaliek (vai ka tas pats ir lētākais).
 const fuelRows = network
 	? allProducts
-			.map((row) => ({ ...row, prices: row.prices.filter((p) => p.networkId === network.id) }))
+			.map((row) => ({
+				...row,
+				cheapestMilli: row.prices[0]?.priceMilli ?? null,
+				prices: row.prices.filter((p) => p.networkId === network.id),
+			}))
 			.filter((row) => row.prices.length > 0)
 	: [];
 
@@ -57,6 +63,7 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 								<tr>
 									<th scope="col">Produkts</th>
 									<th scope="col">Cena</th>
+									<th scope="col">Pret lētāko</th>
 									<th scope="col">Vieta</th>
 									<th scope="col">Svaigums</th>
 									<th scope="col">Izcelsme</th>
@@ -67,8 +74,17 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 									row.prices.map((p) => (
 										<tr>
 											<th scope="row">{row.label}</th>
-											<td>{formatPrice(p.priceMilli)}&nbsp;&euro;</td>
-											<td>{p.whereText ?? (p.scope === "network" ? "Visā tīklā" : "-")}</td>
+											<td class="num">{formatPrice(p.priceMilli)}&nbsp;&euro;</td>
+											<td class="num">
+												{row.cheapestMilli === null ? (
+													<span class="table-dash">-</span>
+												) : p.priceMilli <= row.cheapestMilli ? (
+													<span class="badge" data-status="active">lētākā</span>
+												) : (
+													<span class="diff">+{formatPrice(p.priceMilli - row.cheapestMilli)}&nbsp;&euro;</span>
+												)}
+											</td>
+											<td class="where">{p.whereText ?? (p.scope === "network" ? "Visā tīklā" : "-")}</td>
 											<td>{AGE_LABELS[p.age]}</td>
 											<td>{p.sourceUrl ? <a href={p.sourceUrl}>{p.origin ? ORIGIN_LABELS[p.origin] : "Avots"}</a> : "izcelsme nav zināma"}</td>
 										</tr>
@@ -98,11 +114,12 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 									<tr>
 										<td>{t.connector ? (CONNECTOR_LABELS[t.connector] ?? t.connector) : "-"}</td>
 										<td>{t.currentType}</td>
-										<td>
+										<td class="num">
 											{t.minEnergyMilliPerKwh !== null && <>{formatPrice(t.minEnergyMilliPerKwh)}&nbsp;&euro;/kWh</>}
+											{t.minEnergyMilliPerKwh !== null && t.minTimeMilliPerMin !== null && " / "}
 											{t.minTimeMilliPerMin !== null && <>{formatPrice(t.minTimeMilliPerMin)}&nbsp;&euro;/min</>}
 										</td>
-										<td>{t.stationCount}</td>
+										<td class="num">{t.stationCount}</td>
 									</tr>
 								))}
 							</tbody>
@@ -130,7 +147,7 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 							<tbody>
 								{sourcesForNetwork.map((s) => (
 									<tr>
-										<th scope="row"><a href={s.url} rel="noopener noreferrer" target="_blank">{s.kind}</a></th>
+										<th scope="row"><a href={s.url} rel="noopener noreferrer" target="_blank">{kindLabel(s.kind)}</a></th>
 										<td><span class="badge" data-status={s.status}>{STATUS_LABELS[s.status]}</span></td>
 										<td>
 											{s.lastRunStatus ? (
@@ -177,54 +194,18 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 		margin: 0 0 0.5rem;
 	}
 	.note {
-		color: var(--color-ink-muted);
-		max-width: 42rem;
+		font-size: 1rem;
 		margin: 0 0 1.5rem;
 	}
-	.table-wrap {
-		overflow-x: auto;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
-	}
-	table {
-		font-size: 0.9rem;
-		width: 100%;
-	}
-	th,
-	td {
-		padding: 0.6rem 0.85rem;
-		text-align: left;
-		border-bottom: 1px solid var(--color-border);
-		white-space: nowrap;
-	}
-	thead th {
-		font-size: 0.78rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--color-ink-muted);
-		background: var(--color-surface);
-	}
-	tbody tr:last-child td,
-	tbody tr:last-child th {
-		border-bottom: none;
-	}
-	td {
-		font-family: var(--font-mono);
-	}
-	.badge {
-		font-size: 0.75rem;
-		padding: 0.15rem 0.55rem;
-		border-radius: 999px;
-		border: 1px solid var(--color-border);
+	/* Adrešu saraksts var būt garš - lai tabula neaiziet platumā, tas
+	   drīkst lūzt vairākās rindās. */
+	.where {
+		white-space: normal;
+		min-width: 16rem;
 		color: var(--color-ink-muted);
 	}
-	.badge[data-status="active"],
-	.badge[data-run="ok"] {
-		color: var(--color-down);
-		border-color: var(--color-down);
-	}
-	.table-dash {
-		color: var(--color-neutral);
+	.diff {
+		color: var(--color-ink-muted);
 	}
 	.empty-state {
 		color: var(--color-ink-muted);
