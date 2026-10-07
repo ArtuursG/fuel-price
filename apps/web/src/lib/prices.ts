@@ -25,21 +25,23 @@ export interface ProductRow {
 }
 
 const PRODUCT_ORDER = ["P95", "P98", "DSL", "DSL_PLUS", "HVO", "LPG", "CNG", "ADBLUE", "E85", "DSL_AGRO"];
+// Nosaukumi tabulu galvenēm, kartītēm un sarakstiem. Agrāk tie bija "95",
+// "D" un "D+", kas blakus tīklu nosaukumiem (piem. kalkulatora sarakstā)
+// nebija saprotami.
 export const PRODUCT_LABELS: Record<string, string> = {
-	P95: "95",
-	P98: "98",
-	DSL: "D",
-	DSL_PLUS: "D+",
+	P95: "Benzīns 95",
+	P98: "Benzīns 98",
+	DSL: "Dīzelis",
+	DSL_PLUS: "Dīzelis premium",
 	HVO: "HVO",
 	LPG: "LPG",
 	CNG: "CNG",
 	ADBLUE: "AdBlue",
 	E85: "E85",
-	DSL_AGRO: "Agro D", // TODO(4. fāze, Virši): NEKAD nerādīt bez skaidras "nav vieglajām automašīnām" atrunas.
+	DSL_AGRO: "Agro dīzelis", // TODO(4. fāze, Virši): NEKAD nerādīt bez skaidras "nav vieglajām automašīnām" atrunas.
 };
 
-// Pilnie nosaukumi virsrakstiem un izvēlnēm; tabulā tie būtu par garu,
-// tāpēc PRODUCT_LABELS paliek īsais variants.
+// Pilnie nosaukumi virsrakstiem un izvēlnēm, kur vietas pietiek.
 export const PRODUCT_FULL_LABELS: Record<string, string> = {
 	P95: "Benzīns 95",
 	P98: "Benzīns 98",
