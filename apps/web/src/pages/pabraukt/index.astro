@@ -114,7 +114,7 @@ const hasData = payload.products.length > 0;
 					nearestStation,
 					roadDistanceEstimateKm,
 				} from "../../lib/detour";
-				import { formatPrice } from "../../lib/prices";
+				import { formatMoney, formatPrice } from "../../lib/prices";
 
 				interface Payload {
 					products: { product: string; label: string; prices: Record<string, number> }[];
@@ -173,7 +173,7 @@ const hasData = payload.products.length > 0;
 						<div class="detour-row"><span>Papildu ceļš (turp-atpakaļ)</span><strong>~${extraKm.toFixed(1)}&nbsp;km</strong></div>
 						<div class="detour-row detour-row--outcome" data-positive="${savings > 0}">
 							<span>Neto ${savings >= 0 ? "ietaupījums" : "zaudējums"}</span>
-							<strong>${formatPrice(Math.abs(savings))}&nbsp;&euro;</strong>
+							<strong>${formatMoney(Math.abs(savings))}&nbsp;&euro;</strong>
 						</div>
 						${breakEven !== null ? `<p class="detour-note">Atmaksājas, ja papildu ceļš turp-atpakaļ ir līdz ~${breakEven.toFixed(1)}&nbsp;km.</p>` : ""}
 						<p class="detour-note">Attālums ir tuvinājums (taisnes attālums &times; 1,3), ne precīzs maršruts. Balstīts uz OpenStreetMap staciju atrašanās vietām, ne uz katras konkrētās stacijas reālo cenu.</p>

@@ -141,7 +141,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 					rangeKm,
 					tripCostMilli,
 				} from "../../lib/calculator";
-				import { formatPrice } from "../../lib/prices";
+				import { formatMoney, formatPrice } from "../../lib/prices";
 
 				interface CalcData {
 					fuel: { product: string; label: string; fullLabel: string; priceMilli: number }[];
@@ -200,7 +200,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 							(r) => `
 						<div class="result-row">
 							<span class="result-label">${r.label}</span>
-							<span class="result-cost">${formatPrice(r.costMilli)}&nbsp;&euro;</span>
+							<span class="result-cost">${formatMoney(r.costMilli)}&nbsp;&euro;</span>
 						</div>
 					`,
 						)
@@ -248,12 +248,12 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 					const range = rangeKm(tank, consumption);
 
 					const rows: { label: string; value: string }[] = [
-						{ label: "Kopā", value: `${formatPrice(totalMilli)}&nbsp;&euro;` },
+						{ label: "Kopā", value: `${formatMoney(totalMilli)}&nbsp;&euro;` },
 						{ label: "Degviela", value: `${numberFormat.format(liters)} l` },
 						{ label: "Uz kilometru", value: `${formatPrice(costPerKmMilli(distanceKm, totalMilli))}&nbsp;&euro;` },
 						{
 							label: "Uz 100 km",
-							value: `${formatPrice(fuelCostPer100km(priceMilli, consumption))}&nbsp;&euro;`,
+							value: `${formatMoney(fuelCostPer100km(priceMilli, consumption))}&nbsp;&euro;`,
 						},
 					];
 					if (range > 0) {
@@ -282,7 +282,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 					const periodMilli = periodCostMilli(dailyKm, days, consumption, priceMilli);
 					dailyResultEl.innerHTML =
 						days > 0 && dailyKm > 0
-							? `${numberFormat.format(dailyKm * days)} km ${days} dienās izmaksās <strong>${formatPrice(periodMilli)}&nbsp;&euro;</strong>`
+							? `${numberFormat.format(dailyKm * days)} km ${days} dienās izmaksās <strong>${formatMoney(periodMilli)}&nbsp;&euro;</strong>`
 							: "";
 				}
 

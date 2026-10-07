@@ -8,7 +8,7 @@
 // paliek pilnvērtīga.
 import type {GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker} from "maplibre-gl";
 import type {FeatureCollection, Point} from "geojson";
-import {filterStations, euro, connectorLabel, routeUrl, wazeUrl, safeSourceUrl, tariffText, canonicalNetwork, type MapStation, type StationFilters} from "../lib/station-map";
+import {cheapestMatchingTariff, filterStations, euro, connectorLabel, routeUrl, wazeUrl, safeSourceUrl, tariffText, canonicalNetwork, type MapStation, type StationFilters} from "../lib/station-map";
 import {logoForNetworkName} from "../lib/logos";
 
 declare const maplibregl: typeof import("maplibre-gl");
@@ -250,9 +250,12 @@ function renderList() {
     appendAll(names, button, element("p", `${station.network} · ${station.kind === "ev" ? "EV" : "DUS"}`));
     appendAll(title, badge(station), names); row.appendChild(title);
     if (station.address && station.address !== station.name) row.appendChild(element("p", station.address));
-    const tariff = station.tariffs.find(t => (!connector.value || t.connector === connector.value) && (!Number(power.value) || (t.power ?? 0) >= Number(power.value)));
-    if (tariff) {
-      row.appendChild(element("strong", `${station.tariffs.length > 1 ? "Piem., " : ""}${priceLabel(tariff)}`, "list-price"));
+    // Lētākais atbilstošais tarifs ar "no", ja to ir vairāki - agrāk te bija
+    // "Piem., " un pirmais tarifs pēc kārtas, kas lasījās kā "piemēram".
+    const match = cheapestMatchingTariff(station.tariffs, connector.value, Number(power.value));
+    if (match) {
+      const {tariff, matches} = match;
+      row.appendChild(element("strong", `${matches > 1 ? "no " : ""}${priceLabel(tariff)}`, "list-price"));
       row.appendChild(element("p", `${connectorLabel(tariff.connector)}${tariff.power !== null ? ` · ${tariff.power} kW` : ""}${station.tariffs.length > 1 ? ` · ${station.tariffs.length} tarifi` : ""}`));
     } else {
       const prices = (station.fuelPrices ?? []).filter(price => !product.value || price.product === product.value);

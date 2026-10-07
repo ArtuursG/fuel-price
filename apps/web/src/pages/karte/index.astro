@@ -108,7 +108,10 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   .fuel-key { background:var(--color-pylon); } .ev-key { background:var(--color-down); border-radius:50%; }
   .map-note,.map-attribution { font-size:0.8rem; color:var(--color-ink-muted); }
   .map-warning { border-left:3px solid var(--color-up); padding:0.75rem; background:var(--color-surface); }
-  .map-filters { display:grid; grid-template-columns:2fr repeat(5,1fr); gap:0.7rem; border-top:2px solid var(--color-ink); padding-top:1rem; margin-top:1.25rem; }
+  /* auto-fit, nevis fiksēts kolonnu skaits: lauku skaits mainās (izcelšana
+     ir tikai tad, ja ir ko izcelt; EV/degvielas lauki slēpjas pēc veida). */
+  .map-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr)); gap:0.7rem; border-top:2px solid var(--color-ink); padding-top:1rem; margin-top:1.25rem; }
+  .map-filters label:first-child { grid-column:span 2; }
   .map-filters label { display:flex; flex-direction:column; gap:0.35rem; font-size:0.75rem; min-width:0; }
   .map-filters input,.map-filters select { width:100%; height:2.6rem; padding:0.5rem; border:1px solid var(--color-border); background:var(--color-bg); color:var(--color-ink); font:inherit; font-size:0.85rem; border-radius:0; }
   .map-toolbar { display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:0.75rem; margin-top:0.85rem; font-size:0.8rem; }
@@ -159,6 +162,6 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   .station-extra summary { cursor:pointer; color:var(--color-pylon); padding:0.3rem 0; }
   .missing-price { color:var(--color-ink-muted); padding:0.6rem 0; }
   [hidden] { display:none !important; }
-  @media(max-width:1000px) { .map-filters { grid-template-columns:repeat(3,minmax(0,1fr)); } .map-workspace { grid-template-columns:minmax(0,1fr) 19rem; } }
+  @media(max-width:1000px) { .map-workspace { grid-template-columns:minmax(0,1fr) 19rem; } }
   @media(max-width:640px) { .map-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .map-workspace { display:flex; flex-direction:column; height:auto; max-height:none; } #station-map { height:400px; } .station-sidebar { max-height:520px; border-left:0; border-top:1px solid var(--color-border); } }
 </style>

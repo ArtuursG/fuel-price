@@ -71,6 +71,15 @@ export function formatPrice(priceMilli: number): string {
 	return (priceMilli / 1000).toFixed(3).replace(".", ",");
 }
 
+// Naudas summa (brauciena izmaksas, ietaupījums), nevis vienības cena: divi
+// cipari aiz komata un tūkstošu atdalītājs. formatPrice ar trim cipariem
+// der cenai par litru, bet "110,191 €" kā kopsumma lasās kā kļūda.
+const moneyFormat = new Intl.NumberFormat("lv-LV", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export function formatMoney(milli: number): string {
+	return moneyFormat.format(milli / 1000);
+}
+
 const rigaDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Riga", year: "numeric", month: "2-digit", day: "2-digit",
 });
