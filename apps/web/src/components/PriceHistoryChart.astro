@@ -1,8 +1,12 @@
 ---
 // Viena produkta 30 dienu līnijgrafiks, visiem tīkliem vienā mērogā.
-// Zīmēts servera pusē kā SVG - nekādas grafiku bibliotēkas un nekāda
-// JS klienta pusē.
-import { buildChartPaths, type NetworkSeries } from "../lib/history";
+// Līnijas zīmē serveris kā SVG; klienta skripts pievieno tikai uznirstošo
+// lodziņu ar izvēlētās dienas cenām - bez JS grafiks un tabula ir pilnīgi.
+//
+// Teksts (asu atzīmes, beigu punkti) ir HTML, nevis SVG daļa: SVG mērogojas
+// līdz ar platumu, un agrāk uzraksti platā ekrānā bija ~20px, bet telefonā
+// ~5px. Tagad SVG izstiepjas, bet līnijas biezums un teksts paliek vienādi.
+import { buildChartPaths, chartDomain, seriesColors, weekTicks, type NetworkSeries } from "../lib/history";
 import { formatPrice } from "../lib/prices";
 
 interface Props {
@@ -12,114 +16,368 @@ interface Props {
 
 const { series, days } = Astro.props as Props;
 
-const WIDTH = 680;
-const HEIGHT = 180;
-const geometry = buildChartPaths(series, WIDTH, HEIGHT);
+// Iekšējā koordinātu sistēma; ekrānā to izstiepj CSS.
+const WIDTH = 1000;
+const HEIGHT = 300;
+const domain = chartDomain(series);
+const geometry = domain ? buildChartPaths(series, WIDTH, HEIGHT, domain) : null;
+const colors = seriesColors(series.map((s) => s.networkId));
 
-// Tīklu ir daudz, tāpēc krāsas ir atsevišķs, apzināti atšķirīgs komplekts;
-// tās nav tīklu zīmolu krāsas, bet grafika krāsas.
-const LINE_COLORS = [
-	"#245779",
-	"#a13838",
-	"#296448",
-	"#7a5195",
-	"#bc7c1f",
-	"#2f7f8f",
-	"#8f4a6b",
-	"#4b6b2f",
-	"#6b5b95",
-	"#96603a",
-	"#3d6fa8",
-	"#a3496b",
-	"#5a6f3d",
-];
+const pct = (value: number) => `${(((value - (domain?.min ?? 0)) / ((domain?.max ?? 1) - (domain?.min ?? 0))) * 100).toFixed(2)}%`;
+const xPct = (index: number) => `${((index / Math.max(days.length - 1, 1)) * 100).toFixed(2)}%`;
 
 function formatDay(day: string): string {
 	const [, month, date] = day.split("-");
 	return `${Number(date)}.${Number(month)}.`;
 }
+
+// Kopsavilkums tabulai: pirmā un pēdējā zināmā cena, izmaiņa, min, max.
+const summary = series.map((s) => {
+	const known = s.points.filter((p): p is number => p !== null);
+	return {
+		...s,
+		color: colors.get(s.networkId) ?? "",
+		min: known.length ? Math.min(...known) : null,
+		max: known.length ? Math.max(...known) : null,
+		change: s.firstMilli !== null && s.lastMilli !== null ? s.lastMilli - s.firstMilli : null,
+		lastIndex: s.points.findLastIndex((p) => p !== null),
+	};
+});
+
+// Klienta skriptam: tikai tas, kas vajadzīgs lodziņam.
+const clientData = {
+	days,
+	series: summary.map((s) => ({ name: s.networkName, color: s.color, points: s.points })),
+};
 ---
 
 {
-	geometry === null ? (
+	geometry === null || domain === null ? (
 		<p class="chart-empty">Šim produktam vēl nav cenu vēstures.</p>
 	) : (
-		<figure class="chart">
-			<svg viewBox={`0 0 ${WIDTH + 70} ${HEIGHT + 46}`} role="img" aria-label="Cenu vēstures grafiks">
-				<g transform="translate(58, 14)">
-					<line class="chart__axis" x1="0" y1="0" x2={WIDTH} y2="0" />
-					<line class="chart__axis" x1="0" y1={HEIGHT} x2={WIDTH} y2={HEIGHT} />
-					<text class="chart__tick" x="-8" y="4" text-anchor="end">{formatPrice(geometry.max)}</text>
-					<text class="chart__tick" x="-8" y={HEIGHT + 4} text-anchor="end">{formatPrice(geometry.min)}</text>
-					<text class="chart__tick" x="0" y={HEIGHT + 24} text-anchor="start">{formatDay(days[0])}</text>
-					<text class="chart__tick" x={WIDTH} y={HEIGHT + 24} text-anchor="end">
-						{formatDay(days[days.length - 1])}
-					</text>
-					{geometry.paths.map((path, i) => (
-						<path class="chart__line" d={path.d} style={`stroke: ${LINE_COLORS[i % LINE_COLORS.length]}`} />
+		<figure class="chart" data-chart>
+			<div class="chart__frame">
+				<div class="chart__y" aria-hidden="true">
+					{domain.ticks.map((tick) => (
+						<span class="chart__tick" style={`bottom: ${pct(tick)}`}>{formatPrice(tick)}</span>
 					))}
-				</g>
-			</svg>
-			<figcaption class="chart-legend">
-				{series.map((s, i) => {
-					const change = s.firstMilli !== null && s.lastMilli !== null ? s.lastMilli - s.firstMilli : null;
-					return (
-						<span class="chart-legend__item">
-							<span class="chart-legend__swatch" style={`background: ${LINE_COLORS[i % LINE_COLORS.length]}`} />
-							<a href={`/tikli/${s.networkId}/`}>{s.networkName}</a>
-							{s.lastMilli !== null && <b>{formatPrice(s.lastMilli)}&nbsp;&euro;</b>}
-							{change !== null && change !== 0 && (
-								<span class="chart-legend__change" data-direction={change < 0 ? "down" : "up"}>
-									{change < 0 ? "↓" : "↑"} {formatPrice(Math.abs(change))}
-								</span>
-							)}
+				</div>
+				<div
+					class="chart__plot"
+					tabindex="0"
+					role="img"
+					aria-label={`Cenu grafiks ${days.length} dienām. Ar bultiņām var pārvietoties pa dienām.`}
+				>
+					{domain.ticks.map((tick) => (
+						<span class="chart__grid" style={`bottom: ${pct(tick)}`} />
+					))}
+					<svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none" aria-hidden="true">
+						{geometry.paths.map((path) => (
+							<path class="chart__line" d={path.d} style={`stroke: ${colors.get(path.networkId)}`} />
+						))}
+					</svg>
+					{summary.map((s) =>
+						s.lastMilli !== null && s.lastIndex >= 0 ? (
+							<span
+								class="chart__dot"
+								style={`left: ${xPct(s.lastIndex)}; bottom: ${pct(s.lastMilli)}; background: ${s.color}`}
+							/>
+						) : null,
+					)}
+					<span class="chart__crosshair" hidden />
+					<div class="chart__tooltip" role="status" hidden />
+				</div>
+				<div class="chart__x" aria-hidden="true">
+					{weekTicks(days).map((t) => (
+						<span class="chart__tick" style={`left: ${xPct(t.index)}`}>
+							{formatDay(t.day)}
 						</span>
-					);
-				})}
+					))}
+				</div>
+			</div>
+			<figcaption class="chart-legend">
+				{summary.map((s) => (
+					<span class="chart-legend__item">
+						<span class="chart-legend__key" style={`background: ${s.color}`} aria-hidden="true" />
+						<a href={`/tikli/${s.networkId}/`}>{s.networkName}</a>
+						{s.lastMilli !== null && <b>{formatPrice(s.lastMilli)}&nbsp;&euro;</b>}
+						{s.change !== null && s.change !== 0 && (
+							<span class="chart-legend__change" data-direction={s.change < 0 ? "down" : "up"} title={`Pret ${formatDay(days[0])}`}>
+								{s.change < 0 ? "↓" : "↑"} {formatPrice(Math.abs(s.change))}
+							</span>
+						)}
+					</span>
+				))}
 			</figcaption>
+			<details class="chart-table">
+				<summary>Rādīt tabulā</summary>
+				<div class="table-wrap">
+					<table>
+						<thead>
+							<tr>
+								<th scope="col">Tīkls</th>
+								<th scope="col">{formatDay(days[0])}</th>
+								<th scope="col">Šodien</th>
+								<th scope="col">Izmaiņa</th>
+								<th scope="col">Zemākā</th>
+								<th scope="col">Augstākā</th>
+							</tr>
+						</thead>
+						<tbody>
+							{summary.map((s) => (
+								<tr>
+									<th scope="row">{s.networkName}</th>
+									<td class="num">{s.points[0] !== null ? formatPrice(s.points[0]) : "-"}</td>
+									<td class="num">{s.lastMilli !== null ? formatPrice(s.lastMilli) : "-"}</td>
+									<td class="num">
+										{s.change === null ? "-" : s.change === 0 ? "0" : `${s.change < 0 ? "−" : "+"}${formatPrice(Math.abs(s.change))}`}
+									</td>
+									<td class="num">{s.min !== null ? formatPrice(s.min) : "-"}</td>
+									<td class="num">{s.max !== null ? formatPrice(s.max) : "-"}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</details>
+			<script type="application/json" class="chart__data" set:html={JSON.stringify(clientData)} />
 		</figure>
 	)
 }
+
+<script>
+	import { formatPrice } from "../lib/prices";
+
+	interface ChartData {
+		days: string[];
+		series: { name: string; color: string; points: (number | null)[] }[];
+	}
+
+	const dayFormat = new Intl.DateTimeFormat("lv-LV", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
+
+	// Workers globālais `Element` (HTMLRewriter) sajaucas ar DOM `Element`,
+	// tāpēc vaicājumi iet caur `unknown`.
+	for (const figure of document.querySelectorAll<HTMLElement>("[data-chart]")) {
+		const plot = figure.querySelector(".chart__plot") as unknown as HTMLElement;
+		const crosshair = figure.querySelector(".chart__crosshair") as unknown as HTMLElement;
+		const tooltip = figure.querySelector(".chart__tooltip") as unknown as HTMLElement;
+		const data: ChartData = JSON.parse(figure.querySelector(".chart__data")?.textContent ?? "{}");
+		const last = data.days.length - 1;
+		let current: number | null = null;
+
+		function show(index: number) {
+			current = Math.max(0, Math.min(last, index));
+			const left = (current / Math.max(last, 1)) * 100;
+			crosshair.hidden = false;
+			crosshair.style.left = `${left}%`;
+
+			tooltip.replaceChildren();
+			const title = document.createElement("p");
+			title.className = "chart__tooltip-day";
+			title.textContent = dayFormat.format(new Date(`${data.days[current]}T00:00:00Z`));
+			tooltip.appendChild(title);
+			// Lētākais augšā - tāpat kā leģendā.
+			const rows = data.series
+				.map((s) => ({ ...s, value: s.points[current!] }))
+				.filter((s): s is typeof s & { value: number } => s.value !== null)
+				.sort((a, b) => a.value - b.value);
+			for (const row of rows) {
+				const line = document.createElement("p");
+				line.className = "chart__tooltip-row";
+				const key = document.createElement("span");
+				key.className = "chart__tooltip-key";
+				key.style.background = row.color;
+				const value = document.createElement("b");
+				value.textContent = formatPrice(row.value);
+				const name = document.createElement("span");
+				name.textContent = row.name;
+				line.appendChild(key);
+				line.appendChild(value);
+				line.appendChild(name);
+				tooltip.appendChild(line);
+			}
+			tooltip.hidden = false;
+			// Lodziņš ir tajā pusē, kur ir vieta.
+			tooltip.dataset.side = left > 55 ? "left" : "right";
+			tooltip.style.left = `${left}%`;
+		}
+
+		function hide() {
+			current = null;
+			crosshair.hidden = true;
+			tooltip.hidden = true;
+		}
+
+		const showAt = (event: PointerEvent) => {
+			const box = plot.getBoundingClientRect();
+			show(Math.round(((event.clientX - box.left) / box.width) * last));
+		};
+		// pointerdown - lai lodziņš atveras arī ar vienu pieskārienu.
+		plot.addEventListener("pointermove", showAt);
+		plot.addEventListener("pointerdown", showAt);
+		plot.addEventListener("pointerleave", (event) => {
+			if (event.pointerType === "mouse") hide();
+		});
+		plot.addEventListener("focus", () => show(current ?? last));
+		plot.addEventListener("blur", hide);
+		plot.addEventListener("keydown", (event) => {
+			const step = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
+			if (step) {
+				event.preventDefault();
+				show((current ?? last) + step);
+			} else if (event.key === "Escape") {
+				hide();
+			}
+		});
+	}
+</script>
 
 <style>
 	.chart {
 		margin: 0 0 1rem;
 	}
-	.chart svg {
-		width: 100%;
-		height: auto;
-		overflow: visible;
+	/* Kreisajā kolonnā cenas, apakšā datumi; augstums ir fiksēts, nevis
+	   atkarīgs no platuma. */
+	.chart__frame {
+		display: grid;
+		grid-template-columns: 3.4rem 1fr;
+		grid-template-rows: var(--chart-height, 16rem) 1.75rem;
+		padding-right: 0.75rem;
 	}
-	.chart__axis {
-		stroke: var(--color-border);
-		stroke-width: 1;
+	@media (max-width: 40rem) {
+		.chart__frame {
+			--chart-height: 13rem;
+			grid-template-columns: 3rem 1fr;
+		}
+	}
+	.chart__y,
+	.chart__x {
+		position: relative;
+	}
+	.chart__x {
+		grid-column: 2;
 	}
 	.chart__tick {
-		fill: var(--color-ink-muted);
+		position: absolute;
 		font-family: var(--font-mono);
-		font-size: 11px;
+		font-size: 0.72rem;
+		color: var(--color-ink-muted);
+		white-space: nowrap;
+	}
+	.chart__y .chart__tick {
+		right: 0.6rem;
+		transform: translateY(50%);
+	}
+	.chart__x .chart__tick {
+		top: 0.4rem;
+		transform: translateX(-50%);
+	}
+	.chart__x .chart__tick:last-child {
+		transform: translateX(-85%);
+	}
+	.chart__plot {
+		position: relative;
+		border-bottom: 1px solid var(--color-border);
+		cursor: crosshair;
+		touch-action: pan-y;
+	}
+	.chart__plot:focus-visible {
+		outline-offset: 4px;
+	}
+	.chart__grid {
+		position: absolute;
+		left: 0;
+		right: 0;
+		border-top: 1px solid var(--color-surface);
+	}
+	.chart__plot svg {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		overflow: visible;
 	}
 	.chart__line {
 		fill: none;
 		stroke-width: 2;
 		stroke-linejoin: round;
 		stroke-linecap: round;
+		vector-effect: non-scaling-stroke;
 	}
+	.chart__dot {
+		position: absolute;
+		width: 8px;
+		height: 8px;
+		margin: 0 0 -4px -4px;
+		border-radius: 50%;
+		box-shadow: 0 0 0 2px var(--color-bg);
+	}
+	.chart__crosshair {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 1px;
+		background: var(--color-ink-muted);
+		pointer-events: none;
+	}
+	.chart__tooltip {
+		position: absolute;
+		top: 0.25rem;
+		z-index: 2;
+		min-width: 9rem;
+		padding: 0.5rem 0.65rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		background: var(--color-bg);
+		box-shadow: 0 6px 18px rgba(32, 43, 53, 0.14);
+		font-size: 0.8rem;
+		pointer-events: none;
+	}
+	.chart__tooltip[data-side="right"] {
+		margin-left: 0.75rem;
+	}
+	.chart__tooltip[data-side="left"] {
+		transform: translateX(calc(-100% - 0.75rem));
+	}
+	.chart__tooltip :global(p) {
+		margin: 0;
+	}
+	.chart__tooltip :global(.chart__tooltip-day) {
+		margin-bottom: 0.3rem;
+		color: var(--color-ink-muted);
+	}
+	.chart__tooltip :global(.chart__tooltip-row) {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		line-height: 1.6;
+		white-space: nowrap;
+	}
+	.chart__tooltip :global(.chart__tooltip-key) {
+		flex: none;
+		width: 0.8rem;
+		height: 2px;
+	}
+	.chart__tooltip :global(b) {
+		font-family: var(--font-mono);
+	}
+
 	.chart-legend {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem 1.1rem;
+		gap: 0.4rem 1.25rem;
 		margin-top: 0.75rem;
 		font-size: 0.85rem;
 	}
 	.chart-legend__item {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.35rem;
+		gap: 0.4rem;
 	}
-	.chart-legend__swatch {
-		width: 0.7rem;
-		height: 0.7rem;
+	/* Īsa līnija, nevis kvadrāts - tā pati forma, kas grafikā. */
+	.chart-legend__key {
+		width: 0.9rem;
+		height: 3px;
 		border-radius: 2px;
 	}
 	.chart-legend a {
@@ -141,6 +399,19 @@ function formatDay(day: string): string {
 	}
 	.chart-legend__change[data-direction="up"] {
 		color: var(--color-up);
+	}
+	.chart-table {
+		margin-top: 1rem;
+		font-size: 0.85rem;
+	}
+	.chart-table summary {
+		cursor: pointer;
+		color: var(--color-pylon);
+		padding: 0.25rem 0;
+	}
+	.chart-table .table-wrap {
+		margin-top: 0.5rem;
+		max-width: 44rem;
 	}
 	.chart-empty {
 		color: var(--color-ink-muted);

@@ -27,12 +27,11 @@ const withData = charts.filter((c) => c.series.length > 0);
 ---
 
 <Layout title="Cenu vēsture - degvielas cenas">
-	<h1>Degvielas cenu vēsture un dinamika ({DAYS} dienas)</h1>
+	<h1>Cenu vēsture</h1>
 
 	<p class="intro">
-		Degvielas cenas Latvijā mainās teju katru dienu, sekojot naftas produktu vairumtirdzniecības kotācijām,
-		akcīzes nodokļa izmaiņām un sezonālajam pieprasījumam. Grafikā var salīdzināt, kurš tīkls cenu paceļ
-		pirmais un kurš to samazina lēnāk, kā arī sekot līdzi starpībai starp dīzeļdegvielu un 95. benzīnu.
+		Kā katra tīkla cena mainījusies pēdējās {DAYS} dienās. Novieto kursoru uz grafika vai pieskaries tam, lai
+		redzētu konkrētās dienas cenas.
 	</p>
 
 	{withData.length === 0 ? (
@@ -40,12 +39,14 @@ const withData = charts.filter((c) => c.series.length > 0);
 	) : (
 		<>
 			<div id="product-tabs" class="product-tabs" hidden>
-				<label for="product-select">Degviela</label>
-				<select id="product-select">
-					{withData.map((chart) => (
-						<option value={chart.product}>{chart.label}</option>
-					))}
-				</select>
+				<label class="field">
+					Degviela
+					<select id="product-select">
+						{withData.map((chart) => (
+							<option value={chart.product}>{chart.label}</option>
+						))}
+					</select>
+				</label>
 			</div>
 
 			{withData.map((chart) => (
@@ -59,7 +60,8 @@ const withData = charts.filter((c) => c.series.length > 0);
 
 	<script>
 		// Bez JS paliek visi grafiki cits zem cita - tie ir pilnvērtīgi.
-		// Ar JS tie pārtop par vienu grafiku ar degvielas izvēli.
+		// Ar JS tie pārtop par vienu grafiku ar degvielas izvēli, un virsraksts
+		// paliek tikai ekrānlasītājam, jo izvēlne jau saka to pašu.
 		// Workers globālais `Element` (HTMLRewriter) sajaucas ar DOM `Element`,
 		// tāpēc ejam caur `unknown`.
 		const tabs = document.getElementById("product-tabs") as unknown as HTMLElement | null;
@@ -68,6 +70,7 @@ const withData = charts.filter((c) => c.series.length > 0);
 
 		if (tabs && select && panels.length > 1) {
 			tabs.hidden = false;
+			for (const panel of panels) panel.querySelector("h2")?.classList.add("sr-only");
 
 			const show = (product: string) => {
 				for (const panel of panels) {
@@ -87,11 +90,6 @@ const withData = charts.filter((c) => c.series.length > 0);
 </Layout>
 
 <style>
-	.intro {
-		color: var(--color-ink-muted);
-		max-width: 48rem;
-		margin: 0 0 1.25rem;
-	}
 	.notice {
 		max-width: 48rem;
 		padding: 0.75rem 0.9rem;
@@ -102,23 +100,8 @@ const withData = charts.filter((c) => c.series.length > 0);
 		font-size: 0.9rem;
 	}
 	.product-tabs {
-		display: flex;
-		align-items: center;
-		gap: 0.6rem;
+		max-width: 16rem;
 		margin-bottom: 1.5rem;
-	}
-	.product-tabs label {
-		font-size: 0.85rem;
-		color: var(--color-ink-muted);
-	}
-	.product-tabs select {
-		font: inherit;
-		font-size: 0.95rem;
-		padding: 0.45rem 0.6rem;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
-		background: var(--color-surface);
-		color: var(--color-ink);
 	}
 	.chart-section {
 		padding-bottom: 1.5rem;
@@ -127,10 +110,5 @@ const withData = charts.filter((c) => c.series.length > 0);
 	}
 	.chart-section h2 {
 		margin-bottom: 0.75rem;
-	}
-	.note {
-		max-width: 48rem;
-		color: var(--color-ink-muted);
-		font-size: 0.8rem;
 	}
 </style>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildChartPaths, buildDailySeries, dayKeys, distinctDays } from "./history";
+import { buildChartPaths, buildDailySeries, chartDomain, dayKeys, distinctDays, seriesColors, weekTicks } from "./history";
 
 const DAYS = ["2026-09-18", "2026-09-19", "2026-09-20"];
 
@@ -87,5 +87,58 @@ describe("distinctDays", () => {
 				{ networkId: "b", networkName: "B", localDate: "2026-09-20", priceMilli: 3 },
 			]),
 		).toBe(2);
+	});
+});
+
+const one = (points: (number | null)[]) => [{ networkId: "a", networkName: "A", points, firstMilli: null, lastMilli: null }];
+
+describe("chartDomain", () => {
+	it("noapaļo asi līdz apaļiem centiem un dod vairākas palīglīnijas", () => {
+		expect(chartDomain(one([1874, 1997]))).toEqual({ min: 1850, max: 2000, ticks: [1850, 1900, 1950, 2000] });
+	});
+
+	it("nedod vairāk palīglīniju, kā prasīts", () => {
+		const domain = chartDomain(one([1700, 2500]), 5)!;
+		expect(domain.ticks.length).toBeLessThanOrEqual(6);
+		expect(domain.min).toBeLessThanOrEqual(1700);
+		expect(domain.max).toBeGreaterThanOrEqual(2500);
+	});
+
+	it("dod asi arī vienai vienīgai cenai", () => {
+		const domain = chartDomain(one([2000, 2000]))!;
+		expect(domain.min).toBeLessThan(2000);
+		expect(domain.max).toBeGreaterThan(2000);
+	});
+
+	it("atgriež null, ja datu nav", () => {
+		expect(chartDomain(one([null]))).toBeNull();
+	});
+});
+
+describe("weekTicks", () => {
+	it("atzīmē katru septīto dienu, beidzot ar šodienu", () => {
+		const days = dayKeys(15, new Date("2026-10-07T08:00:00Z"));
+		expect(weekTicks(days).map((t) => t.day)).toEqual(["2026-09-23", "2026-09-30", "2026-10-07"]);
+	});
+});
+
+describe("seriesColors", () => {
+	it("tīklam ir viena un tā pati krāsa neatkarīgi no pārējiem", () => {
+		const a = seriesColors(["circlek", "virsi"]);
+		const b = seriesColors(["viada", "circlek", "kool", "virsi"]);
+		expect(a.get("circlek")).toBe(b.get("circlek"));
+		expect(a.get("virsi")).toBe(b.get("virsi"));
+	});
+
+	it("nezināmam tīklam dod brīvu krāsu, nevis jau aizņemtu", () => {
+		const colors = seriesColors(["circlek", "jauns"]);
+		expect(colors.get("jauns")).not.toBe(colors.get("circlek"));
+	});
+});
+
+describe("buildChartPaths ar doto asi", () => {
+	it("novieto vērtības pēc dotās ass, nevis pēc datu min/max", () => {
+		const geometry = buildChartPaths(one([1900, 1950]), 100, 100, { min: 1900, max: 2000 })!;
+		expect(geometry.paths[0].d).toBe("M0.00 100.00 L100.00 50.00");
 	});
 });
