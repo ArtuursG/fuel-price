@@ -1,6 +1,6 @@
 import { attachFuelPrices } from "./station-map";
 import {describe, expect, it} from "vitest";
-import {canonicalNetwork, filterStations, getEvMapStations, routeUrl, wazeUrl, safeSourceUrl, tariffText, validCoordinates, type MapStation, type MapTariff, type StationFilters} from "./station-map";
+import {canonicalNetwork, cheapestMatchingTariff, filterStations, getEvMapStations, routeUrl, wazeUrl, safeSourceUrl, tariffText, validCoordinates, type MapStation, type MapTariff, type StationFilters} from "./station-map";
 
 const tariff: MapTariff = {
   connector:"CCS2",power:50,current:"DC",payment:"app",energy:390,time:null,
@@ -75,4 +75,21 @@ describe("attachFuelPrices", () => {
   it("does not treat an unsupported source scope as a station quote", () => {
     expect(attachFuelPrices([station],[{...products[0],prices:[{...price,scope:"network"}]}])[0].fuelPrices).toEqual([]);
   });
+});
+
+describe("cheapestMatchingTariff",() => {
+  it("picks the lowest per-kWh price among matching outlets",() => {
+    const cheap = {...tariff,connector:"TYPE2",power:22,energy:250};
+    expect(cheapestMatchingTariff([tariff,cheap],"",0)).toEqual({tariff:cheap,matches:2});
+  });
+  it("respects the connector and power filters",() => {
+    const cheap = {...tariff,connector:"TYPE2",power:22,energy:250};
+    expect(cheapestMatchingTariff([tariff,cheap],"CCS2",0)?.tariff).toBe(tariff);
+    expect(cheapestMatchingTariff([tariff,cheap],"",50)?.tariff).toBe(tariff);
+  });
+  it("prefers a per-kWh tariff over a per-minute one, which cannot be compared",() => {
+    const perMinute = {...tariff,energy:null,time:10};
+    expect(cheapestMatchingTariff([perMinute,tariff],"",0)?.tariff).toBe(tariff);
+  });
+  it("returns null when nothing matches",() => expect(cheapestMatchingTariff([tariff],"CHADEMO",0)).toBeNull());
 });

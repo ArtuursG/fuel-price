@@ -51,7 +51,9 @@ const { title } = Astro.props;
 		</main>
 		<footer class="site-footer">
 			<p>
-				Dati no tīklu oficiālajām lapām. Cenas informatīvas, var atšķirties konkrētā stacijā.
+				{/* {" "} vajadzīgs: Astro saspiež atstarpi starp teksta rindu un
+				    nākamās rindas tagu, un bez tā sanāca "stacijā.Par metodiku". */}
+				Dati no tīklu oficiālajām lapām. Cenas informatīvas, var atšķirties konkrētā stacijā.{" "}
 				<a href="/par/">Par metodiku</a>.
 			</p>
 		</footer>

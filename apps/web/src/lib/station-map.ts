@@ -34,6 +34,20 @@ export interface MapStation {
   fuelPrices?: (NetworkPrice & {product: string; label: string})[];
 }
 
+// Sarakstā rādāmais tarifs: lētākais no tiem, kas atbilst savienotāja un
+// jaudas filtram. €/kWh un €/min nevar salīdzināt, tāpēc €/kWh tarifiem ir
+// priekšroka, un minūšu tarifs tiek ņemts tikai tad, ja citu nav.
+export function cheapestMatchingTariff(tariffs: MapTariff[], connector: string, minPower: number): {tariff: MapTariff; matches: number} | null {
+  const matching = tariffs.filter((t) => (!connector || t.connector === connector) && (!minPower || (t.power ?? 0) >= minPower));
+  if (!matching.length) return null;
+  const rank = (t: MapTariff) => t.energy !== null ? [0, t.energy] : t.time !== null ? [1, t.time] : [2, 0];
+  const best = matching.reduce((a, b) => {
+    const [ka, va] = rank(a), [kb, vb] = rank(b);
+    return kb < ka || (kb === ka && vb < va) ? b : a;
+  });
+  return {tariff: best, matches: matching.length};
+}
+
 export interface StationFilters {
   kind: string;
   network: string;
