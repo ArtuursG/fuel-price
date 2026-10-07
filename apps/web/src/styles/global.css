@@ -19,6 +19,10 @@
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, monospace;
 
+  /* Viens stūra rādiuss tabulām, laukiem un pogām - iepriekš katra lapa
+     lika savu (0, 4px vai 6px). */
+  --radius: 4px;
+
   color-scheme: light;
 }
 
@@ -85,3 +89,167 @@ table {
 
 body { font-variant-numeric: tabular-nums; }
 ::selection { background: #dbe8f1; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Ievadteksts zem virsraksta un sīkā piezīme lapas apakšā. Lapas drīkst
+   mainīt tikai atkāpes. */
+.intro {
+  color: var(--color-ink-muted);
+  max-width: 42rem;
+  margin: 0 0 1.5rem;
+}
+.note {
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+  max-width: 42rem;
+  margin: 1.5rem 0 0;
+}
+
+/* Datu tabulas. Agrāk šie stili bija nokopēti piecās lapās ar sīkām
+   atšķirībām (galvene ar un bez lielajiem burtiem, lētākā šūna ar ēnu vai
+   ar apmalēm abās pusēs), tāpēc katra lapa izskatījās mazliet citāda. */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+.table-wrap table {
+  font-size: 0.9rem;
+}
+.table-wrap th,
+.table-wrap td {
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.table-wrap thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-muted);
+  background: var(--color-surface);
+}
+.table-wrap tbody th {
+  font-weight: 600;
+}
+.table-wrap tbody:last-of-type > tr:last-child > * {
+  border-bottom: none;
+}
+/* Monospace tikai skaitļiem - adreses un nosaukumi tajā lasās slikti. */
+.table-wrap .num {
+  font-family: var(--font-mono);
+}
+.table-wrap .cheapest {
+  background: var(--color-cheapest-bg);
+  color: var(--color-cheapest-ink);
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--color-cheapest-border);
+}
+.table-dash {
+  color: var(--color-neutral);
+}
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+.badge[data-status="active"],
+.badge[data-run="ok"] {
+  color: var(--color-down);
+  border-color: var(--color-down);
+}
+.badge[data-status="blocked"],
+.badge[data-status="unpublished"],
+.badge[data-run="error"],
+.badge[data-run="blocked"] {
+  color: var(--color-up);
+  border-color: var(--color-up);
+}
+
+/* Ievadlauki un pogas. Lapām atliek tikai izkārtojums. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.8rem;
+  color: var(--color-ink-muted);
+}
+.field input,
+.field select {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 0.95rem;
+}
+.field input[type="number"] {
+  font-family: var(--font-mono);
+}
+.field input:hover,
+.field select:hover {
+  border-color: var(--color-ink-muted);
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-pylon);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+.button:hover {
+  border-color: var(--color-pylon);
+}
+.button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.button--primary {
+  border-color: var(--color-pylon);
+  background: var(--color-pylon);
+  color: var(--color-pylon-ink);
+}
+.button--primary:hover {
+  background: #1c4663;
+}

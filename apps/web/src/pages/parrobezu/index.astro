@@ -17,28 +17,33 @@ function cheapestCountry(prices: Partial<Record<BorderCountry, number>>): Border
 	return min;
 }
 
+// Starpība pret Latviju - lasītājs šeit grib zināt, vai pāri robežai ir
+// lētāk un par cik. Mīnuss nozīmē lētāk nekā Latvijā.
+function diffFromLatvia(prices: Partial<Record<BorderCountry, number>>, country: BorderCountry): number | null {
+	const lv = prices.LV;
+	const other = prices[country];
+	if (country === "LV" || lv === undefined || other === undefined) return null;
+	return other - lv;
+}
+
+// Ciparu datums, jo vārdiskais ("14. septembris") teikumā "nedēļā, kas
+// sākas ..." prasītu lokatīvu, ko Intl nedod.
 function formatWeek(weekMonday: string): string {
-	return new Date(`${weekMonday}T00:00:00Z`).toLocaleDateString("lv-LV", {
-		timeZone: "UTC",
-		day: "numeric",
-		month: "long",
-		year: "numeric",
-	});
+	return new Date(`${weekMonday}T00:00:00Z`).toLocaleDateString("lv-LV", { timeZone: "UTC" });
 }
 ---
 
 <Layout title="Pārrobežu cenas - degvielas cenas">
-	<h1>Latvija, Lietuva, Igaunija</h1>
+	<h1>Latvija, Lietuva un Igaunija</h1>
 
 	{comparison.rows.length === 0 ? (
 		<p class="intro">Vēl nav datu - kolektors ES nedēļas biļetenu vēl nav nolasījis.</p>
 	) : (
 		<>
 			<p class="intro">
-				Nedēļas vidējās mazumtirdzniecības cenas ar nodokļiem, nedēļa, kas sākas {formatWeek(comparison.weekMonday!)}.
-				Avots visām trim valstīm ir tas pats - Eiropas Komisijas nedēļas degvielas biļetens - tāpēc cenas ir
-				savstarpēji salīdzināmas. Šis NAV tas pats, kas šīs vietnes pārējās lapās redzamā "šodienas lētākā cena":
-				tur ir konkrētu Latvijas tīklu cenas šodien, šeit - visas valsts vidējā cena nedēļā.
+				Valstu vidējās cenas ar nodokļiem nedēļā, kas sākas {formatWeek(comparison.weekMonday!)} Visas trīs
+				valstis nāk no viena avota (Eiropas Komisijas nedēļas degvielas biļetens), tāpēc tās var salīdzināt
+				savā starpā. Tās ir visas valsts vidējās cenas, nevis konkrētu tīklu šodienas cenas kā sākumlapā.
 			</p>
 
 			<div class="table-wrap">
@@ -58,9 +63,15 @@ function formatWeek(weekMonday: string): string {
 									<th scope="row">{row.label}</th>
 									{countries.map((c) => {
 										const price = row.prices[c];
+										const diff = diffFromLatvia(row.prices, c);
 										return (
-											<td class={c === cheapest ? "cheapest" : undefined}>
+											<td class:list={["num", { cheapest: c === cheapest }]}>
 												{price !== undefined ? <>{formatPrice(price)}&nbsp;&euro;</> : <span class="table-dash">-</span>}
+												{diff !== null && (
+													<span class="diff" data-direction={diff < 0 ? "down" : diff > 0 ? "up" : "same"}>
+														{diff === 0 ? "kā LV" : `${diff < 0 ? "−" : "+"}${formatPrice(Math.abs(diff))} pret LV`}
+													</span>
+												)}
 											</td>
 										);
 									})}
@@ -80,61 +91,17 @@ function formatWeek(weekMonday: string): string {
 </Layout>
 
 <style>
-	.intro {
+	.diff {
+		display: block;
+		margin-top: 0.15rem;
+		font-size: 0.75rem;
+		font-weight: 400;
 		color: var(--color-ink-muted);
-		max-width: 42rem;
-		margin: 0 0 1.5rem;
 	}
-	.table-wrap {
-		overflow-x: auto;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
+	.diff[data-direction="down"] {
+		color: var(--color-down);
 	}
-	table {
-		font-size: 0.95rem;
-	}
-	th,
-	td {
-		padding: 0.65rem 0.85rem;
-		text-align: left;
-		border-bottom: 1px solid var(--color-border);
-		white-space: nowrap;
-	}
-	thead th {
-		font-size: 0.8rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--color-ink-muted);
-		background: var(--color-surface);
-	}
-	tbody tr:last-child td,
-	tbody tr:last-child th {
-		border-bottom: none;
-	}
-	td {
-		font-family: var(--font-mono);
-	}
-	td.cheapest {
-		background: var(--color-cheapest-bg);
-		color: var(--color-cheapest-ink);
-		border-left: 3px solid var(--color-cheapest-border);
-		border-right: 3px solid var(--color-cheapest-border);
-		font-weight: 700;
-	}
-	.table-dash {
-		color: var(--color-neutral);
-	}
-	.note {
-		color: var(--color-ink-muted);
-		font-size: 0.875rem;
-		max-width: 42rem;
-		margin-top: 1.5rem;
-	}
-	.sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
+	.diff[data-direction="up"] {
+		color: var(--color-up);
 	}
 </style>
