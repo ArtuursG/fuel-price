@@ -37,7 +37,7 @@ function formatRunAt(iso: string | null): string {
 						</th>
 						<td>{kindLabel(source.kind)}</td>
 						<td><span class="badge" data-status={source.status}>{STATUS_LABELS[source.status]}</span></td>
-						<td class="num">{formatRunAt(source.lastRunAt)}</td>
+						<td class:list={{ num: source.lastRunAt !== null }}>{formatRunAt(source.lastRunAt)}</td>
 						<td>
 							{source.lastRunStatus ? (
 								<span class="badge" data-run={source.lastRunStatus}>{RUN_STATUS_LABELS[source.lastRunStatus]}</span>

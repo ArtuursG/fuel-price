@@ -173,11 +173,6 @@ const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.
 	.grouped tbody:last-of-type th[scope="rowgroup"] {
 		border-bottom: none;
 	}
-	@media (max-width: 40rem) {
-		.grouped th[scope="rowgroup"] {
-			white-space: normal;
-		}
-	}
 	.current {
 		margin-left: 0.4rem;
 		font-size: 0.75rem;
@@ -189,5 +184,17 @@ const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.
 	.current[data-current="DC"] {
 		color: var(--color-ink);
 		font-weight: 600;
+	}
+	/* Telefonā tīkla nosaukums drīkst lūzt un strāvas tips ir zem
+	   savienotāja, lai cenas kolonna ietilptu ekrānā. */
+	@media (max-width: 40rem) {
+		.grouped th[scope="rowgroup"] {
+			white-space: normal;
+		}
+		.current,
+		.current[data-alone] {
+			display: block;
+			margin-left: 0;
+		}
 	}
 </style>
