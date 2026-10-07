@@ -70,6 +70,71 @@ export function buildDailySeries(rows: HistoryRow[], days: string[]): NetworkSer
 	return series;
 }
 
+export interface ChartDomain {
+	min: number;
+	max: number;
+	/** Horizontālo palīglīniju vērtības (milli), no apakšas uz augšu. */
+	ticks: number[];
+}
+
+// Soļi, kas lasās kā apaļi centi: 0,005 €, 0,01 €, 0,02 € ...
+const TICK_STEPS = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+
+/**
+ * Ass robežas, noapaļotas līdz apaļam solim, ar 3-6 palīglīnijām. Agrāk
+ * grafikā bija tikai min un max, un starpvērtības bija jāmin.
+ */
+export function chartDomain(series: NetworkSeries[], maxTicks = 5): ChartDomain | null {
+	const all = series.flatMap((s) => s.points).filter((p): p is number => p !== null);
+	if (all.length === 0) return null;
+	let low = Math.min(...all);
+	let high = Math.max(...all);
+	if (low === high) {
+		// Viena vienīga cena - citādi ass būtu nulles augstumā.
+		low -= 10;
+		high += 10;
+	}
+	const step = TICK_STEPS.find((s) => Math.ceil(high / s) - Math.floor(low / s) <= maxTicks) ?? TICK_STEPS[TICK_STEPS.length - 1];
+	const min = Math.floor(low / step) * step;
+	const max = Math.ceil(high / step) * step;
+	const ticks: number[] = [];
+	for (let v = min; v <= max; v += step) ticks.push(v);
+	return { min, max, ticks };
+}
+
+/** X ass atzīmes katru nedēļu, skaitot atpakaļ no šodienas. */
+export function weekTicks(days: string[]): { index: number; day: string }[] {
+	const ticks: { index: number; day: string }[] = [];
+	for (let i = days.length - 1; i >= 0; i -= 7) ticks.unshift({ index: i, day: days[i] });
+	return ticks;
+}
+
+// Krāsa seko tīklam, nevis tā vietai sarakstā: agrāk krāsu ņēma pēc
+// kārtas cenu sarakstā, tāpēc tīkls, pārslēdzot degvielu, mainīja krāsu.
+// Secība ir pārbaudīta krāsu akluma simulācijā; sarkanā un zaļā apzināti
+// nav, jo tās lapā nozīmē "cena kāpa" un "cena kritās".
+const SERIES_COLORS: Record<string, string> = {
+	straujupite: "#2a78d6",
+	circlek: "#eb6834",
+	virsi: "#1baf7a",
+	kool: "#eda100",
+	viada: "#e87ba4",
+	neste: "#4a3aa7",
+};
+const SPARE_COLORS = ["#4a3aa7", "#eda100", "#e87ba4"];
+export const OTHER_SERIES_COLOR = "#8a949c";
+
+/** Krāsa katram tīklam grafikā; nezināmiem - brīvā krāsa vai pelēka. */
+export function seriesColors(networkIds: string[]): Map<string, string> {
+	const used = new Set(networkIds.map((id) => SERIES_COLORS[id]).filter(Boolean));
+	const spare = SPARE_COLORS.filter((c) => !used.has(c));
+	const colors = new Map<string, string>();
+	for (const id of [...networkIds].sort()) {
+		colors.set(id, SERIES_COLORS[id] ?? spare.shift() ?? OTHER_SERIES_COLOR);
+	}
+	return colors;
+}
+
 export interface ChartGeometry {
 	min: number;
 	max: number;
@@ -77,12 +142,17 @@ export interface ChartGeometry {
 }
 
 // Visām līnijām viena mēroga ass - citādi tīklus nevar salīdzināt.
-export function buildChartPaths(series: NetworkSeries[], width: number, height: number): ChartGeometry | null {
+export function buildChartPaths(
+	series: NetworkSeries[],
+	width: number,
+	height: number,
+	domain?: { min: number; max: number },
+): ChartGeometry | null {
 	const all = series.flatMap((s) => s.points).filter((p): p is number => p !== null);
 	if (all.length === 0) return null;
 
-	let min = Math.min(...all);
-	let max = Math.max(...all);
+	let min = domain?.min ?? Math.min(...all);
+	let max = domain?.max ?? Math.max(...all);
 	if (min === max) {
 		// Viena vienīga cena - citādi dalītu ar nulli un līnija pazustu.
 		min -= 10;
