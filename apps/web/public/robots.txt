@@ -1,0 +1,23 @@
+# Search engines and link previews may read the site; every other crawler
+# (price scrapers, data harvesters and the like) may not. robots.txt is a
+# request that well-behaved crawlers follow, not an access control.
+
+# Search engines, so the site can be found.
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: DuckDuckBot
+User-agent: Applebot
+Allow: /
+
+# Link previews when someone shares a page in a messenger or on social media.
+User-agent: facebookexternalhit
+User-agent: Twitterbot
+User-agent: LinkedInBot
+User-agent: Slackbot
+User-agent: Discordbot
+User-agent: TelegramBot
+User-agent: WhatsApp
+Allow: /
+
+User-agent: *
+Disallow: /
