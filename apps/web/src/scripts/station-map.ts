@@ -316,8 +316,43 @@ if (filtersToggle && filterFields) {
   narrowScreen.addEventListener("change", () => setFiltersOpen(!narrowScreen.matches));
 }
 
+// The filters live in the address too, so a filtered map can be bookmarked
+// or sent on ("/karte/?degviela=DSL&izcelt=DSL") and survives a reload.
+// replaceState, not pushState: each keystroke must not become a Back step.
+const URL_FIELDS: [string, HTMLInputElement | HTMLSelectElement | null][] = [
+  ["q", search], ["veids", kind], ["tikls", network], ["degviela", product],
+  ["savienotajs", connector], ["jauda", power], ["izcelt", cheapest],
+];
+function readUrlFilters(): void {
+  const params = new URLSearchParams(location.search);
+  for (const [name, field] of URL_FIELDS) {
+    const value = params.get(name);
+    if (!field || value === null) continue;
+    // An old or hand-edited link may name a network or fuel that is no longer offered.
+    if (field instanceof HTMLSelectElement && ![...field.options].some((option) => option.value === value)) continue;
+    field.value = value;
+  }
+}
+function writeUrlFilters(): void {
+  // Parameters that are not ours (e.g. from a shared link) stay as they are.
+  const params = new URLSearchParams(location.search);
+  for (const [name, field] of URL_FIELDS) {
+    if (field?.value && !(field === power && field.value === "0")) params.set(name, field.value);
+    else params.delete(name);
+  }
+  const query = params.toString();
+  history.replaceState(history.state, "", query ? `${location.pathname}?${query}` : location.pathname);
+}
+// Fuel stations have no connector or power, EV stations no fuel type.
+function syncKindFields(): void {
+  input("fuel-filter").hidden = kind.value === "ev";
+  input("connector-filter").hidden = kind.value === "fuel";
+  input("power-filter").hidden = kind.value === "fuel";
+}
+
 function applyFilters() {
   renderFiltersCount();
+  writeUrlFilters();
   const filters: StationFilters = {kind:kind.value,network:network.value,query:search.value,product:product.value,connector:connector.value,power:Number(power.value)};
   filtered = filterStations(stations,filters); limit=50;
   if (selectedId && !filtered.some((station) => station.id === selectedId)) {detail.hidden=true; selectedId=null;}
@@ -342,12 +377,12 @@ function renderCheapestNote(): void {
   if(note.caveat) cheapestNote.appendChild(element("small", note.caveat));
 }
 cheapest?.addEventListener("change",() => { renderCheapestNote(); applyFilters(); });
+readUrlFilters();
+syncKindFields();
 renderCheapestNote();
 kind.addEventListener("change", () => {
   product.value=""; connector.value=""; power.value="0";
-  input("fuel-filter").hidden = kind.value === "ev";
-  input("connector-filter").hidden = kind.value === "fuel";
-  input("power-filter").hidden = kind.value === "fuel";
+  syncKindFields();
   applyFilters();
 });
 product.addEventListener("change", () => { if(product.value) {connector.value="";power.value="0";} applyFilters(); });
@@ -356,7 +391,8 @@ visibleOnly.addEventListener("change", () => {limit=50;renderList();});
 more.addEventListener("click", () => {limit+=50;renderList();});
 input("clear-filters").addEventListener("click", () => {
   input<HTMLFormElement>("map-filters").reset();
-  for(const id of ["fuel-filter","connector-filter","power-filter"]) input(id).hidden=false;
+  syncKindFields();
+  renderCheapestNote();
   applyFilters();
 });
 input("fit-results").addEventListener("click", () => {
