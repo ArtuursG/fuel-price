@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildChartPaths, buildDailySeries, chartDomain, dayKeys, distinctDays, seriesColors, weekTicks } from "./history";
+import { buildChartPaths, buildDailySeries, chartDomain, darkVariant, dayKeys, distinctDays, seriesColors, weekTicks } from "./history";
 
 const DAYS = ["2026-09-18", "2026-09-19", "2026-09-20"];
 
@@ -11,8 +11,8 @@ describe("dayKeys", () => {
 
 describe("buildDailySeries", () => {
 	it("aizpilda uz priekšu dienas bez izmaiņām", () => {
-		// ADR-004: rinda top tikai pie izmaiņas, tāpēc 19. un 20. datu nav,
-		// bet cena tajās dienās bija spēkā.
+		// ADR-004: a row is only written on a change, so the 19th and 20th have no
+		// data, but the price was in force on those days.
 		const series = buildDailySeries(
 			[{ networkId: "kool", networkName: "KOOL", localDate: "2026-09-18", priceMilli: 1947 }],
 			DAYS,
@@ -73,7 +73,7 @@ describe("buildChartPaths", () => {
 			100,
 			50,
 		);
-		// Divi atsevišķi "M" - līnija netiek novilkta pāri tukšumam.
+		// Two separate "M"s - the line is not drawn across the gap.
 		expect(geometry!.paths[0].d.match(/M/g)).toHaveLength(2);
 	});
 });
@@ -140,5 +140,14 @@ describe("buildChartPaths ar doto asi", () => {
 	it("novieto vērtības pēc dotās ass, nevis pēc datu min/max", () => {
 		const geometry = buildChartPaths(one([1900, 1950]), 100, 100, { min: 1900, max: 2000 })!;
 		expect(geometry.paths[0].d).toBe("M0.00 100.00 L100.00 50.00");
+	});
+});
+
+describe("darkVariant", () => {
+	it("lightens a line colour that is too dark for the dark background", () => {
+		expect(darkVariant("#4a3aa7")).toBe("#8c7ae6");
+	});
+	it("keeps colours that already read on both backgrounds", () => {
+		expect(darkVariant("#2a78d6")).toBe("#2a78d6");
 	});
 });

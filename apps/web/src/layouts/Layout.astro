@@ -1,15 +1,28 @@
 ---
+// Fonts are served from this site rather than Google Fonts: no request to a
+// third party on every page view, and the text appears sooner.
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/ibm-plex-mono/500.css";
+import "@fontsource/ibm-plex-mono/600.css";
 import "../styles/global.css";
 import Logo from "../components/Logo.astro";
 
 interface Props {
 	title: string;
+	/** Shown by search engines and in link previews (messengers, social media). */
+	description?: string;
 }
 
-const { title } = Astro.props;
+const {
+	title,
+	description = "Latvijas degvielas un EV uzlādes cenas vienuviet: lētākā cena šodien, cenu vēsture, staciju karte un kalkulatori.",
+} = Astro.props;
 
-// Galvenajā rindā tikai tas, ko lieto ikdienā; Tīkli, Avoti un Par ir
-// kājenē. Agrāk desmit saites telefonā aizņēma četras rindas virs satura.
+// The header row holds only what is used day to day; Tīkli, Avoti and Par are
+// in the footer. Ten links used to take four rows above the content on a phone.
 const NAV = [
 	{ href: "/", label: "Šodien" },
 	{ href: "/karte/", label: "Karte" },
@@ -26,6 +39,8 @@ const FOOTER_NAV = [
 ];
 
 const path = Astro.url.pathname;
+// Link previews need an absolute address for the image.
+const ogImage = new URL("/og.png", Astro.url).href;
 const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 ---
 
@@ -33,15 +48,24 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="manifest" href="/manifest.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#14191e" media="(prefers-color-scheme: dark)" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link
-			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap"
-			rel="stylesheet"
-		/>
+		<meta name="description" content={description} />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="degvielas cenas" />
+		<meta property="og:locale" content="lv_LV" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="degvielas cenas: degvielas un EV uzlādes cenas Latvijā" />
+		<meta name="twitter:card" content="summary_large_image" />
 	</head>
 	<body>
 		<a class="skip-link" href="#saturs">Pāriet uz saturu</a>
@@ -57,7 +81,7 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 					))}
 				</nav>
 				<script is:inline>
-					// Šaurā ekrānā rinda ritinās; aktīvo lapu pabīdām redzamā vietā.
+					// On a narrow screen the row scrolls; bring the current page into view.
 					(() => {
 						const nav = document.currentScript?.previousElementSibling;
 						const current = nav?.querySelector('[aria-current="page"]');
@@ -68,6 +92,9 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 				</script>
 			</div>
 		</header>
+		<p class="offline-notice" id="offline-notice" role="status" hidden>
+			Nav savienojuma ar lapu. Redzama pēdējā saglabātā kopija; cenas var būt novecojušas.
+		</p>
 		<main id="saturs">
 			{import.meta.env.DEV && <p class="preview-notice">Lokālais dizaina priekšskatījums. Cenas no saglabātajiem avotu paraugiem; tās nav aktuāls nolasījums.</p>}
 			<slot />
@@ -84,12 +111,40 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 				</p>
 			</div>
 		</footer>
+		<script>
+			// Shown when the connection drops, and on a saved copy served while the
+			// site could not be reached (public/sw.js marks those).
+			const notice = document.getElementById("offline-notice");
+			const savedCopy = document.documentElement.hasAttribute("data-saved-copy");
+			const update = () => {
+				if (notice) notice.hidden = navigator.onLine && !savedCopy;
+			};
+			addEventListener("online", update);
+			addEventListener("offline", update);
+			update();
+		</script>
+		{import.meta.env.PROD && (
+			<script is:inline>
+				if ("serviceWorker" in navigator) {
+					addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+				}
+			</script>
+		)}
 	</body>
 </html>
 
 <style>
+	.offline-notice {
+		margin: 0;
+		padding: 0.6rem 1.25rem;
+		background: var(--color-surface);
+		border-bottom: 1px solid var(--color-border);
+		border-left: 3px solid var(--color-up);
+		font-size: 0.85rem;
+		text-align: center;
+	}
 	.preview-notice { border-bottom: 1px solid var(--color-border); padding: 0.75rem 0; font-size: 0.8rem; color: var(--color-ink-muted); }
-	.skip-link { position: absolute; top: -5rem; left: 1rem; padding: 0.75rem; background: white; z-index: 10; }
+	.skip-link { position: absolute; top: -5rem; left: 1rem; padding: 0.75rem; background: var(--color-bg); z-index: 10; }
 	.skip-link:focus { top: 0.5rem; }
 
 	.site-header {
@@ -123,7 +178,7 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 		gap: 1.25rem;
 		font-size: 0.95rem;
 	}
-	/* Aktīvā lapa: tinte un josla pie galvenes apakšmalas. */
+	/* Current page: ink colour and a bar along the header's bottom edge. */
 	.site-header__nav a {
 		display: flex;
 		align-items: center;
@@ -140,9 +195,9 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 		font-weight: 600;
 		box-shadow: inset 0 -2px 0 var(--color-pylon);
 	}
-	/* Šaurā ekrānā saites ir viena horizontāli ritināma rinda zem zīmes,
-	   nevis vairākas aplauztas rindas. Labajā malā izbalējums rāda, ka
-	   rindai ir turpinājums. */
+	/* On a narrow screen the links are one horizontally scrolling row under
+	   the mark instead of several wrapped rows. A fade at the right edge
+	   shows that the row continues. */
 	@media (max-width: 60rem) {
 		.site-header__inner {
 			padding: 0;

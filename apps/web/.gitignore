@@ -1,7 +1,9 @@
 # build output
 dist/
-# generated types
+# generated types (worker-configuration.d.ts comes from `wrangler types`,
+# which the dev and typecheck scripts run)
 .astro/
+worker-configuration.d.ts
 
 # dependencies
 node_modules/

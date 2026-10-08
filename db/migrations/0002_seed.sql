@@ -1,5 +1,5 @@
--- Sākuma dati: tīkli, produkti, avoti. Iegūti no docs/sources.yaml (v3, 2026-09-18).
--- Cenu/tarifu rindas šeit NAV -- tās raksta ingest Worker (3. fāze), ne migrācija.
+-- Seed data: networks, products, sources. Taken from docs/sources.yaml (v3, 2026-09-18).
+-- There are NO price/tariff rows here -- the ingest Worker writes those (phase 3), not a migration.
 
 INSERT INTO networks (id, name, country, kinds, website, publishes_prices, note) VALUES
   ('circlek', 'Circle K', 'LV', 'fuel,ev', 'https://www.circlek.lv', 1, NULL),

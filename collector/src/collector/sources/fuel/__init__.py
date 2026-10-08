@@ -54,7 +54,7 @@ register(
         url=kool.URL,
         parser=kool.parse,
         parser_version="kool@1",
-        # Cenas ir otrā dokumentā, uz kuru lapa norāda -- sk. kool.py.
+        # The prices are in a second document the page points to -- see kool.py.
         follow=kool.find_snippet_url,
     )
 )

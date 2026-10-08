@@ -3,18 +3,18 @@ name: Collect
 on:
   workflow_dispatch: {}
   schedule:
-    # Degvielas cenas: 7,37 * * * * pēc docs/PROMPT_START.md. Ieslēgts
-    # 2026-09-20, kad INGEST_URL jau norāda uz reālu ingest Worker un visi
-    # pieci degvielas avoti strādā produkcijā.
-    # Slodze uz avotu lapām: 2 pieprasījumi stundā vienam avotam -- atbilst
-    # sources.yaml refresh_minutes: 30. D1 bezmaksas limits netiek apdraudēts:
-    # fuel_prices rinda top TIKAI pie cenas izmaiņas (ADR-004), tāpēc vairums
-    # nolasījumu pieraksta vienu scrape_runs rindu, ne cenu rindas.
+    # Fuel prices: 7,37 * * * * per docs/PROMPT_START.md. Enabled on
+    # 2026-09-20, once INGEST_URL pointed at the real ingest Worker and all
+    # five fuel sources were working in production.
+    # Load on the source sites: 2 requests per hour per source -- matches
+    # sources.yaml refresh_minutes: 30. The D1 free tier is not at risk:
+    # a fuel_prices row is written ONLY when a price changes (ADR-004), so
+    # most runs write one scrape_runs row and no price rows.
     - cron: "7,37 * * * *"
-    # EV tarifi un ES nedēļas biļetens reizi dienā, NEVIS ik pēc 30 minūtēm:
-    # biļetens mainās reizi nedēļā, un EV avoti ir lieli faili (e-mobi ~430KB,
-    # Ignitis ~530KB). To vilkšana 48x dienā būtu bezjēdzīga slodze svešiem
-    # serveriem; tarifi tik bieži nemainās.
+    # EV tariffs and the EU weekly bulletin once a day, NOT every 30 minutes:
+    # the bulletin changes weekly, and the EV sources are large files (e-mobi
+    # ~430KB, Ignitis ~530KB). Pulling them 48x a day would be pointless load
+    # on other people's servers; tariffs do not change that often.
     - cron: "17 4 * * *"
 
 jobs:
@@ -29,8 +29,8 @@ jobs:
         working-directory: collector
         run: uv sync
 
-      # Manuāla palaišana (workflow_dispatch) izpilda VISUS avotus; grafiks
-      # izpilda tikai to daļu, kas attiecīgajam cron pierakstam pieder.
+      # A manual run (workflow_dispatch) runs ALL sources; a scheduled run
+      # only runs the part that belongs to its cron entry.
       - name: Run all fuel sources and push
         if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7,37 * * * *'
         working-directory: collector

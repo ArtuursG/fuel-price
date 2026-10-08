@@ -18,8 +18,8 @@ const [allProducts, allEvSummary, allSources] = network
 	? await Promise.all([getLatestFuelPrices(env.DB), getEvTariffSummary(env.DB), getSourceStatuses(env.DB)])
 	: [[], [], []];
 
-// Katram produktam arī lētākā cena visos tīklos, lai var parādīt, cik
-// šis tīkls atpaliek (vai ka tas pats ir lētākais).
+// For each product also the cheapest price across all networks, to show how
+// far behind this network is (or that it is the cheapest itself).
 const fuelRows = network
 	? allProducts
 			.map((row) => ({
@@ -174,8 +174,8 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 		gap: 0.65rem;
 	}
 
-	/* Izmērs nāk no global.css; te tikai atkāpe, jo virs virsraksta ir
-	   maizes drupatu rinda. */
+	/* The size comes from global.css; only the margin is set here, since a
+	   breadcrumb line sits above the heading. */
 	h1 {
 		margin: 0.25rem 0 0.5rem;
 	}
@@ -197,8 +197,8 @@ const sourcesForNetwork = network ? allSources.filter((s) => s.networkId === net
 		font-size: 1rem;
 		margin: 0 0 1.5rem;
 	}
-	/* Adrešu saraksts var būt garš - lai tabula neaiziet platumā, tas
-	   drīkst lūzt vairākās rindās. */
+	/* The address list can be long - it may wrap onto several lines so the
+	   table does not grow too wide. */
 	.where {
 		white-space: normal;
 		min-width: 16rem;

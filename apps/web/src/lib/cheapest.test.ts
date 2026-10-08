@@ -22,7 +22,7 @@ describe("houseNumber", () => {
 		expect(houseNumber("Eksporta iela 1C")).toBe("1c");
 	});
 	it("nepievieno burtu aiz atstarpes", () => {
-		// "297 rīga" nedrīkst kļūt par "297 r".
+		// "297 rīga" must not become "297 r".
 		expect(houseNumber("Brīvības gatve 297 Rīga")).toBe("297");
 	});
 	it("atgriež null, ja numura nav", () => {
@@ -57,7 +57,7 @@ describe("markCheapestStations", () => {
 	];
 
 	it("izceļ staciju, kad OSM tīkla nosaukums atšķiras", () => {
-		// OSM to sauc "Virši-A"; bez canonical() sakritības nebūtu.
+		// OSM calls it "Virši-A"; without canonical() there would be no match.
 		const marks = markCheapestStations([station("s1", "Virši-A", "Brīvības gatve 297, Rīga")], products, canonical);
 		expect(marks.byStation.get("s1")).toEqual(["P95"]);
 		expect(marks.highlights[0].isAbsoluteCheapest).toBe(true);
@@ -70,7 +70,7 @@ describe("markCheapestStations", () => {
 	});
 
 	it("pāriet uz nākamo cenu, ja lētāko nevar novietot", () => {
-		// Straujupītes lētākā norāda tikai pagastu, tāpēc izceļ Viada.
+		// Straujupīte's cheapest names only a parish, so Viada is highlighted.
 		const rows: ProductRow[] = [{
 			product: "P95", label: "95",
 			prices: [

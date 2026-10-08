@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import Layout from "../layouts/Layout.astro";
 import PriceCard from "../components/PriceCard.astro";
 import PriceTable from "../components/PriceTable.astro";
+import { formatCheckedAt } from "../lib/checked-at";
 import { cheapest, getLastUpdated, getLatestFuelPrices, getPriceHistory, historyKey } from "../lib/prices";
 
 const [products, lastUpdated, history] = await Promise.all([
@@ -16,11 +17,6 @@ const otherProducts = products.filter((row) => !mainProducts.includes(row));
 
 const networkCount = new Set(products.flatMap((row) => row.prices.map((p) => p.networkId))).size;
 
-function formatUpdatedAt(iso: string): string {
-	if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return new Date(`${iso}T00:00:00Z`).toLocaleDateString("lv-LV");
-	return new Date(iso).toLocaleString("lv-LV", { timeZone: "Europe/Riga", dateStyle: "short", timeStyle: "short" });
-}
-
 const datasetJsonLd = {
 	"@context": "https://schema.org",
 	"@type": "Dataset",
@@ -32,7 +28,10 @@ const datasetJsonLd = {
 };
 ---
 
-<Layout title="Degvielas cenas šodien - degvielas cenas">
+<Layout
+	title="Degvielas cenas šodien - degvielas cenas"
+	description="Lētākā degvielas cena šodien Latvijas tīklos: benzīns 95 un 98, dīzelis, LPG un citas, salīdzinātas pa tīkliem."
+>
 	<script type="application/ld+json" set:html={JSON.stringify(datasetJsonLd)} />
 
 	{products.length === 0 ? (
@@ -46,7 +45,7 @@ const datasetJsonLd = {
 				<h1 id="today-heading">Degvielas cenas šodien</h1>
 				<p class="hero__meta">
 					Lētākā novērotā cena katrai degvielai {networkCount} tīklos.
-					{lastUpdated && <>{" "}Pēdējā pārbaude {formatUpdatedAt(lastUpdated)}.</>}
+					{lastUpdated && <>{" "}Pēdējā pārbaude <time datetime={lastUpdated} data-checked-at>{formatCheckedAt(lastUpdated)}</time>.</>}
 					{" "}Vietu, cenas vecumu un avotu rāda <span class="hero__i" aria-hidden="true">i</span>.
 				</p>
 				<div class="pylon-grid">
@@ -78,6 +77,21 @@ const datasetJsonLd = {
 		</>
 	)}
 </Layout>
+
+<script>
+	import { formatCheckedAt } from "../lib/checked-at";
+
+	// Recount in the browser: an open tab, or a copy shown offline, would
+	// otherwise keep the minutes from when the server rendered it.
+	const refresh = () => {
+		for (const time of document.querySelectorAll<HTMLElement>("time[data-checked-at]")) {
+			const iso = time.getAttribute("datetime");
+			if (iso) time.textContent = formatCheckedAt(iso);
+		}
+	};
+	refresh();
+	setInterval(refresh, 60_000);
+</script>
 
 <style>
 	.other-products { margin-top: 1.5rem; font-size: 0.85rem; }

@@ -7,8 +7,8 @@ import { getAllNetworks } from "../../lib/networks";
 const networks = await getAllNetworks(env.DB);
 
 const KIND_LABELS: Record<string, string> = { fuel: "degviela", ev: "EV uzlāde" };
-// "Degviela, EV uzlāde" - lielais burts tikai sākumā. CSS capitalize
-// lika lielo burtu katram vārdam ("EV Uzlāde").
+// "Degviela, EV uzlāde" - a capital letter only at the start. CSS capitalize
+// capitalised every word ("EV Uzlāde").
 const kindsText = (kinds: string[]) => {
 	const text = kinds.map((k) => KIND_LABELS[k] ?? k).join(", ");
 	return text.charAt(0).toLocaleUpperCase("lv") + text.slice(1);
@@ -62,7 +62,7 @@ const kindsText = (kinds: string[]) => {
 		border-color: var(--color-pylon);
 		transform: translateY(-1px);
 	}
-	/* Logo aizņem abas rindas kreisajā kolonnā. */
+	/* The logo spans both rows in the left column. */
 	.network-list__link > :first-child {
 		grid-row: span 2;
 	}

@@ -38,7 +38,7 @@ SOURCE_ID = "virsi-ev-web"
 NETWORK_ID = "virsi"
 URL = "https://www.virsi.lv/lv/privatpersonam/degviela/degvielas-un-elektrouzlades-cenas"
 
-# Uzlades maksa ir tikai par energiju; laika tarifu lapa nenosauc.
+# Charging is billed for energy only; the page names no time-based tariff.
 PAYMENT = "app"
 
 CONNECTOR_MAP = {
@@ -47,17 +47,17 @@ CONNECTOR_MAP = {
     "type2": "TYPE2",
 }
 
-# CCS2 un CHAdeMO ir lidzstravas standarti; Type 2 ir mainstravas.
+# CCS2 and CHAdeMO are DC standards; Type 2 is AC.
 CURRENT_TYPE_MAP = {
     "CCS2": "DC",
     "CHADEMO": "DC",
     "TYPE2": "AC",
 }
 
-# Sanigas robezas: zem 3 kW nav uzlades stacija, virs 400 kW LV nav.
+# Sanity bounds: below 3 kW is not a charging station, and LV has nothing above 400 kW.
 MIN_POWER_KW = 3.0
 MAX_POWER_KW = 400.0
-# Cena EUR/kWh; ari straujakas stacijas LV nepartrauc so joslu.
+# Price in EUR/kWh; even the fastest stations in LV stay within this band.
 MIN_PRICE_MILLI = 50
 MAX_PRICE_MILLI = 1500
 

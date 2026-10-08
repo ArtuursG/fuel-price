@@ -90,7 +90,7 @@ export type EvTariffInput = z.infer<typeof EvTariffSchema>;
 // Timestamp + "." + body, HMAC-SHA256, hex-encoded, "sha256=" prefixed.
 // Must byte-for-byte match collector/src/collector/core/push.py.
 
-const MAX_SKEW_MS = 5 * 60 * 1000; // Projekta konvencija: laika nobīde ne vairāk kā 5 min
+const MAX_SKEW_MS = 5 * 60 * 1000; // Project convention: clock skew of at most 5 min
 
 async function hmacHex(secret: string, message: string): Promise<string> {
 	const key = await crypto.subtle.importKey(

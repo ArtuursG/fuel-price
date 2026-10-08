@@ -1,12 +1,12 @@
 ---
-// Viena produkta 30 dienu līnijgrafiks, visiem tīkliem vienā mērogā.
-// Līnijas zīmē serveris kā SVG; klienta skripts pievieno tikai uznirstošo
-// lodziņu ar izvēlētās dienas cenām - bez JS grafiks un tabula ir pilnīgi.
+// A 30-day line chart for one product, all networks on one scale.
+// The server draws the lines as SVG; the client script only adds the popup
+// with the selected day's prices - without JS the chart and table are complete.
 //
-// Teksts (asu atzīmes, beigu punkti) ir HTML, nevis SVG daļa: SVG mērogojas
-// līdz ar platumu, un agrāk uzraksti platā ekrānā bija ~20px, bet telefonā
-// ~5px. Tagad SVG izstiepjas, bet līnijas biezums un teksts paliek vienādi.
-import { buildChartPaths, chartDomain, seriesColors, weekTicks, type NetworkSeries } from "../lib/history";
+// Text (axis ticks, end dots) is HTML, not part of the SVG: the SVG scales
+// with the width, and the labels used to be ~20px on a wide screen but ~5px
+// on a phone. Now the SVG stretches while stroke width and text stay the same.
+import { buildChartPaths, chartDomain, darkVariant, seriesColors, weekTicks, type NetworkSeries } from "../lib/history";
 import { formatPrice } from "../lib/prices";
 
 interface Props {
@@ -16,7 +16,7 @@ interface Props {
 
 const { series, days } = Astro.props as Props;
 
-// Iekšējā koordinātu sistēma; ekrānā to izstiepj CSS.
+// Internal coordinate system; CSS stretches it on screen.
 const WIDTH = 1000;
 const HEIGHT = 300;
 const domain = chartDomain(series);
@@ -26,12 +26,15 @@ const colors = seriesColors(series.map((s) => s.networkId));
 const pct = (value: number) => `${(((value - (domain?.min ?? 0)) / ((domain?.max ?? 1) - (domain?.min ?? 0))) * 100).toFixed(2)}%`;
 const xPct = (index: number) => `${((index / Math.max(days.length - 1, 1)) * 100).toFixed(2)}%`;
 
+// Both theme colours go in as custom properties; CSS picks one.
+const seriesStyle = (color: string) => `--series: ${color}; --series-dark: ${darkVariant(color)}`;
+
 function formatDay(day: string): string {
 	const [, month, date] = day.split("-");
 	return `${Number(date)}.${Number(month)}.`;
 }
 
-// Kopsavilkums tabulai: pirmā un pēdējā zināmā cena, izmaiņa, min, max.
+// Summary for the table: first and last known price, change, min, max.
 const summary = series.map((s) => {
 	const known = s.points.filter((p): p is number => p !== null);
 	return {
@@ -44,10 +47,10 @@ const summary = series.map((s) => {
 	};
 });
 
-// Klienta skriptam: tikai tas, kas vajadzīgs lodziņam.
+// For the client script: only what the popup needs.
 const clientData = {
 	days,
-	series: summary.map((s) => ({ name: s.networkName, color: s.color, points: s.points })),
+	series: summary.map((s) => ({ name: s.networkName, color: s.color, dark: darkVariant(s.color), points: s.points })),
 };
 ---
 
@@ -73,14 +76,14 @@ const clientData = {
 					))}
 					<svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none" aria-hidden="true">
 						{geometry.paths.map((path) => (
-							<path class="chart__line" d={path.d} style={`stroke: ${colors.get(path.networkId)}`} />
+							<path class="chart__line" d={path.d} style={seriesStyle(colors.get(path.networkId) ?? "")} />
 						))}
 					</svg>
 					{summary.map((s) =>
 						s.lastMilli !== null && s.lastIndex >= 0 ? (
 							<span
 								class="chart__dot"
-								style={`left: ${xPct(s.lastIndex)}; bottom: ${pct(s.lastMilli)}; background: ${s.color}`}
+								style={`left: ${xPct(s.lastIndex)}; bottom: ${pct(s.lastMilli)}; ${seriesStyle(s.color)}`}
 							/>
 						) : null,
 					)}
@@ -98,7 +101,7 @@ const clientData = {
 			<figcaption class="chart-legend">
 				{summary.map((s) => (
 					<span class="chart-legend__item">
-						<span class="chart-legend__key" style={`background: ${s.color}`} aria-hidden="true" />
+						<span class="chart-legend__key" style={seriesStyle(s.color)} aria-hidden="true" />
 						<a href={`/tikli/${s.networkId}/`}>{s.networkName}</a>
 						{s.lastMilli !== null && <b>{formatPrice(s.lastMilli)}&nbsp;&euro;</b>}
 						{s.change !== null && s.change !== 0 && (
@@ -150,13 +153,13 @@ const clientData = {
 
 	interface ChartData {
 		days: string[];
-		series: { name: string; color: string; points: (number | null)[] }[];
+		series: { name: string; color: string; dark: string; points: (number | null)[] }[];
 	}
 
 	const dayFormat = new Intl.DateTimeFormat("lv-LV", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
 
-	// Workers globālais `Element` (HTMLRewriter) sajaucas ar DOM `Element`,
-	// tāpēc vaicājumi iet caur `unknown`.
+	// The Workers global `Element` (HTMLRewriter) clashes with the DOM
+	// `Element`, so the queries go through `unknown`.
 	for (const figure of document.querySelectorAll<HTMLElement>("[data-chart]")) {
 		const plot = figure.querySelector(".chart__plot") as unknown as HTMLElement;
 		const crosshair = figure.querySelector(".chart__crosshair") as unknown as HTMLElement;
@@ -176,7 +179,7 @@ const clientData = {
 			title.className = "chart__tooltip-day";
 			title.textContent = dayFormat.format(new Date(`${data.days[current]}T00:00:00Z`));
 			tooltip.appendChild(title);
-			// Lētākais augšā - tāpat kā leģendā.
+			// Cheapest first - same as in the legend.
 			const rows = data.series
 				.map((s) => ({ ...s, value: s.points[current!] }))
 				.filter((s): s is typeof s & { value: number } => s.value !== null)
@@ -186,7 +189,8 @@ const clientData = {
 				line.className = "chart__tooltip-row";
 				const key = document.createElement("span");
 				key.className = "chart__tooltip-key";
-				key.style.background = row.color;
+				key.style.setProperty("--series", row.color);
+				key.style.setProperty("--series-dark", row.dark);
 				const value = document.createElement("b");
 				value.textContent = formatPrice(row.value);
 				const name = document.createElement("span");
@@ -197,7 +201,7 @@ const clientData = {
 				tooltip.appendChild(line);
 			}
 			tooltip.hidden = false;
-			// Lodziņš ir tajā pusē, kur ir vieta.
+			// The popup goes on whichever side has room.
 			tooltip.dataset.side = left > 55 ? "left" : "right";
 			tooltip.style.left = `${left}%`;
 		}
@@ -212,7 +216,7 @@ const clientData = {
 			const box = plot.getBoundingClientRect();
 			show(Math.round(((event.clientX - box.left) / box.width) * last));
 		};
-		// pointerdown - lai lodziņš atveras arī ar vienu pieskārienu.
+		// pointerdown - so the popup also opens with a single tap.
 		plot.addEventListener("pointermove", showAt);
 		plot.addEventListener("pointerdown", showAt);
 		plot.addEventListener("pointerleave", (event) => {
@@ -236,8 +240,8 @@ const clientData = {
 	.chart {
 		margin: 0 0 1rem;
 	}
-	/* Kreisajā kolonnā cenas, apakšā datumi; augstums ir fiksēts, nevis
-	   atkarīgs no platuma. */
+	/* Prices in the left column, dates along the bottom; the height is fixed
+	   rather than tied to the width. */
 	.chart__frame {
 		display: grid;
 		grid-template-columns: 3.4rem 1fr;
@@ -298,6 +302,7 @@ const clientData = {
 		overflow: visible;
 	}
 	.chart__line {
+		stroke: var(--series);
 		fill: none;
 		stroke-width: 2;
 		stroke-linejoin: round;
@@ -305,6 +310,7 @@ const clientData = {
 		vector-effect: non-scaling-stroke;
 	}
 	.chart__dot {
+		background: var(--series);
 		position: absolute;
 		width: 8px;
 		height: 8px;
@@ -329,7 +335,7 @@ const clientData = {
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius);
 		background: var(--color-bg);
-		box-shadow: 0 6px 18px rgba(32, 43, 53, 0.14);
+		box-shadow: var(--shadow-popup);
 		font-size: 0.8rem;
 		pointer-events: none;
 	}
@@ -354,6 +360,7 @@ const clientData = {
 		white-space: nowrap;
 	}
 	.chart__tooltip :global(.chart__tooltip-key) {
+		background: var(--series);
 		flex: none;
 		width: 0.8rem;
 		height: 2px;
@@ -374,8 +381,9 @@ const clientData = {
 		align-items: center;
 		gap: 0.4rem;
 	}
-	/* Īsa līnija, nevis kvadrāts - tā pati forma, kas grafikā. */
+	/* A short line, not a square - the same shape as in the chart. */
 	.chart-legend__key {
+		background: var(--series);
 		width: 0.9rem;
 		height: 3px;
 		border-radius: 2px;
@@ -399,6 +407,16 @@ const clientData = {
 	}
 	.chart-legend__change[data-direction="up"] {
 		color: var(--color-up);
+	}
+	@media (prefers-color-scheme: dark) {
+		.chart__line {
+			stroke: var(--series-dark);
+		}
+		.chart__dot,
+		.chart-legend__key,
+		.chart__tooltip :global(.chart__tooltip-key) {
+			background: var(--series-dark);
+		}
 	}
 	.chart-table {
 		margin-top: 1rem;
