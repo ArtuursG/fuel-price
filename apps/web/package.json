@@ -6,11 +6,12 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "astro dev",
+    "dev": "wrangler types && astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "typecheck": "astro check",
+    "types": "wrangler types",
+    "typecheck": "wrangler types && astro check",
     "test": "vitest run"
   },
   "dependencies": {
