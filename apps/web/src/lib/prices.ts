@@ -13,7 +13,10 @@ export interface NetworkPrice {
 	age: AgeBucket;
 	origin: Origin | null;
 	sourceUrl: string | null;
+	/** When this price was first seen (a row is written only when the price changes). */
 	observedAt: string;
+	/** When a collection run last saw this price; equals observedAt until a later run confirms it. */
+	checkedAt: string;
 	scope: string;
 	whereText: string | null;
 }
@@ -64,6 +67,8 @@ interface FuelPriceQueryRow {
 	where_text: string | null;
 	valid_from: string | null;
 	observed_at: string;
+	confirmed_at: string | null;
+	confirmed_valid_from: string | null;
 	source_type: Origin | null;
 	source_url: string | null;
 }
@@ -85,7 +90,7 @@ const rigaDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Riga", year: "numeric", month: "2-digit", day: "2-digit",
 });
 
-function calendarDate(value: string | Date): string | null {
+export function calendarDate(value: string | Date): string | null {
     if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
         const parsed = new Date(`${value}T00:00:00Z`);
         return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? value : null;
@@ -116,6 +121,28 @@ export function formatObservedAt(iso: string): string {
     });
 }
 
+/**
+ * How fresh a price is. An unchanged price keeps the row, and so the
+ * observed_at, of when it first appeared; confirmed_at says when a later run
+ * saw it again (migration 0010). The age follows the date the source gave the
+ * last time the price was seen, or that time itself when the source gives none.
+ * Rows from before migration 0010 have no confirmation and keep the old rule.
+ */
+export function priceFreshness(
+	row: Pick<FuelPriceQueryRow, "observed_at" | "valid_from" | "confirmed_at" | "confirmed_valid_from">,
+	now: Date = new Date(),
+): { age: AgeBucket; checkedAt: string } {
+	const reference = row.confirmed_at
+		? (row.confirmed_valid_from ?? row.confirmed_at)
+		: (row.valid_from ?? row.observed_at);
+	return { age: ageBucket(reference, now), checkedAt: row.confirmed_at ?? row.observed_at };
+}
+
+/** "18.09." - for "nemainīga kopš ...", where the year is plain from context. */
+export function formatDayMonth(iso: string): string {
+	return new Date(iso).toLocaleDateString("lv-LV", { timeZone: "Europe/Riga", day: "2-digit", month: "2-digit" });
+}
+
 export const AGE_LABELS: Record<AgeBucket, string> = {
 	today: "šodien",
 	"1-2d": "1-2 dienas",
@@ -143,7 +170,8 @@ const QUERY = `
 		FROM fuel_prices fp
 	)
 	SELECT r.network_id, n.name AS network_name, r.product, r.price_milli, r.prev_price_milli,
-	       r.scope, r.where_text, r.valid_from, r.observed_at, s.source_type, s.url AS source_url
+	       r.scope, r.where_text, r.valid_from, r.observed_at, r.confirmed_at, r.confirmed_valid_from,
+	       s.source_type, s.url AS source_url
 	FROM ranked r
 	JOIN networks n ON n.id = r.network_id
 	LEFT JOIN scrape_runs sr ON sr.id = r.run_id
@@ -158,15 +186,17 @@ export async function getLatestFuelPrices(db: D1Database, now: Date = new Date()
 	const byProduct = new Map<string, NetworkPrice[]>();
 	for (const row of results) {
 		const list = byProduct.get(row.product) ?? [];
+		const { age, checkedAt } = priceFreshness(row, now);
 		list.push({
 			networkId: row.network_id,
 			networkName: row.network_name,
 			priceMilli: row.price_milli,
 			changeMilli: row.prev_price_milli === null ? null : row.price_milli - row.prev_price_milli,
-			age: ageBucket(row.valid_from ?? row.observed_at, now),
+			age,
 			origin: row.source_type,
 			sourceUrl: row.source_url,
 			observedAt: row.observed_at,
+			checkedAt,
 			scope: row.scope,
 			whereText: row.where_text,
 		});

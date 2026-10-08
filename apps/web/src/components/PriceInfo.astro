@@ -32,9 +32,20 @@ const scopeLabel =
 		<span class="price-info__row" data-age={price.age}>{AGE_LABELS[price.age]}</span>
 		<span class="price-info__row">{scopeLabel}</span>
 		<FuelPricePlaces price={price} />
-		<span class="price-info__row">
-			Cena novērota <time datetime={price.observedAt}>{formatObservedAt(price.observedAt)}</time>
-		</span>
+		{price.checkedAt !== price.observedAt ? (
+			<>
+				<span class="price-info__row">
+					Šāda cena kopš <time datetime={price.observedAt}>{formatObservedAt(price.observedAt)}</time>
+				</span>
+				<span class="price-info__row">
+					Pārbaudīta <time datetime={price.checkedAt}>{formatObservedAt(price.checkedAt)}</time>
+				</span>
+			</>
+		) : (
+			<span class="price-info__row">
+				Cena novērota <time datetime={price.observedAt}>{formatObservedAt(price.observedAt)}</time>
+			</span>
+		)}
 		{price.sourceUrl && (
 			<a href={price.sourceUrl} target="_blank" rel="noopener noreferrer">
 				{price.origin ? ORIGIN_LABELS[price.origin] : "Cenas avots"} ↗

@@ -7,7 +7,7 @@ const canonical = (name: string) => (name === "Virši-A" ? "Virši" : name);
 function price(over: Partial<NetworkPrice> = {}): NetworkPrice {
 	return {
 		networkId: "viada", networkName: "Viada", priceMilli: 1897, scope: "cheapest",
-		whereText: null, changeMilli: null, age: "today", observedAt: "2026-09-20T09:17:00Z",
+		whereText: null, changeMilli: null, age: "today", observedAt: "2026-09-20T09:17:00Z", checkedAt: "2026-09-20T09:17:00Z",
 		origin: "official_site", sourceUrl: null, validFrom: null, ...over,
 	} as NetworkPrice;
 }

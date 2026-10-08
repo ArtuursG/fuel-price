@@ -60,7 +60,7 @@ it("groups known network aliases without merging unrelated brands", () => {
 
 
 describe("attachFuelPrices", () => {
-  const price = {networkId:"circlek", networkName:"Circle K", priceMilli:1914, changeMilli:null, age:"today" as const, origin:null, sourceUrl:null, observedAt:"2026-09-18T10:00:00Z",scope:"cheapest_riga",whereText:"Brīvības gatve 265, Dzirciema iela 40"};
+  const price = {networkId:"circlek", networkName:"Circle K", priceMilli:1914, changeMilli:null, age:"today" as const, origin:null, sourceUrl:null, observedAt:"2026-09-18T10:00:00Z",checkedAt:"2026-09-18T10:00:00Z",scope:"cheapest_riga",whereText:"Brīvības gatve 265, Dzirciema iela 40"};
   const products = [{product:"P95",label:"95",prices:[price]}];
   const station = {...ev,kind:"fuel" as const,network:"Circle K",address:"Brīvības gatve 265, Rīga",tariffs:[]};
   it("joins the exact operator and full Riga address, preserving product and timestamp", () => {

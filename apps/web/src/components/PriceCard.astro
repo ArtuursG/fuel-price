@@ -1,6 +1,6 @@
 ---
 import PriceInfo from "./PriceInfo.astro";
-import { formatPrice, type NetworkPrice } from "../lib/prices";
+import { calendarDate, formatDayMonth, formatPrice, type NetworkPrice } from "../lib/prices";
 import {
 	buildSparklineArea,
 	buildSparklineBars,
@@ -25,12 +25,21 @@ const hasSpark = sparkArea !== null || sparkBars.length > 0;
 
 const changeDirection =
 	price.changeMilli === null ? "unknown" : price.changeMilli < 0 ? "down" : price.changeMilli > 0 ? "up" : "same";
+// No earlier price to compare with: either it really was first seen today, or
+// it has stayed the same since it was first seen and later runs confirmed it.
+const unchangedSince =
+	price.changeMilli === null && calendarDate(price.checkedAt) !== calendarDate(price.observedAt)
+		? formatDayMonth(price.observedAt)
+		: null;
 const changeText =
 	price.changeMilli === null
-		? "pirmā novērošana"
+		? unchangedSince
+			? `nemainīga kopš ${unchangedSince}`
+			: "pirmā novērošana"
 		: changeDirection === "same"
 			? "nemainīga"
 			: `${changeDirection === "down" ? "↓" : "↑"} ${formatPrice(Math.abs(price.changeMilli))} €`;
+const changeTitle = price.changeMilli === null ? "Šī ir pirmā novērotā cena" : "Pret iepriekšējo novēroto cenu";
 
 ---
 
@@ -66,7 +75,7 @@ const changeText =
 		</div>
 	)}
 	<div class="pylon__footer">
-		<span class="pylon__change" data-change={changeDirection} title="Pret iepriekšējo novēroto cenu">{changeText}</span>
+		<span class="pylon__change" data-change={changeDirection} title={changeTitle}>{changeText}</span>
 		<PriceInfo price={price} />
 	</div>
 </article>
