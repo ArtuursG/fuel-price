@@ -204,13 +204,13 @@ function showStation(station: MapStation, move = true) {
       prices.appendChild(item);
     }
     detail.appendChild(prices);
-    const observed = [...new Set(fuelPrices.map(price => price.observedAt))];
-    if(observed.length === 1) detail.appendChild(element("span",`Cena novērota ${dateLabel(observed[0])}`,"tariff-age"));
+    const checked = [...new Set(fuelPrices.map(price => price.checkedAt))];
+    if(checked.length === 1) detail.appendChild(element("span",`Cena pārbaudīta ${dateLabel(checked[0])}`,"tariff-age"));
     if(fuelPrices.some(price => price.age !== "today")) detail.appendChild(element("span","Pārbaudi cenu pirms brauciena","stale-note tariff-age"));
     const sources=element("details",undefined,"station-extra");
     sources.appendChild(element("summary","Cenu avots un laiks"));
     for(const price of fuelPrices) {
-      const row=element("p",`${price.label} · ${dateLabel(price.observedAt)} `);
+      const row=element("p",`${price.label} · pārbaudīta ${dateLabel(price.checkedAt)} `);
       const source=safeSourceUrl(price.sourceUrl); if(source) row.appendChild(link("Avots ↗",source));
       sources.appendChild(row);
     }
