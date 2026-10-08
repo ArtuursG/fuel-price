@@ -1,18 +1,18 @@
-// Cenas `where_text` sadalīšana atsevišķās vietās. Katrs avots to raksta
-// savādāk, un naiva sadalīšana pēc komata SABOJĀ daļu no tiem:
+// Splits a price's `where_text` into separate places. Every source writes it
+// differently, and a naive split on commas BREAKS some of them:
 //
 //   Circle K     "Brīvības gatve 265, Dzirciema iela 40"
-//                -> komatu saraksts ar adresēm, bez pilsētas
+//                -> a comma-separated list of addresses, no city
 //   Viada        "DUS Astras : G.Astras iela 7, Rīga, DUS Vecmīlgrāvis : Emmas iela 45, Rīga."
-//                -> "nosaukums : iela, pilsēta" pāri, ATKAL atdalīti ar komatu,
-//                   tāpēc komats atdala gan ierakstus, gan ielu no pilsētas
+//                -> "name : street, city" pairs, AGAIN separated by commas,
+//                   so a comma separates both the entries and street from city
 //   Straujupīte  "Ainaži, Salacgrīvas nov."
-//                -> VIENA vieta, nevis divas. Sadalīšana pēc komata te uztaisītu
-//                   divas neesošas "adreses" - tieši tāpēc te ir baltais saraksts,
-//                   nevis mēģinājums uzminēt no teksta formas.
+//                -> ONE place, not two. Splitting on the comma would make two
+//                   "addresses" that do not exist - which is exactly why there
+//                   is an allow-list here instead of guessing from the text.
 //
-// Ja formāts nav zināms, atgriežam tukšu sarakstu un lapa parāda tekstu tādu,
-// kāds tas ir - labāk viena nesadalīta rinda nekā izdomātas adreses.
+// If the format is unknown we return an empty list and the page shows the text
+// as it is - one unsplit line is better than invented addresses.
 
 export interface FuelPlace {
 	name: string | null;
@@ -30,7 +30,7 @@ export function parseFuelPlaces(networkId: string, whereText: string | null): Fu
 	const text = whereText.trim();
 	if (!text) return [];
 
-	// "nosaukums : adrese" formāts - ieraksts sākas tur, kur segmentā ir kols.
+	// "name : address" format - an entry starts where a segment has a colon.
 	if (text.includes(":")) {
 		const places: FuelPlace[] = [];
 		for (const segment of text.split(",")) {
@@ -38,7 +38,7 @@ export function parseFuelPlaces(networkId: string, whereText: string | null): Fu
 				const [name, ...rest] = segment.split(":");
 				places.push({ name: clean(name) || null, address: clean(rest.join(":")) });
 			} else if (places.length > 0) {
-				// Turpinājums iepriekšējam ierakstam (parasti pilsēta).
+				// Continuation of the previous entry (usually the city).
 				const previous = places[places.length - 1];
 				const extra = clean(segment);
 				if (extra) previous.address = `${previous.address}, ${extra}`;
@@ -66,9 +66,9 @@ export function placeSearchUrl(networkName: string, place: FuelPlace): string {
 	return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeQuery(networkName, place))}`;
 }
 
-// Adresei nav koordinātu, tāpēc Waze saņem meklējamo tekstu (`q`), nevis
-// `ll` kā kartē. Abās saitēs ir tikai galamērķis - lietotāja atrašanās
-// vietu nesūtām nekur.
+// An address has no coordinates, so Waze gets a search text (`q`) rather
+// than `ll` as on the map. Both links carry only the destination - the
+// user's location is never sent anywhere.
 export function placeWazeUrl(networkName: string, place: FuelPlace): string {
 	return `https://www.waze.com/ul?q=${encodeURIComponent(placeQuery(networkName, place))}&navigate=yes`;
 }

@@ -1,9 +1,10 @@
 name = "fuel-price-web"
 compatibility_date = "2026-09-18"
-# `main`/`assets` NAV šeit -- @astrojs/cloudflare adapteris tos ģenerē pats
-# (dist/server/wrangler.json) PĒC `astro build`, ar ceļiem relatīviem pret dist/.
-# Ja tos hardkodē šeit, build lūzt: tas grib validēt main ceļu PIRMS izveides (aplis).
-# `wrangler deploy` no apps/web/ jāizpilda PĒC build -- tas izmanto ģenerēto konfigurāciju.
+# `main`/`assets` are NOT here -- the @astrojs/cloudflare adapter generates them
+# itself (dist/server/wrangler.json) AFTER `astro build`, with paths relative to dist/.
+# Hardcoding them here breaks the build: it wants to validate the main path BEFORE
+# it exists (a cycle). Run `wrangler deploy` from apps/web/ AFTER the build -- it
+# uses the generated config.
 
 [[d1_databases]]
 binding = "DB"
@@ -11,9 +12,10 @@ database_name = "fuel-price-db"
 database_id = "787ba73c-d186-463b-af39-d7053427ff8a"
 migrations_dir = "../../db/migrations"
 
-# @astrojs/cloudflare adapteris automātiski iespējo sesijas (KV) un attēlu apstrādi
-# (Cloudflare Images) -- redzēts dist/server/wrangler.json pēc `astro build`. Neizmantojam
-# ne vienu, ne otru pagaidām, bet bindingiem jābūt deklarētiem, lai `wrangler deploy` nesūdzas.
+# The @astrojs/cloudflare adapter enables sessions (KV) and image handling
+# (Cloudflare Images) automatically -- seen in dist/server/wrangler.json after
+# `astro build`. Neither is used yet, but the bindings must be declared so
+# `wrangler deploy` does not complain.
 [[kv_namespaces]]
 binding = "SESSION"
 id = "63058b4a0d7846e79418056984521038"

@@ -1,6 +1,6 @@
--- Sākotnējā shēma. Pamatā docs/IZPETE.md 7.4 skice.
--- Atšķirība no skices: `products` tabula pievienota (ADR-007, docs/DECISIONS.md) --
--- oriģinālā skice glabāja `product` kā brīvu tekstu bez uzziņas tabulas.
+-- Initial schema. Based on the docs/IZPETE.md 7.4 sketch.
+-- Difference from the sketch: a `products` table was added (ADR-007, docs/DECISIONS.md) --
+-- the original sketch stored `product` as free text with no lookup table.
 
 CREATE TABLE networks (
   id TEXT PRIMARY KEY,                -- 'circlek', 'virsi', 'viada', 'straujupite', 'neste', 'enefit' …
@@ -9,11 +9,11 @@ CREATE TABLE networks (
   kinds TEXT NOT NULL,                 -- 'fuel' | 'ev' | 'fuel,ev'
   website TEXT,
   publishes_prices INTEGER NOT NULL DEFAULT 1,
-  note TEXT                            -- piem., Neste paziņojums
+  note TEXT                            -- e.g. Neste's announcement
 );
 
--- ADR-007: produktu kodu uzziņa. `is_road_legal = 0` (DSL_AGRO) nozīmē, ka lapā
--- šo produktu NEDRĪKST rādīt vienā sarakstā ar P95/P98/DSL bez skaidras atrunas.
+-- ADR-007: product code lookup. `is_road_legal = 0` (DSL_AGRO) means the site
+-- MUST NOT show this product in one list with P95/P98/DSL without a clear disclaimer.
 CREATE TABLE products (
   code TEXT PRIMARY KEY,
   label_lv TEXT NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE products (
 );
 
 CREATE TABLE stations (
-  id TEXT PRIMARY KEY,                 -- '{network}:{avota_id vai adreses_hash}'
+  id TEXT PRIMARY KEY,                 -- '{network}:{source_id or address_hash}'
   network_id TEXT NOT NULL REFERENCES networks(id),
   country TEXT NOT NULL DEFAULT 'LV',
   name TEXT, address TEXT, city TEXT, municipality TEXT,
@@ -36,14 +36,14 @@ CREATE TABLE sources (
   network_id TEXT REFERENCES networks(id),
   kind TEXT NOT NULL,                  -- 'fuel' | 'ev' | 'official' | 'electricity'
   source_type TEXT NOT NULL,           -- official_site | official_register | official_aggregate | crowd
-  attribution TEXT,                    -- piem., 'LEA; pirmavots: stacijas operators'
+  attribution TEXT,                    -- e.g. 'LEA; primary source: station operator'
   url TEXT NOT NULL,
   status TEXT NOT NULL,                -- todo | investigate | active | blocked | unpublished | disabled
   freshness_hours INTEGER NOT NULL DEFAULT 6,
   business_days_only INTEGER NOT NULL DEFAULT 0
 );
 
--- Katrs nolasījums (arī neveiksmīgs) - svaiguma un statusa lapas pamats.
+-- Every collection run (failed ones too) - the basis for freshness and the status page.
 CREATE TABLE scrape_runs (
   id INTEGER PRIMARY KEY,
   source_id TEXT NOT NULL REFERENCES sources(id),
@@ -54,7 +54,7 @@ CREATE TABLE scrape_runs (
 );
 CREATE INDEX idx_runs_source_time ON scrape_runs(source_id, started_at DESC);
 
--- Degvielas cenas: jauna rinda TIKAI tad, kad cena mainās (ADR-004).
+-- Fuel prices: a new row ONLY when the price changes (ADR-004).
 CREATE TABLE fuel_prices (
   id INTEGER PRIMARY KEY,
   network_id TEXT NOT NULL REFERENCES networks(id),
@@ -64,19 +64,19 @@ CREATE TABLE fuel_prices (
   price_milli INTEGER NOT NULL,        -- 1969 = 1,969 €/l (ADR-003)
   where_text TEXT,
   valid_from TEXT,
-  observed_at TEXT NOT NULL,           -- UTC, kad šī cena redzēta pirmoreiz
-  local_date TEXT NOT NULL,            -- Europe/Riga datums
+  observed_at TEXT NOT NULL,           -- UTC, when this price was first seen
+  local_date TEXT NOT NULL,            -- Europe/Riga date
   run_id INTEGER REFERENCES scrape_runs(id),
   flags TEXT                           -- 'jump', 'discount_day' … (ADR-006)
 );
 CREATE INDEX idx_fuel_latest ON fuel_prices(network_id, scope, product, observed_at DESC);
 CREATE INDEX idx_fuel_date ON fuel_prices(local_date, product);
 
--- EV tarifi (OCPI iedvesmots, vienkāršots).
+-- EV tariffs (inspired by OCPI, simplified).
 CREATE TABLE ev_tariffs (
   id INTEGER PRIMARY KEY,
   network_id TEXT NOT NULL REFERENCES networks(id),
-  station_id TEXT REFERENCES stations(id),   -- NULL = viss tīkls
+  station_id TEXT REFERENCES stations(id),   -- NULL = whole network
   current_type TEXT NOT NULL,          -- AC | DC
   power_min_kw REAL, power_max_kw REAL,
   connector TEXT,                      -- CCS2 | CHADEMO | TYPE2 | NULL
@@ -92,24 +92,24 @@ CREATE TABLE ev_tariffs (
   run_id INTEGER REFERENCES scrape_runs(id)
 );
 
--- Oficiālie nedēļas vidējie (EVA).
+-- Official weekly averages (EVA).
 CREATE TABLE official_weekly (
   week_monday TEXT NOT NULL, merchant TEXT NOT NULL, product TEXT NOT NULL REFERENCES products(code),
   avg_price_milli INTEGER NOT NULL, source_url TEXT NOT NULL,
   PRIMARY KEY (week_monday, merchant, product)
 );
 
--- Elektrības dienas tirgus cenas (uzlādei mājās; 6.-7. fāzes funkcija).
+-- Day-ahead electricity prices (for home charging; a phase 6-7 feature).
 CREATE TABLE electricity_prices (
   zone TEXT NOT NULL,                  -- 'LV' | 'LT' | 'EE'
   start_utc TEXT NOT NULL,
-  resolution_min INTEGER NOT NULL,     -- 60 vai 15
+  resolution_min INTEGER NOT NULL,     -- 60 or 15
   price_milli_per_mwh INTEGER NOT NULL,
   source_id TEXT NOT NULL REFERENCES sources(id),
   PRIMARY KEY (zone, start_utc, resolution_min)
 );
 
--- Dienas kopsavilkums: vēsture un čempionāts bez smagiem vaicājumiem.
+-- Daily summary: history and rankings without heavy queries.
 CREATE TABLE daily_fuel (
   local_date TEXT NOT NULL, network_id TEXT NOT NULL, product TEXT NOT NULL REFERENCES products(code),
   open_milli INTEGER, close_milli INTEGER, min_milli INTEGER, max_milli INTEGER,
@@ -117,7 +117,7 @@ CREATE TABLE daily_fuel (
   PRIMARY KEY (local_date, network_id, product)
 );
 
--- Notikumi grafikiem un nodokļu tabula cenu anatomijai.
+-- Events for charts and a tax table for the price breakdown.
 CREATE TABLE events (
   id INTEGER PRIMARY KEY, local_date TEXT NOT NULL,
   type TEXT NOT NULL,                  -- discount_day | tax_change | publishing_change | note

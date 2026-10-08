@@ -11,7 +11,7 @@ describe("parseFuelPlaces", () => {
 	});
 
 	it("NEsadala Straujupītes vienu vietu divās", () => {
-		// "Ainaži, Salacgrīvas nov." ir viena vieta - pagasts nav atsevišķa DUS.
+		// "Ainaži, Salacgrīvas nov." is one place - the parish is not a separate station.
 		expect(parseFuelPlaces("straujupite", "Ainaži, Salacgrīvas nov.")).toEqual([]);
 	});
 

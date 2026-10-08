@@ -5,13 +5,13 @@ import { formatPrice, type NetworkPrice, type ProductRow } from "../lib/prices";
 
 interface Props {
 	products: ProductRow[];
-	/** Paskaidrojums virs tabulas; sākumlapā to rāda tikai galvenajai tabulai. */
+	/** Explanation above the table; on the home page only the main table shows it. */
 	legend?: boolean;
 }
 
 const { products, legend = false } = Astro.props as Props;
 
-// Dati sakārtoti pēc produkta; tabulai sakārtojam pēc tīkla.
+// The data is grouped by product; the table is grouped by network.
 const networkIds = [...new Set(products.flatMap((row) => row.prices.map((p) => p.networkId)))];
 
 interface NetworkRow {
@@ -26,10 +26,10 @@ const rows: NetworkRow[] = networkIds.map((networkId) => {
 	return { networkId, networkName, cells };
 });
 
-// row.prices ir šķirots augoši (sk. getLatestFuelPrices), tāpēc [0] ir
-// lētākais katram produktam - izceļam attiecīgo šūnu un pārējās rādām
-// kā starpību pret to. Lasītājs gribēja zināt "cik es pārmaksāju", un
-// agrāk to vajadzēja rēķināt galvā.
+// row.prices is sorted ascending (see getLatestFuelPrices), so [0] is the
+// cheapest for each product - that cell is highlighted and the others show
+// the difference from it. Readers want to know "how much am I overpaying",
+// which used to take mental arithmetic.
 const cheapestByProduct = products.map((row) => row.prices[0] ?? null);
 ---
 
@@ -99,8 +99,8 @@ const cheapestByProduct = products.map((row) => row.prices[0] ?? null);
 		box-shadow: inset 3px 0 0 var(--color-cheapest-border);
 	}
 
-	/* Bez pasvītrojuma, bet saite paliek saite: krāsa, kursors un
-	   pasvītrojums uz hover/fokusu to joprojām parāda. */
+	/* No underline, but the link still reads as a link: the colour, cursor
+	   and underline on hover/focus still show it. */
 	.network-cell {
 		display: inline-flex;
 		align-items: center;
@@ -141,9 +141,9 @@ const cheapestByProduct = products.map((row) => row.prices[0] ?? null);
 		font-family: var(--font-body);
 	}
 
-	/* Ar peli "i" parādās tikai rindai, uz kuras ir kursors (vai kad tam ir
-	   fokuss) - agrāk tabulā bija ~25 aplīši, kas konkurēja ar cenām.
-	   Skārienekrānā hover nav, tur tie paliek redzami. */
+	/* With a mouse the "i" shows only on the row under the pointer (or when it
+	   has focus) - the table used to have ~25 circles competing with the
+	   prices. Touch screens have no hover, so there they stay visible. */
 	@media (hover: hover) {
 		.price-table :global(.price-info__trigger) {
 			opacity: 0;
@@ -162,19 +162,19 @@ const cheapestByProduct = products.map((row) => row.prices[0] ?? null);
 		background: var(--color-surface);
 	}
 
-	/* Uznirstošais panelis ir absolūti pozicionēts, tāpēc to nogrieztu
-	   jebkurš ritināšanas konteiners. Platā ekrānā tabula ietilpst un
-	   overflow nav vajadzīgs, tāpēc ļaujam panelim iziet ārpus rāmja;
-	   šaurā ekrānā tabulai ritināšana ir vajadzīga, un tur panelis
-	   parādās šūnā nevis virs tās (sk. PriceInfo). */
+	/* The popup panel is absolutely positioned, so any scroll container would
+	   clip it. On a wide screen the table fits and needs no overflow, so the
+	   panel may extend outside the frame; on a narrow screen the table has to
+	   scroll, and there the panel opens inside the cell instead of over it
+	   (see PriceInfo). */
 	@media (min-width: 60rem) {
 		.price-table {
 			overflow: visible;
 		}
 	}
 
-	/* Šaurā ekrānā tabula ritinās, un tīkla kolonna paliek vietā, lai būtu
-	   redzams, kuram tīklam cena pieder. */
+	/* On a narrow screen the table scrolls and the network column stays put,
+	   so it is always clear which network a price belongs to. */
 	@media (max-width: 59.99rem) {
 		.price-table th:first-child {
 			position: sticky;

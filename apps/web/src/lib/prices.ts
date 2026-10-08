@@ -1,6 +1,6 @@
-// Reāli D1 dati (aizstāj sample-data.ts, kas bija placeholder pirms kolektors
-// un ingest faktiski strādāja). Forma apzināti sakrīt ar to, ko lietoja
-// PriceCard/PriceTable, lai komponentes nemainītos, tikai datu avots.
+// Real D1 data (replaces sample-data.ts, the placeholder used before the
+// collector and ingest actually worked). The shape deliberately matches what
+// PriceCard/PriceTable used, so only the data source changed, not the components.
 
 export type AgeBucket = "today" | "1-2d" | "3-7d" | "older" | "unknown";
 export type Origin = "official_site" | "official_register" | "official_aggregate" | "crowd";
@@ -9,7 +9,7 @@ export interface NetworkPrice {
 	networkId: string;
 	networkName: string;
 	priceMilli: number;
-	changeMilli: number | null; // null = nav iepriekšējās cenas salīdzināšanai (pirmā novērošana)
+	changeMilli: number | null; // null = no previous price to compare with (first observation)
 	age: AgeBucket;
 	origin: Origin | null;
 	sourceUrl: string | null;
@@ -25,9 +25,8 @@ export interface ProductRow {
 }
 
 const PRODUCT_ORDER = ["P95", "P98", "DSL", "DSL_PLUS", "HVO", "LPG", "CNG", "ADBLUE", "E85", "DSL_AGRO"];
-// Nosaukumi tabulu galvenēm, kartītēm un sarakstiem. Agrāk tie bija "95",
-// "D" un "D+", kas blakus tīklu nosaukumiem (piem. kalkulatora sarakstā)
-// nebija saprotami.
+// Names for table headers, cards and lists. They used to be "95", "D" and
+// "D+", which were unclear next to network names (e.g. in the calculator list).
 export const PRODUCT_LABELS: Record<string, string> = {
 	P95: "Benzīns 95",
 	P98: "Benzīns 98",
@@ -38,10 +37,10 @@ export const PRODUCT_LABELS: Record<string, string> = {
 	CNG: "CNG",
 	ADBLUE: "AdBlue",
 	E85: "E85",
-	DSL_AGRO: "Agro dīzelis", // TODO(4. fāze, Virši): NEKAD nerādīt bez skaidras "nav vieglajām automašīnām" atrunas.
+	DSL_AGRO: "Agro dīzelis", // TODO(phase 4, Virši): NEVER show without a clear "not for passenger cars" disclaimer.
 };
 
-// Pilnie nosaukumi virsrakstiem un izvēlnēm, kur vietas pietiek.
+// Full names for headings and dropdowns, where there is room.
 export const PRODUCT_FULL_LABELS: Record<string, string> = {
 	P95: "Benzīns 95",
 	P98: "Benzīns 98",
@@ -73,9 +72,9 @@ export function formatPrice(priceMilli: number): string {
 	return (priceMilli / 1000).toFixed(3).replace(".", ",");
 }
 
-// Naudas summa (brauciena izmaksas, ietaupījums), nevis vienības cena: divi
-// cipari aiz komata un tūkstošu atdalītājs. formatPrice ar trim cipariem
-// der cenai par litru, bet "110,191 €" kā kopsumma lasās kā kļūda.
+// A sum of money (trip cost, savings) rather than a unit price: two decimals
+// and a thousands separator. formatPrice with three decimals suits a price per
+// litre, but "110,191 €" as a total reads like a mistake.
 const moneyFormat = new Intl.NumberFormat("lv-LV", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function formatMoney(milli: number): string {
@@ -132,8 +131,9 @@ export const ORIGIN_LABELS: Record<Origin, string> = {
 	crowd: "kopienas dati",
 };
 
-// Katrai (network_id, scope, product) grupai - jaunākā rinda UN tai
-// tieši iepriekšējā (LAG), lai varētu rādīt izmaiņu, tiklīdz ir >1 novērojums.
+// For each (network_id, scope, product) group: the latest row AND the one
+// right before it (LAG), so a change can be shown as soon as there is more
+// than one observation.
 const QUERY = `
 	WITH ranked AS (
 		SELECT
@@ -184,10 +184,11 @@ export function cheapest(row: ProductRow): NetworkPrice {
 	return row.prices[0];
 }
 
-// Cenu vēsture pēdējo 90 dienu laikā, VISIEM (network_id, scope, product)
-// vienā pieprasījumā - ne viens vaicājums par karti, sk. iepriekšējo mācību
-// ar EV tarifiem (D1 subrequest/rindu limiti). fuel_prices raksta rindu TIKAI
-// pie izmaiņām (ADR-004), tāpēc šī tabula paliek maza ilgi, pat ar plašu logu.
+// Price history for the last 90 days, for ALL (network_id, scope, product)
+// groups in one request - not one query per card, see the earlier lesson with
+// EV tariffs (D1 subrequest/row limits). fuel_prices only gets a row when a
+// price changes (ADR-004), so the table stays small for a long time even with
+// a wide window.
 const HISTORY_QUERY = `
 	SELECT network_id, scope, product, price_milli, observed_at
 	FROM fuel_prices

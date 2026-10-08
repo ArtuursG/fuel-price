@@ -1,10 +1,11 @@
 ---
-// Tīkla zīme. Logo faili ir tīklu pašu zīmoli, izmantoti tikai tīkla
-// atpazīšanai salīdzinājumā; tie nav mūsu īpašums un nav pārzīmēti.
+// A network's mark. The logo files are the networks' own brands, used only to
+// recognise a network in the comparison; they are not ours and are not redrawn.
 //
-// Ja faila nav (piem., Gotika lapa robots.txt liedz jebko lejupielādēt),
-// rādām burtu plāksnīti tīkla krāsā - tabulā tāpat vajag kaut ko vienāda
-// izmēra, un tukša vieta izskatītos pēc kļūdas.
+// When there is no file (e.g. Gotika's robots.txt forbids downloading
+// anything), a letter tile in the network's colour is shown instead - the
+// table still needs something of the same size, and an empty spot would look
+// like an error.
 import { logoForId } from "../lib/logos";
 
 interface Props {
@@ -15,9 +16,7 @@ interface Props {
 
 const { networkId, networkName, size = 24 } = Astro.props as Props;
 
-
-// Tīkliem bez logo paliek burtu plāksnīte - tabulā tāpat vajag kaut ko
-// vienāda izmēra, un tukša vieta izskatītos pēc kļūdas.
+// Tile colours for networks without a logo file; the rest fall back to neutral.
 const FALLBACK_COLORS: Record<string, string> = {};
 
 const file = logoForId(networkId);
@@ -45,6 +44,10 @@ const initials = networkName.slice(0, 2).toUpperCase();
 		height: var(--logo-size);
 		object-fit: contain;
 		vertical-align: middle;
+	}
+	img.network-logo {
+		border-radius: 3px;
+		background: var(--logo-tile);
 	}
 	.network-logo--text {
 		display: inline-grid;

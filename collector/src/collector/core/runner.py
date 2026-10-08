@@ -29,10 +29,11 @@ class FuelSource:
     url: str
     parser: Callable[[str], list[FuelPrice]]
     parser_version: str
-    # Dažam avotam cenas nav pašā lapā, bet gan otrā dokumentā, uz kuru lapa
-    # norāda (piem. KOOL Readymag "HtmlSnippet"). Šī funkcija no pirmās lapas
-    # atgriež otro URL; robots.txt tiek pārbaudīts arī tam. Parsētājs paliek
-    # tīra funkcija -- tīklošana notiek šeit, ne avota modulī.
+    # Some sources keep their prices not on the page itself but in a second
+    # document the page points to (e.g. the KOOL Readymag "HtmlSnippet"). This
+    # function returns that second URL from the first page; robots.txt is
+    # checked for it too. The parser stays a pure function -- networking
+    # happens here, not in the source module.
     follow: Callable[[str], str | None] | None = None
 
 

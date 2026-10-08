@@ -1,10 +1,11 @@
-// Tīklu zīmolu attēli. Faili ir tīklu pašu logo, izmantoti tikai tīkla
-// atpazīšanai salīdzinājumā. Lielākā daļa ņemta no attiecīgā tīkla lapas,
-// kur robots.txt to atļauj; Gotikas un KOOL failus iedeva lapas īpašnieks,
-// jo gotikaauto.lv atbild ar "Disallow: /" un no turienes neko neņemam.
+// Network brand images. The files are the networks' own logos, used only to
+// recognise a network in the comparison. Most come from the network's own
+// site where robots.txt allows it; the Gotika and KOOL files were provided by
+// the site owner, since gotikaauto.lv answers with "Disallow: /" and nothing
+// is taken from there.
 //
-// Viens saraksts abām vietām: lapas komponentei (pēc tīkla id) un kartei
-// (pēc tīkla nosaukuma, jo staciju avotos id nav).
+// One list for both uses: the page component (by network id) and the map (by
+// network name, since station sources have no id).
 
 export const LOGO_BY_ID: Record<string, string> = {
 	astarte: "/logos/astarte.png",
@@ -22,7 +23,7 @@ export const LOGO_BY_ID: Record<string, string> = {
 	virsi: "/logos/virsi.png",
 };
 
-// Nosaukumi tādi, kādus atgriež canonicalNetwork() (sk. station-map.ts).
+// Names as returned by canonicalNetwork() (see station-map.ts).
 const ID_BY_NAME: Record<string, string> = {
 	"circle k": "circlek",
 	viada: "viada",

@@ -1,7 +1,7 @@
 """Shared HTTP client: fixed timeout, capped retries with backoff, a
 descriptive User-Agent, and conditional-request helpers (ETag / Last-Modified).
 
-Projekta konvencija: taimauts ~20s, ne vairāk kā 2 atkārtojumi ar pieaugošu pauzi.
+Project convention: ~20s timeout, at most 2 retries with a growing pause.
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ import time
 
 import httpx
 
-# TODO(pirms publicēšanas): nomainīt uz reālu domēnu un kontaktu, kad tas ir izvēlēts
-# (pagaidām letadegviela.lv ir tikai darba placeholderis, sk. docs/IZPETE.md 11).
+# TODO(before launch): replace with the real domain and contact once chosen
+# (letadegviela.lv is only a working placeholder for now, see docs/IZPETE.md 11).
 DEFAULT_USER_AGENT = "fuel-price-lv/0.1 (+https://letadegviela.lv; contact: TODO)"
 DEFAULT_TIMEOUT = 20.0
 MAX_RETRIES = 2

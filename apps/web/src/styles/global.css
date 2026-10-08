@@ -1,4 +1,5 @@
-/* Datu pārskats: balts fons, tintes teksts, zils akcents. */
+/* Data overview: white background, ink text, blue accent. A dark variant
+   follows the system setting (see the media query below). */
 :root {
   --color-bg: #ffffff;
   --color-surface: #f3f5f7;
@@ -7,23 +8,64 @@
   --color-border: #d7dfe5;
   --color-pylon: #245779;
   --color-pylon-ink: #ffffff;
-  /* Lētākā cena ir zaļa -- tā ir lapas galvenā ziņa, un zaļš to atdala no
-     pārējās zilās saskarnes. Sakrīt ar --color-down (cena nokritusi). */
+  /* The cheapest price is green -- it is the page's main message, and green
+     sets it apart from the otherwise blue interface. Same as --color-down
+     (price fell). */
   --color-cheapest-bg: #e3f1e8;
   --color-cheapest-border: #296448;
   --color-cheapest-ink: #1d5138;
   --color-down: #296448;
   --color-up: #a13838;
   --color-neutral: #65737f;
+  --color-pylon-hover: #1c4663;
+  --color-selection: #dbe8f1;
+  --shadow-popup: 0 6px 18px rgb(32 43 53 / 0.14);
+  --shadow-edge: rgb(32 43 53 / 0.16);
+  /* Network logos are drawn for a white page; in the dark theme they get a
+     white tile so dark lettering does not disappear. */
+  --logo-tile: transparent;
+
+  /* Map markers sit on a light basemap in both themes, so their colours do
+     not switch with the page. */
+  --color-mark-fuel: #245779;
+  --color-mark-ev: #296448;
+  --color-mark-ink: #202b35;
 
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, monospace;
 
-  /* Viens stūra rādiuss tabulām, laukiem un pogām - iepriekš katra lapa
-     lika savu (0, 4px vai 6px). */
+  /* One corner radius for tables, fields and buttons - each page used to
+     set its own (0, 4px or 6px). */
   --radius: 4px;
 
   color-scheme: light;
+}
+
+/* Same roles, lighter ink on a dark blue-grey. Every text pair keeps at least
+   6:1 contrast; the accent colours are lighter so they still read on dark. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #14191e;
+    --color-surface: #1c242b;
+    --color-ink: #e4eaef;
+    --color-ink-muted: #9eacb8;
+    --color-border: #33404b;
+    --color-pylon: #7db4dc;
+    --color-pylon-ink: #0d1a24;
+    --color-pylon-hover: #a3cbe8;
+    --color-cheapest-bg: #173426;
+    --color-cheapest-border: #62c690;
+    --color-cheapest-ink: #93d9ad;
+    --color-down: #62c690;
+    --color-up: #f28b8b;
+    --color-neutral: #8d9aa5;
+    --color-selection: #2b4a63;
+    --shadow-popup: 0 6px 18px rgb(0 0 0 / 0.45);
+    --shadow-edge: rgb(0 0 0 / 0.55);
+    --logo-tile: #ffffff;
+
+    color-scheme: dark;
+  }
 }
 
 * {
@@ -45,10 +87,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Virsrakstu mērogs definēts VIENUVIET, nevis katrā lapā atsevišķi -- pirms
-   tam sākumlapa un karte lietoja lielo stilu, bet pārējās astoņas lapas bija
-   palikušas ar veco 1.5rem variantu, tāpēc vietne nejutās kā viens veselums.
-   Lapas drīkst pārrakstīt tikai atkāpes, kur izkārtojums to prasa. */
+/* The heading scale is defined in ONE place rather than per page -- before,
+   the home page and the map used the large style while the other eight pages
+   kept the old 1.5rem version, so the site did not feel like one whole.
+   Pages may only override margins where the layout needs it. */
 h1 {
   font-size: clamp(1.7rem, 4vw, 2.5rem);
   letter-spacing: -0.04em;
@@ -68,8 +110,8 @@ a {
   text-decoration-thickness: 1px;
 }
 
-/* Fokusa rāmis lieto zilo akcentu, nevis "lētākās cenas" zaļo -- tās ir
-   divas atsevišķas nozīmes un nedrīkst dalīt vienu mainīgo. */
+/* The focus ring uses the blue accent, not the "cheapest price" green --
+   they are two separate meanings and must not share one variable. */
 :focus-visible {
   outline: 3px solid var(--color-pylon);
   outline-offset: 2px;
@@ -88,7 +130,7 @@ table {
 }
 
 body { font-variant-numeric: tabular-nums; }
-::selection { background: #dbe8f1; }
+::selection { background: var(--color-selection); }
 
 .sr-only {
   position: absolute;
@@ -99,8 +141,8 @@ body { font-variant-numeric: tabular-nums; }
   white-space: nowrap;
 }
 
-/* Ievadteksts zem virsraksta un sīkā piezīme lapas apakšā. Lapas drīkst
-   mainīt tikai atkāpes. */
+/* Intro text under the heading and the small note at the bottom of a page.
+   Pages may only change the margins. */
 .intro {
   color: var(--color-ink-muted);
   max-width: 42rem;
@@ -113,19 +155,19 @@ body { font-variant-numeric: tabular-nums; }
   margin: 1.5rem 0 0;
 }
 
-/* Datu tabulas. Agrāk šie stili bija nokopēti piecās lapās ar sīkām
-   atšķirībām (galvene ar un bez lielajiem burtiem, lētākā šūna ar ēnu vai
-   ar apmalēm abās pusēs), tāpēc katra lapa izskatījās mazliet citāda. */
-/* Ēna labajā malā, kamēr tabulai ir neredzama daļa pa labi: pirmais
-   slānis ("local") ritinās līdzi saturam un ēnu aizsedz, kad sasniegta
-   beigu mala; otrais ("scroll") stāv uz vietas. */
+/* Data tables. These styles used to be copied across five pages with small
+   differences (header with and without capitals, the cheapest cell with a
+   shadow or with borders on both sides), so every page looked a bit different. */
+/* A shadow at the right edge while part of the table is hidden to the right:
+   the first layer ("local") scrolls with the content and covers the shadow
+   once the end is reached; the second ("scroll") stays in place. */
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background:
-    linear-gradient(to left, var(--color-bg) 40%, rgb(255 255 255 / 0)) right / 2.5rem 100% no-repeat local,
-    radial-gradient(farthest-side at 100% 50%, rgb(32 43 53 / 0.16), transparent) right / 0.9rem 100% no-repeat scroll,
+    linear-gradient(to left, var(--color-bg) 40%, transparent) right / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, var(--shadow-edge), transparent) right / 0.9rem 100% no-repeat scroll,
     var(--color-bg);
 }
 .table-wrap table {
@@ -158,7 +200,7 @@ body { font-variant-numeric: tabular-nums; }
 .table-wrap tbody:last-of-type > tr:last-child > * {
   border-bottom: none;
 }
-/* Monospace tikai skaitļiem - adreses un nosaukumi tajā lasās slikti. */
+/* Monospace only for numbers - addresses and names read poorly in it. */
 .table-wrap .num {
   font-family: var(--font-mono);
 }
@@ -196,7 +238,7 @@ body { font-variant-numeric: tabular-nums; }
   border-color: var(--color-up);
 }
 
-/* Ievadlauki un pogas. Lapām atliek tikai izkārtojums. */
+/* Input fields and buttons. Pages only handle the layout. */
 .field {
   display: flex;
   flex-direction: column;
@@ -263,5 +305,6 @@ body { font-variant-numeric: tabular-nums; }
   color: var(--color-pylon-ink);
 }
 .button--primary:hover {
-  background: #1c4663;
+  border-color: var(--color-pylon-hover);
+  background: var(--color-pylon-hover);
 }

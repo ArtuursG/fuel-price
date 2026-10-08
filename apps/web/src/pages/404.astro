@@ -1,0 +1,32 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+// Anyone landing here followed an old or mistyped link; point them to the
+// pages people come for instead of leaving them at a dead end.
+const LINKS = [
+	{ href: "/", label: "Degvielas cenas šodien" },
+	{ href: "/karte/", label: "Staciju karte" },
+	{ href: "/kalkulators/", label: "Kalkulators" },
+	{ href: "/ev/", label: "EV uzlāde" },
+];
+---
+
+<Layout title="Lapa nav atrasta - degvielas cenas">
+	<h1>Lapa nav atrasta</h1>
+	<p class="intro">Šādas lapas nav, vai tā ir pārvietota. Varbūt meklēji kādu no šīm:</p>
+	<ul class="links">
+		{LINKS.map((link) => (
+			<li>
+				<a href={link.href}>{link.label}</a>
+			</li>
+		))}
+	</ul>
+</Layout>
+
+<style>
+	.links {
+		margin: 0;
+		padding-left: 1.2rem;
+		line-height: 2;
+	}
+</style>

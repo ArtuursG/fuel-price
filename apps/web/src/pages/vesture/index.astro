@@ -6,8 +6,8 @@ import { buildDailySeries, dayKeys, getProductHistory } from "../../lib/history"
 import { PRODUCT_FULL_LABELS } from "../../lib/prices";
 
 const DAYS = 30;
-// Tikai tie produkti, kuriem ir vērts salīdzināt tīklus. DSL_AGRO nav uz
-// ceļiem legāls (sk. lib/prices.ts), tāpēc te tā nav.
+// Only the products where comparing networks is worthwhile. DSL_AGRO is not
+// road-legal (see lib/prices.ts), so it is not here.
 const CHART_PRODUCTS = ["P95", "P98", "DSL", "DSL_PLUS", "LPG"];
 
 const days = dayKeys(DAYS, new Date());
@@ -26,7 +26,7 @@ const charts = await Promise.all(
 const withData = charts.filter((c) => c.series.length > 0);
 ---
 
-<Layout title="Cenu vēsture - degvielas cenas">
+<Layout title="Cenu vēsture - degvielas cenas" description="Kā degvielas cenas Latvijas tīklos mainījušās pēdējās 30 dienās.">
 	<h1>Cenu vēsture</h1>
 
 	<p class="intro">
@@ -41,7 +41,7 @@ const withData = charts.filter((c) => c.series.length > 0);
 			<div id="product-tabs" class="product-tabs" hidden>
 				<label class="field">
 					Degviela
-					<select id="product-select">
+					<select id="product-select" data-remember="product">
 						{withData.map((chart) => (
 							<option value={chart.product}>{chart.label}</option>
 						))}
@@ -59,11 +59,13 @@ const withData = charts.filter((c) => c.series.length > 0);
 	)}
 
 	<script>
-		// Bez JS paliek visi grafiki cits zem cita - tie ir pilnvērtīgi.
-		// Ar JS tie pārtop par vienu grafiku ar degvielas izvēli, un virsraksts
-		// paliek tikai ekrānlasītājam, jo izvēlne jau saka to pašu.
-		// Workers globālais `Element` (HTMLRewriter) sajaucas ar DOM `Element`,
-		// tāpēc ejam caur `unknown`.
+		import { rememberFields } from "../../scripts/remember-fields";
+
+		// Without JS all charts stay stacked one under another - they are complete.
+		// With JS they become one chart with a fuel selector, and the heading is
+		// kept for screen readers only, since the selector already says the same.
+		// The Workers global `Element` (HTMLRewriter) clashes with the DOM
+		// `Element`, so this goes through `unknown`.
 		const tabs = document.getElementById("product-tabs") as unknown as HTMLElement | null;
 		const select = document.getElementById("product-select") as unknown as HTMLSelectElement | null;
 		const panels = Array.from(document.querySelectorAll<HTMLElement>(".chart-section"));
@@ -71,6 +73,8 @@ const withData = charts.filter((c) => c.series.length > 0);
 		if (tabs && select && panels.length > 1) {
 			tabs.hidden = false;
 			for (const panel of panels) panel.querySelector("h2")?.classList.add("sr-only");
+			// Opens on the driver's own fuel, if the calculator already knows it.
+			rememberFields();
 
 			const show = (product: string) => {
 				for (const panel of panels) {

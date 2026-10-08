@@ -4,7 +4,7 @@ records out -- the two fetches it needs are done by the runner, not here.
 Source structure (confirmed 2026-09-20; robots.txt has no Disallow rules):
 https://www.kool.lv/degviela/ is a Readymag-built page whose server HTML
 contains NO prices at all (zero occurrences of "EUR" or a euro sign). The
-0. fāze note "nezinām, vai KOOL vispār publicē cenas" was right about the
+phase 0 note "we don't know whether KOOL publishes prices at all" was right about the
 shell but wrong about the conclusion: the prices DO exist, in a separate
 Readymag "HtmlSnippet" document that the page's viewer fetches at runtime.
 That snippet's URL is present in the served HTML, so no browser or JS
@@ -30,9 +30,10 @@ paragraph is read.
 The page mixes decimal separators between cells on the same row ("1,947"
 next to "2.017"), so both are accepted.
 
-Scope is "cheapest": the page itself says "Zemākās cenas DUS tīklā" and
-warns the price "var mainīties vairākkārtīgi dienas laikā un atšķirties
-dažādās stacijās", so this is a network-wide low, not a station price.
+Scope is "cheapest": the page itself says "Zemākās cenas DUS tīklā" (lowest
+prices in the station network) and warns the price "var mainīties vairākkārtīgi
+dienas laikā un atšķirties dažādās stacijās" (may change several times a day
+and differ between stations), so this is a network-wide low, not a station price.
 """
 
 from __future__ import annotations
@@ -49,8 +50,8 @@ SOURCE_ID = "kool-fuel-web"
 NETWORK_ID = "kool"
 URL = "https://www.kool.lv/degviela/"
 
-# Produktu apzīmējumi lapā; "*" un "**" ir atsauču zīmes uz staciju sarakstu,
-# nevis daļa no nosaukuma.
+# Product labels on the page; "*" and "**" are footnote marks pointing to the
+# station list, not part of the name.
 PRODUCT_MAP = {
     "95E": "P95",
     "98": "P98",
@@ -58,8 +59,8 @@ PRODUCT_MAP = {
     "KOOL PREMIUM DIESEL": "DSL_PLUS",
 }
 
-# Cena tiek pieņemta tikai šajā diapazonā -- pasargā no tā, ka izkārtojuma
-# maiņa klusi ievelk kādu citu skaitli (gadu, telefona daļu) kā cenu.
+# A price is accepted only within this range -- guards against a layout change
+# silently pulling in some other number (a year, part of a phone number) as a price.
 MIN_PRICE_MILLI = 500
 MAX_PRICE_MILLI = 4000
 
@@ -116,7 +117,7 @@ def parse(snippet_html: str) -> list[FuelPrice]:
         text = _widget_text(fragment)
         if not text:
             continue
-        left = round(float(left_raw) / 10) * 10  # kolonnas sakrīt ~1-2px robežās
+        left = round(float(left_raw) / 10) * 10  # columns line up within ~1-2px
 
         price_milli = _parse_price_milli(text)
         if price_milli is not None:

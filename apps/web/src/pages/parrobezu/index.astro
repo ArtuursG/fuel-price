@@ -17,8 +17,8 @@ function cheapestCountry(prices: Partial<Record<BorderCountry, number>>): Border
 	return min;
 }
 
-// Starpība pret Latviju - lasītājs šeit grib zināt, vai pāri robežai ir
-// lētāk un par cik. Mīnuss nozīmē lētāk nekā Latvijā.
+// Difference from Latvia - the reader here wants to know whether it is
+// cheaper across the border and by how much. Minus means cheaper than Latvia.
 function diffFromLatvia(prices: Partial<Record<BorderCountry, number>>, country: BorderCountry): number | null {
 	const lv = prices.LV;
 	const other = prices[country];
@@ -26,14 +26,14 @@ function diffFromLatvia(prices: Partial<Record<BorderCountry, number>>, country:
 	return other - lv;
 }
 
-// Ciparu datums, jo vārdiskais ("14. septembris") teikumā "nedēļā, kas
-// sākas ..." prasītu lokatīvu, ko Intl nedod.
+// A numeric date, because a written one ("14. septembris") in the sentence
+// "nedēļā, kas sākas ..." would need the locative case, which Intl does not give.
 function formatWeek(weekMonday: string): string {
 	return new Date(`${weekMonday}T00:00:00Z`).toLocaleDateString("lv-LV", { timeZone: "UTC" });
 }
 ---
 
-<Layout title="Pārrobežu cenas - degvielas cenas">
+<Layout title="Pārrobežu cenas - degvielas cenas" description="Degvielas vidējās cenas Latvijā, Lietuvā un Igaunijā vienā tabulā.">
 	<h1>Latvija, Lietuva un Igaunija</h1>
 
 	{comparison.rows.length === 0 ? (

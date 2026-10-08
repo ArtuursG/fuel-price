@@ -13,14 +13,15 @@ const [tariffs, allSources] = await Promise.all([getEvTariffSummary(env.DB), get
 // itself was never fetched) - exclude those so the page doesn't show a
 // network as both priced above and "still being investigated" below.
 const networksWithData = new Set(tariffs.map((t) => t.networkName));
-// Tikai īsti tīkli - reģistri bez tīkla (piem. NAP) te neko nepasaka.
+// Only real networks - registers without a network (e.g. NAP) say nothing here.
 const pendingEvSources = allSources.filter(
 	(s) => s.kind === "ev" && s.status !== "active" && s.networkName !== null && !networksWithData.has(s.networkName),
 );
 
-// Viena tīkla rindas kopā: tīkls ir tas, ko lasītājs izvēlas, savienotājs -
-// detaļa. Tīkli sakārtoti pēc lētākās €/kWh cenas; tīkli ar tikai minūšu
-// tarifu nāk beigās, jo tos ar €/kWh tieši salīdzināt nevar.
+// One network's rows together: the network is what the reader chooses, the
+// connector is a detail. Networks are sorted by their cheapest €/kWh price;
+// networks with only a per-minute tariff come last, since they cannot be
+// compared with €/kWh directly.
 const CONNECTOR_ORDER = ["CCS2", "CHADEMO", "TYPE2"];
 const byNetwork = new Map<string, EvTariffSummary[]>();
 for (const t of tariffs) byNetwork.set(t.networkId, [...(byNetwork.get(t.networkId) ?? []), t]);
@@ -40,8 +41,9 @@ const groups = [...byNetwork.values()]
 	})
 	.sort((a, b) => (a.minEnergy ?? Infinity) - (b.minEnergy ?? Infinity) || a.networkName.localeCompare(b.networkName, "lv"));
 
-// Lētākā €/kWh cena atsevišķi ātrajai (DC) un parastajai (AC) uzlādei -
-// tās ir divas dažādas izvēles, un viena kopēja "lētākā" vienmēr būtu AC.
+// The cheapest €/kWh price separately for fast (DC) and regular (AC)
+// charging - they are two different choices, and a single shared "cheapest"
+// would always be AC.
 const cheapestByCurrent = new Map<string, number>();
 for (const t of tariffs) {
 	if (t.minEnergyMilliPerKwh === null) continue;
@@ -54,7 +56,7 @@ const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.
 ---
 
 
-<Layout title="EV uzlāde - degvielas cenas">
+<Layout title="EV uzlāde - degvielas cenas" description="Lētākie EV uzlādes tarifi Latvijas uzlādes tīklos pa savienotāju tipiem.">
 	<h1>EV uzlāde</h1>
 
 	{tariffs.length === 0 ? (
@@ -89,7 +91,7 @@ const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.
 										</th>
 									)}
 									<td>
-										{/* Bez savienotāja (piem. Eleport) - tarifs visai strāvas grupai. */}
+										{/* No connector (e.g. Eleport) - the tariff covers the whole current group. */}
 										{t.connector && (CONNECTOR_LABELS[t.connector] ?? t.connector)}
 										<span class="current" data-current={t.currentType} data-alone={t.connector ? undefined : ""}>
 											{t.currentType === "DC" ? "DC ātrā" : "AC"}
@@ -163,7 +165,7 @@ const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.
 		color: var(--color-pylon);
 		text-decoration: underline;
 	}
-	/* Tīkla rindu grupa: iekšā tikai gaiša līnija, starp tīkliem - pilna. */
+	/* A network's row group: only a light line inside, a full one between networks. */
 	.grouped th[scope="rowgroup"] {
 		vertical-align: top;
 	}
@@ -185,8 +187,8 @@ const hasTimeTariffs = tariffs.some((t) => t.minEnergyMilliPerKwh === null && t.
 		color: var(--color-ink);
 		font-weight: 600;
 	}
-	/* Telefonā tīkla nosaukums drīkst lūzt un strāvas tips ir zem
-	   savienotāja, lai cenas kolonna ietilptu ekrānā. */
+	/* On a phone the network name may wrap and the current type sits under
+	   the connector, so the price column fits on the screen. */
 	@media (max-width: 40rem) {
 		.grouped th[scope="rowgroup"] {
 			white-space: normal;

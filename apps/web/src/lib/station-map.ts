@@ -34,9 +34,9 @@ export interface MapStation {
   fuelPrices?: (NetworkPrice & {product: string; label: string})[];
 }
 
-// Sarakstā rādāmais tarifs: lētākais no tiem, kas atbilst savienotāja un
-// jaudas filtram. €/kWh un €/min nevar salīdzināt, tāpēc €/kWh tarifiem ir
-// priekšroka, un minūšu tarifs tiek ņemts tikai tad, ja citu nav.
+// The tariff shown in the list: the cheapest of those matching the connector
+// and power filter. €/kWh and €/min cannot be compared, so €/kWh tariffs take
+// precedence and a per-minute tariff is used only when there is no other.
 export function cheapestMatchingTariff(tariffs: MapTariff[], connector: string, minPower: number): {tariff: MapTariff; matches: number} | null {
   const matching = tariffs.filter((t) => (!connector || t.connector === connector) && (!minPower || (t.power ?? 0) >= minPower));
   if (!matching.length) return null;
@@ -104,8 +104,8 @@ export function tariffText(tariff: MapTariff): string {
   return parts.join("; ");
 }
 
-// Abas saites nes TIKAI galamērķi, nevis lietotāja atrašanās vietu - maršrutu
-// aprēķina pati lietotne, mēs neko par lietotāju neizpaužam.
+// Both links carry ONLY the destination, never the user's location - the app
+// itself works out the route, and nothing about the user is disclosed.
 export function routeUrl(station: Pick<MapStation, "lat" | "lon">): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}`;
 }

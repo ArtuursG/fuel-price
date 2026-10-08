@@ -122,7 +122,7 @@ describe("buildCityOrigins", () => {
 	});
 
 	it("izlaiž pilsētu ar par maz stacijām", () => {
-		// Cēsīs ir viena stacija, tāpēc vidējais punkts būtu tikai tā stacija.
+		// Cēsis has one station, so its mean point would be just that station.
 		expect(buildCityOrigins(stations).map((c) => c.name)).not.toContain("Cēsis");
 		expect(buildCityOrigins(stations, 1).map((c) => c.name)).toContain("Cēsis");
 	});

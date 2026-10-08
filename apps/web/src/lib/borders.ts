@@ -1,8 +1,9 @@
-// Pārrobežu (LV/LT/EE) nedēļas vidējo cenu salīdzinājums, no EU Weekly Oil
-// Bulletin (sk. collector/src/collector/sources/official/eu_weekly_oil_bulletin.py).
-// Ikdienas Lietuvas staciju līmeņa dati (LEA) paliek bloķēti - šī lapa
-// apzināti sākas ar ŠO (nedēļas vidējās, visām trim valstīm no VIENA avota,
-// tāpēc savstarpēji salīdzināmas), nevis gaida LEA (sk. docs/PLAN.md 7. fāze).
+// Cross-border (LV/LT/EE) comparison of weekly average prices, from the EU
+// Weekly Oil Bulletin (see collector/src/collector/sources/official/eu_weekly_oil_bulletin.py).
+// Daily station-level data for Lithuania (LEA) is still blocked - this page
+// deliberately starts with THIS (weekly averages for all three countries from
+// ONE source, so they are comparable with each other) instead of waiting for
+// LEA (see docs/PLAN.md phase 7).
 
 export type BorderCountry = "LV" | "LT" | "EE";
 
@@ -33,8 +34,8 @@ interface BorderQueryRow {
 const PRODUCT_ORDER = ["P95", "DSL", "LPG"];
 const PRODUCT_LABELS: Record<string, string> = { P95: "Benzīns 95", DSL: "Dīzeļdegviela", LPG: "Gāze (LPG)" };
 
-// Tikai jaunākā zināmā nedēļa - vecāku nedēļu vēsture pagaidām nav rādīta
-// (var pievienot vēlāk, ja vajag trendu skatu).
+// Only the latest known week - history of older weeks is not shown yet
+// (can be added later if a trend view is needed).
 const QUERY = `
 	SELECT week_monday, merchant, product, avg_price_milli
 	FROM official_weekly

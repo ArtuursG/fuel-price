@@ -2,11 +2,13 @@
 .dev.vars
 .env
 
-# Iekšējie plānošanas/izpētes un izstrādes noteikumu dokumenti -- paliek
-# lokāli, NETIEK pushoti publiskajā repo (konkurentu analīze, avotu izpēte,
-# lēmumu vēsture, izstrādes konvencijas).
+# Internal planning, research and working notes stay local and are not
+# pushed to the public repo (competitor analysis, source research, decision
+# history, development conventions). README.md is the only published
+# Markdown file at the root.
 docs/
-CLAUDE.md
+/*.md
+!/README.md
 
 # Python
 __pycache__/

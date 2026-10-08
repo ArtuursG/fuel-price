@@ -1,6 +1,6 @@
-// Tīklu saraksts un pamatinformācija - pamats "tīklu lapām", kas ir
-// obligāts rezultāts pēc docs/PROMPT_START.md "Galarezultāts" saraksta, bet
-// vēl nebija uzbūvēts.
+// The network list and basic details - the basis for the network pages,
+// which are a required deliverable in the docs/PROMPT_START.md "Final result"
+// list but had not been built yet.
 
 export interface NetworkInfo {
 	id: string;

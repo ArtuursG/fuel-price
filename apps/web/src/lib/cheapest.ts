@@ -1,18 +1,19 @@
-// Lētāko cenu piesaiste konkrētām stacijām kartē.
+// Ties the cheapest prices to specific stations on the map.
 //
-// Problēma: cena un stacija nāk no divām dažādām vietām. Cena nāk no tīkla
-// lapas ar brīva teksta adresi ("Brīvības gatve 297, Rīga, LV-1006"),
-// stacija - no OpenStreetMap ar savu adreses pierakstu. Tās jāsavieno pēc
-// teksta, un teksts nesakrīt burtiski: atšķiras pasta indeksi, pieturzīmes,
-// un OSM tīkla nosaukums mēdz būt cits ("Virši-A" pret "Virši").
+// The problem: the price and the station come from two different places. The
+// price comes from the network's site with a free-text address ("Brīvības
+// gatve 297, Rīga, LV-1006"), the station from OpenStreetMap with its own way
+// of writing the address. They have to be joined on text, and the text does
+// not match literally: postcodes and punctuation differ, and the OSM network
+// name can be different too ("Virši-A" vs "Virši").
 //
-// Tāpēc saskaņošana prasa gan mājas numuru, gan vismaz vienu kopīgu ielas
-// vārdu. Tikai numurs būtu par vāju (katrā pilsētā ir "10"), tikai ielas
-// vārds arī (vienā ielā mēdz būt vairākas stacijas).
+// So a match requires both the house number and at least one shared street
+// word. The number alone would be too weak (every city has a "10"), and so
+// would the street word alone (one street can have several stations).
 //
-// Kur sakritības nav, stacija NETIEK izcelta un cena nonāk `unlocated`
-// sarakstā, lai lapa to pateiktu skaidri. Nepareizi izcelta stacija ir
-// sliktāka par neizceltu: cilvēks aizbrauktu uz nepareizo pusi.
+// Where nothing matches, the station is NOT highlighted and the price ends up
+// in the `unlocated` list, so the page can say so plainly. A wrongly
+// highlighted station is worse than none: people would drive the wrong way.
 
 import { parseFuelPlaces } from "./places";
 import type { NetworkPrice, ProductRow } from "./prices";
@@ -27,9 +28,9 @@ export function normalizeAddress(value: string): string {
 		.trim();
 }
 
-// Pirmais skaitlis adresē ir mājas numurs; tālāk tekstā var būt pasta
-// indekss vai citi cipari. Burts uzreiz aiz cipara pieder numuram ("25a"),
-// bet aiz atstarpes - vairs ne ("297 Rīga").
+// The first number in an address is the house number; later in the text
+// there may be a postcode or other digits. A letter right after the digits
+// belongs to the number ("25a"), but not after a space ("297 Rīga").
 export function houseNumber(value: string): string | null {
 	const match = normalizeAddress(value).match(/\b\d+[\p{L}]?\b/u);
 	return match ? match[0] : null;
@@ -58,7 +59,7 @@ export function addressMatches(priceAddress: string, stationAddress: string): bo
 	return false;
 }
 
-/** Lētākā cena katram produktam. row.prices ir šķirots augoši (sk. getLatestFuelPrices). */
+/** The cheapest price per product. row.prices is sorted ascending (see getLatestFuelPrices). */
 export function cheapestByProduct(products: ProductRow[]): Map<string, NetworkPrice> {
 	const cheapest = new Map<string, NetworkPrice>();
 	for (const row of products) {
@@ -73,17 +74,17 @@ export interface Highlight {
 	networkName: string;
 	priceMilli: number;
 	stationCount: number;
-	/** Vai izceltā ir absolūti lētākā, vai lētākā, ko izdevās novietot. */
+	/** Whether the highlighted price is the absolute cheapest or the cheapest that could be placed. */
 	isAbsoluteCheapest: boolean;
-	/** Aizpildīts tikai tad, ja lētākā nav novietojama. */
+	/** Only filled in when the cheapest cannot be placed. */
 	cheaperNetworkName: string | null;
 	cheaperPriceMilli: number | null;
 }
 
 export interface CheapestMarks {
-	/** Stacijas id -> produkti, kuriem tur ir izceltā cena. */
+	/** Station id -> products that have the highlighted price there. */
 	byStation: Map<string, string[]>;
-	/** Pa vienam ierakstam katram produktam, ko izdevās novietot. */
+	/** One entry per product that could be placed. */
 	highlights: Highlight[];
 }
 
@@ -94,11 +95,11 @@ interface StationLike {
 	address: string;
 }
 
-// Lētākā cena ne vienmēr ir piesienama stacijai: avots mēdz nosaukt tikai
-// pagastu ("Ainaži, Salacgrīvas nov."), un tādas stacijas kartes datos nav.
-// Tādā gadījumā ejam pa cenu sarakstu uz augšu līdz pirmajai, ko IZDODAS
-// novietot, un pasakām, ka lētākā ir citur. Citādi tieši tie divi produkti,
-// kas cilvēkus interesē visvairāk, kartē nebūtu izceļami vispār.
+// The cheapest price cannot always be tied to a station: a source may name
+// only a parish ("Ainaži, Salacgrīvas nov."), and the map data has no such
+// station. In that case we walk up the price list to the first one that CAN
+// be placed, and say that the cheapest is elsewhere. Otherwise the very two
+// products people care about most could not be highlighted on the map at all.
 export function markCheapestStations(
 	stations: StationLike[],
 	products: ProductRow[],
@@ -147,7 +148,7 @@ function locateStations(
 		(station) => station.kind === "fuel" && canonical(station.network) === price.networkName,
 	);
 
-	// Tīkla mēroga cena ir spēkā visur, tāpēc adrese nav jāmeklē.
+	// A network-wide price applies everywhere, so there is no address to match.
 	if (price.scope === "network") return networkStations;
 
 	const places = parseFuelPlaces(price.networkId, price.whereText);

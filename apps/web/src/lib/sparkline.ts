@@ -1,13 +1,13 @@
-// Mazais cenu grafiks kartītē. Tīri aprēķini, atdalīti no komponentes, lai
-// tos var testēt bez DOM (tāpat kā lib/calculator.ts).
+// The small price chart on a card. Pure calculations, kept apart from the
+// component so they can be tested without a DOM (like lib/calculator.ts).
 //
-// Divas formas, viens mērogs:
-//   "area" - līnija ar pildījumu un izceltu pēdējo punktu (izmantotā)
-//   "bars" - viens stabiņš par novērojumu, krāsots pēc dienas virziena
+// Two shapes, one scale:
+//   "area" - a line with a fill and a highlighted last point (in use)
+//   "bars" - one bar per observation, coloured by that day's direction
 //
-// Formu izvēlas SPARKLINE_STYLE; pāreja uz stabiņiem ir šīs vienas rindas
-// maiņa, jo abas formas rēķinās no tā paša mēroga un komponente zīmē to,
-// ko saņem.
+// SPARKLINE_STYLE picks the shape; switching to bars is a one-line change,
+// since both shapes are computed from the same scale and the component draws
+// whatever it receives.
 
 export type SparklineStyle = "area" | "bars";
 export const SPARKLINE_STYLE: SparklineStyle = "area";
@@ -15,7 +15,7 @@ export const SPARKLINE_STYLE: SparklineStyle = "area";
 export const SPARKLINE_WIDTH = 100;
 export const SPARKLINE_HEIGHT = 22;
 
-/** Uz augšu, uz leju vai bez izmaiņām - nosaka grafika krāsu. */
+/** Up, down or unchanged - sets the chart colour. */
 export type PriceDirection = "up" | "down" | "flat";
 
 export function sparklineDirection(values: number[]): PriceDirection {
@@ -29,14 +29,14 @@ interface Scale {
 	y: (value: number) => number;
 }
 
-// Katrai kartītei savs mērogs: salīdzina cenu ar sevi laikā, nevis ar citiem
-// produktiem, tāpēc kopīga ass te nozīmi nedotu (LPG un dīzelis vienā asī
-// padarītu abas līnijas plakanas).
+// Each card has its own scale: it compares a price with itself over time, not
+// with other products, so a shared axis would mean nothing here (LPG and diesel
+// on one axis would flatten both lines).
 function buildScale(values: number[], width: number, height: number, padding: number): Scale {
 	let min = Math.min(...values);
 	let max = Math.max(...values);
 	if (min === max) {
-		// Visas vērtības vienādas - bez šī dalītu ar nulli.
+		// All values are equal - without this it would divide by zero.
 		min -= 1;
 		max += 1;
 	}
@@ -48,11 +48,11 @@ function buildScale(values: number[], width: number, height: number, padding: nu
 }
 
 export interface SparklineArea {
-	/** Līnijas ceļš; null, ja ir tikai viens novērojums. */
+	/** The line path; null when there is only one observation. */
 	line: string | null;
-	/** Pildījuma ceļš zem līnijas; null, ja ir tikai viens novērojums. */
+	/** The fill path under the line; null when there is only one observation. */
 	area: string | null;
-	/** Pēdējais punkts - tas, kur cena ir tagad. */
+	/** The last point - where the price is now. */
 	last: { x: number; y: number };
 	direction: PriceDirection;
 }
@@ -67,8 +67,8 @@ export function buildSparklineArea(
 	const scale = buildScale(values, width, height, padding);
 	const direction = sparklineDirection(values);
 
-	// Viens novērojums: tikai punkts. Līnija no viena punkta būtu izdomāta,
-	// tāpēc tās nav - kartīte blakus jau saka "pirmā novērošana".
+	// One observation: just a point. A line from a single point would be made
+	// up, so there is none - the card next to it already says "first observation".
 	if (values.length === 1) {
 		return { line: null, area: null, last: { x: width / 2, y: height / 2 }, direction };
 	}
@@ -90,7 +90,7 @@ export interface SparklineBar {
 	y: number;
 	width: number;
 	height: number;
-	/** Virziens pret IEPRIEKŠĒJO novērojumu, ne pret sākumu. */
+	/** Direction relative to the PREVIOUS observation, not the first one. */
 	direction: PriceDirection;
 }
 
