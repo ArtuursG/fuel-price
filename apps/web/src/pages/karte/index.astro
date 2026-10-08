@@ -5,6 +5,11 @@ import { attachFuelPrices, canonicalNetwork, getEvMapStations, routeUrl, wazeUrl
 import { PRODUCT_FULL_LABELS, PRODUCT_LABELS, formatPrice, getLatestFuelPrices } from "../../lib/prices";
 import { markCheapestStations } from "../../lib/cheapest";
 import fuelData from "../../../public/data/fuel-stations.json";
+// The prebuilt MapLibre files, copied as they are and served from this site.
+// Bundling it made the map hang (see scripts/station-map.ts); a CDN worked but
+// meant loading code from a third party on every visit.
+import maplibreScript from "maplibre-gl/dist/maplibre-gl.js?url";
+import maplibreStyle from "maplibre-gl/dist/maplibre-gl.css?url";
 
 let ev: MapStation[] = [];
 let evUnavailable = false;
@@ -103,10 +108,8 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
     <p>EV stacijas un tarifi: kolektoru nolasītie operatoru dati; avots un laiks pie katras stacijas. Produktu filtri rāda tikai vietas, kur šī informācija zināma; kartes pārklājums nav pilnīgs. <a href="/avoti/">Avotu stāvoklis</a>.</p>
   </footer>
   <script id="map-stations" type="application/json" is:inline set:html={payload} />
-  <!-- MapLibre from a CDN, not through the bundle -- see scripts/station-map.ts for why.
-       The version is pinned to exactly the one already working in the ev-charge-lv project. -->
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css" />
-  <script is:inline src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
+  <link rel="stylesheet" href={maplibreStyle} />
+  <script is:inline src={maplibreScript}></script>
   <script>import "../../scripts/station-map";</script>
 </Layout>
 

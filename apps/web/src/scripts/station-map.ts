@@ -1,10 +1,9 @@
-// MapLibre comes from a CDN as a global script (see karte/index.astro), NOT
-// through the bundle. Reason: the bundled v6 map hung silently - the
-// constructor succeeded and no error was thrown, but "load" never fired,
-// which is the typical sign of the MapLibre Web Worker (which the bundler
-// inlines as a blob) dying, and worker errors do not reach the map's "error"
-// event. The same version and delivery already work in the sibling project
-// ev-charge-lv.
+// MapLibre is loaded as a global script from its prebuilt file (see
+// karte/index.astro), NOT through the bundle. Reason: the bundled v6 map hung
+// silently - the constructor succeeded and no error was thrown, but "load"
+// never fired, which is the typical sign of the MapLibre Web Worker (which the
+// bundler inlines as a blob) dying, and worker errors do not reach the map's
+// "error" event. The prebuilt file is the same one a CDN would serve.
 // The types still come from the npm package (devDependency only), so type
 // checking stays complete.
 import type {GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker} from "maplibre-gl";
@@ -390,25 +389,9 @@ const COLOR_EV = cssColor("--color-down", "#296448");
 const COLOR_CHEAPEST = cssColor("--color-cheapest-border", "#296448");
 const COLOR_INK = cssColor("--color-ink", "#202b35");
 
-// Diagnostics: the map's "load" can fail to fire completely silently (a
-// stalled Web Worker or a zero-size canvas that never gets drawn), and then
-// neither catch nor the "error" event says anything. These counters let the
-// 15-second check tell WHERE the chain breaks, not just that it broke.
-const diagnostics = {requested:0, styleData:0, sourceData:0, workerErrors:[] as string[]};
-addEventListener("error", (event) => {
-  if (event.filename?.startsWith("blob:") || event.message?.includes("worker")) {
-    diagnostics.workerErrors.push(`${event.message} @ ${event.filename}:${event.lineno}`);
-  }
-});
-addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-  diagnostics.workerErrors.push(`unhandled rejection: ${String(event.reason)}`);
-});
-
 applyFilters();
 try {
-  map = new maplibregl.Map({container:"station-map",style:"https://tiles.openfreemap.org/styles/positron",center:[24.6,56.9],zoom:6.3,attributionControl:{compact:true},cooperativeGestures:true,transformRequest:(url,resourceType) => {diagnostics.requested++; if(diagnostics.requested<=3) console.info("Karte pieprasa:",resourceType,url); return {url};}});
-  map.on("styledata",() => {diagnostics.styleData++;});
-  map.on("sourcedata",() => {diagnostics.sourceData++;});
+  map = new maplibregl.Map({container:"station-map",style:"https://tiles.openfreemap.org/styles/positron",center:[24.6,56.9],zoom:6.3,attributionControl:{compact:true},cooperativeGestures:true});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
   map.on("load", async () => {
     if(!map) return;
@@ -448,23 +431,6 @@ try {
   // empty grey box and an endless "Karte ielādējas" - say so plainly.
   setTimeout(() => {
     if (mapReady) return;
-    const container = document.getElementById("station-map");
-    const box = container?.getBoundingClientRect();
-    const canvas = container?.querySelector("canvas");
-    console.warn("KARTES DIAGNOSTIKA (kopē šo visu):", JSON.stringify({
-      maplibreVersion: maplibregl.getVersion?.() ?? "nezināma",
-      pieprasijumi: diagnostics.requested,
-      styleDataNotikumi: diagnostics.styleData,
-      sourceDataNotikumi: diagnostics.sourceData,
-      stilsIeladets: (() => {try {return map?.isStyleLoaded() ?? null;} catch {return "kluda";}})(),
-      konteineraPlatums: box?.width ?? null,
-      konteineraAugstums: box?.height ?? null,
-      audeklsIr: !!canvas,
-      audeklaPlatums: canvas?.width ?? null,
-      audeklaAugstums: canvas?.height ?? null,
-      webgl: (() => {try {return !!document.createElement("canvas").getContext("webgl2") || !!document.createElement("canvas").getContext("webgl");} catch {return "kluda";}})(),
-      workerKludas: diagnostics.workerErrors,
-    }, null, 2));
     message.textContent="Karte joprojām ielādējas vai netiek atbildēts no kartes servera (tiles.openfreemap.org). Staciju saraksts un filtri zemāk darbojas.";
   }, 15000);
 } catch (error) {
