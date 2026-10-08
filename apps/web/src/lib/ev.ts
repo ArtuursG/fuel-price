@@ -1,8 +1,9 @@
-// EV uzlādes tarifu kopsavilkums. Katrs tīkls var rādīt SIMTIEM staciju ar
-// vienādu vai ļoti līdzīgu cenu vienam savienotāja tipam (piem., e-mobi ir
-// viena vienota cena visā tīklā), tāpēc MVP lapa rāda kopsavilkumu pa
-// (tīkls, savienotājs, strāvas tips), NE katru staciju atsevišķi - pilna
-// staciju karte apzināti nav 6. fāzes darba kārtā (sk. docs/PLAN.md 5. fāze).
+// Summary of EV charging tariffs. A network can list HUNDREDS of stations
+// with the same or very similar price for one connector type (e.g. e-mobi
+// has one uniform price across the network), so the MVP page shows a summary
+// per (network, connector, current type), NOT every station separately - a
+// full station map was deliberately left out of phase 6 (see docs/PLAN.md
+// phase 5).
 
 export interface EvTariffSummary {
 	networkId: string;
@@ -37,10 +38,10 @@ export const CONNECTOR_LABELS: Record<string, string> = {
 	TYPE2: "Type 2",
 };
 
-// Katrai (network_id, station_id, current_type, connector, payment) "slotam"
-// - jaunākais tarifs (ADR-004 stila izmaiņu-tikai uzglabāšana, sk. ingest
-// computeTariffHash) - tad sagrupēts pa (tīkls, savienotājs, strāvas tips),
-// lai iegūtu lētāko zināmo cenu un cik vietās tā pieejama.
+// For each (network_id, station_id, current_type, connector, payment) "slot"
+// - the latest tariff (ADR-004 style change-only storage, see ingest
+// computeTariffHash) - then grouped by (network, connector, current type) to
+// get the cheapest known price and how many places offer it.
 const QUERY = `
 	WITH ranked AS (
 		SELECT *,

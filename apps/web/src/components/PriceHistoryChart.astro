@@ -1,11 +1,11 @@
 ---
-// Viena produkta 30 dienu līnijgrafiks, visiem tīkliem vienā mērogā.
-// Līnijas zīmē serveris kā SVG; klienta skripts pievieno tikai uznirstošo
-// lodziņu ar izvēlētās dienas cenām - bez JS grafiks un tabula ir pilnīgi.
+// A 30-day line chart for one product, all networks on one scale.
+// The server draws the lines as SVG; the client script only adds the popup
+// with the selected day's prices - without JS the chart and table are complete.
 //
-// Teksts (asu atzīmes, beigu punkti) ir HTML, nevis SVG daļa: SVG mērogojas
-// līdz ar platumu, un agrāk uzraksti platā ekrānā bija ~20px, bet telefonā
-// ~5px. Tagad SVG izstiepjas, bet līnijas biezums un teksts paliek vienādi.
+// Text (axis ticks, end dots) is HTML, not part of the SVG: the SVG scales
+// with the width, and the labels used to be ~20px on a wide screen but ~5px
+// on a phone. Now the SVG stretches while stroke width and text stay the same.
 import { buildChartPaths, chartDomain, seriesColors, weekTicks, type NetworkSeries } from "../lib/history";
 import { formatPrice } from "../lib/prices";
 
@@ -16,7 +16,7 @@ interface Props {
 
 const { series, days } = Astro.props as Props;
 
-// Iekšējā koordinātu sistēma; ekrānā to izstiepj CSS.
+// Internal coordinate system; CSS stretches it on screen.
 const WIDTH = 1000;
 const HEIGHT = 300;
 const domain = chartDomain(series);
@@ -31,7 +31,7 @@ function formatDay(day: string): string {
 	return `${Number(date)}.${Number(month)}.`;
 }
 
-// Kopsavilkums tabulai: pirmā un pēdējā zināmā cena, izmaiņa, min, max.
+// Summary for the table: first and last known price, change, min, max.
 const summary = series.map((s) => {
 	const known = s.points.filter((p): p is number => p !== null);
 	return {
@@ -44,7 +44,7 @@ const summary = series.map((s) => {
 	};
 });
 
-// Klienta skriptam: tikai tas, kas vajadzīgs lodziņam.
+// For the client script: only what the popup needs.
 const clientData = {
 	days,
 	series: summary.map((s) => ({ name: s.networkName, color: s.color, points: s.points })),
@@ -155,8 +155,8 @@ const clientData = {
 
 	const dayFormat = new Intl.DateTimeFormat("lv-LV", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
 
-	// Workers globālais `Element` (HTMLRewriter) sajaucas ar DOM `Element`,
-	// tāpēc vaicājumi iet caur `unknown`.
+	// The Workers global `Element` (HTMLRewriter) clashes with the DOM
+	// `Element`, so the queries go through `unknown`.
 	for (const figure of document.querySelectorAll<HTMLElement>("[data-chart]")) {
 		const plot = figure.querySelector(".chart__plot") as unknown as HTMLElement;
 		const crosshair = figure.querySelector(".chart__crosshair") as unknown as HTMLElement;
@@ -176,7 +176,7 @@ const clientData = {
 			title.className = "chart__tooltip-day";
 			title.textContent = dayFormat.format(new Date(`${data.days[current]}T00:00:00Z`));
 			tooltip.appendChild(title);
-			// Lētākais augšā - tāpat kā leģendā.
+			// Cheapest first - same as in the legend.
 			const rows = data.series
 				.map((s) => ({ ...s, value: s.points[current!] }))
 				.filter((s): s is typeof s & { value: number } => s.value !== null)
@@ -197,7 +197,7 @@ const clientData = {
 				tooltip.appendChild(line);
 			}
 			tooltip.hidden = false;
-			// Lodziņš ir tajā pusē, kur ir vieta.
+			// The popup goes on whichever side has room.
 			tooltip.dataset.side = left > 55 ? "left" : "right";
 			tooltip.style.left = `${left}%`;
 		}
@@ -212,7 +212,7 @@ const clientData = {
 			const box = plot.getBoundingClientRect();
 			show(Math.round(((event.clientX - box.left) / box.width) * last));
 		};
-		// pointerdown - lai lodziņš atveras arī ar vienu pieskārienu.
+		// pointerdown - so the popup also opens with a single tap.
 		plot.addEventListener("pointermove", showAt);
 		plot.addEventListener("pointerdown", showAt);
 		plot.addEventListener("pointerleave", (event) => {
@@ -236,8 +236,8 @@ const clientData = {
 	.chart {
 		margin: 0 0 1rem;
 	}
-	/* Kreisajā kolonnā cenas, apakšā datumi; augstums ir fiksēts, nevis
-	   atkarīgs no platuma. */
+	/* Prices in the left column, dates along the bottom; the height is fixed
+	   rather than tied to the width. */
 	.chart__frame {
 		display: grid;
 		grid-template-columns: 3.4rem 1fr;
@@ -374,7 +374,7 @@ const clientData = {
 		align-items: center;
 		gap: 0.4rem;
 	}
-	/* Īsa līnija, nevis kvadrāts - tā pati forma, kas grafikā. */
+	/* A short line, not a square - the same shape as in the chart. */
 	.chart-legend__key {
 		width: 0.9rem;
 		height: 3px;

@@ -4,9 +4,9 @@ import Layout from "../../layouts/Layout.astro";
 import { getEvTariffSummary } from "../../lib/ev";
 import { PRODUCT_FULL_LABELS, cheapest, getLatestFuelPrices } from "../../lib/prices";
 
-// Tikai uz litru cenoti, uz ceļiem legāli degvielas veidi (sk. lib/prices.ts
-// DSL_AGRO piezīmi - NEKAD nerādīt šeit). CNG izslēgts - tā cena ir par kg,
-// ne litru, tāpēc nesader ar vienu kopīgu "L/100km" ievadlauku.
+// Only road-legal fuels priced per litre (see the DSL_AGRO note in
+// lib/prices.ts - NEVER show it here). CNG is left out - it is priced per kg,
+// not per litre, so it does not fit one shared "L/100km" input.
 const CALC_FUEL_PRODUCTS = new Set(["P95", "P98", "DSL", "DSL_PLUS", "LPG"]);
 
 const [allFuelRows, evSummary] = await Promise.all([getLatestFuelPrices(env.DB), getEvTariffSummary(env.DB)]);
@@ -80,7 +80,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 						Turp un atpakaļ
 					</label>
 
-					{/* Galvenā atbilde liela, pārējie skaitļi mazāk uzkrītoši. */}
+					{/* The main answer is large; the other figures are quieter. */}
 					<div class="trip-result" aria-live="polite">
 						<p class="trip-result__label" id="trip-total-label">Brauciens</p>
 						<p class="trip-result__total" id="trip-total">-</p>
@@ -166,10 +166,10 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 				const dataEl = document.getElementById("calc-data");
 				const data: CalcData = JSON.parse(dataEl?.textContent ?? "{}");
 
-				// Workers tipi deklarē savu globālo `Element` (HTMLRewriter), kas
-				// sajaucas ar DOM `Element` - tāpēc ne tiešs cast, ne
-				// querySelector<T> neiet cauri. Pāreja caur `unknown` ir vienīgais
-				// ceļš, kamēr abi `Element` sadzīvo vienā projektā.
+				// The Workers types declare their own global `Element` (HTMLRewriter),
+				// which clashes with the DOM `Element` - so neither a direct cast nor
+				// querySelector<T> type-checks. Going through `unknown` is the only way
+				// while both `Element`s live in one project.
 				const byId = <T,>(id: string) => document.getElementById(id) as unknown as T;
 				const numberFormat = new Intl.NumberFormat("lv-LV", { maximumFractionDigits: 1 });
 				const num = (input: HTMLInputElement) => Number(input.value) || 0;
@@ -181,7 +181,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 					return node;
 				}
 
-				// --- Cik maksā nobraukt 100 km ---
+				// --- What does 100 km cost ---
 				const fuelInput = byId<HTMLInputElement>("fuel-consumption");
 				const evInput = byId<HTMLInputElement>("ev-consumption");
 				const homeInput = byId<HTMLInputElement>("home-price");
@@ -243,7 +243,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 				}
 				render();
 
-				// --- Brauciena kalkulators ---
+				// --- Trip calculator ---
 				const distanceInput = byId<HTMLInputElement>("trip-distance");
 				const tripConsumptionInput = byId<HTMLInputElement>("trip-consumption");
 				const productSelect = byId<HTMLSelectElement>("trip-product");
@@ -325,7 +325,7 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 </Layout>
 
 <style>
-	/* Divas kolonnas, kamēr vietas pietiek; šaurāk - cita zem citas. */
+	/* Two columns while there is room; narrower - one under the other. */
 	.calc-grid {
 		display: grid;
 		gap: 2rem;
@@ -404,9 +404,9 @@ const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 		margin: 0.25rem 0 0;
 	}
 
-	/* Salīdzinājums: nosaukums un summa vienā rindā, zem tiem stabiņš.
-	   Viena krāsa visiem - garums jau nes vērtību, un degvielu no uzlādes
-	   atšķir teksta birka, nevis krāsa. */
+	/* Comparison: name and amount on one line, a bar beneath them. One colour
+	   for all - the length already carries the value, and a text tag rather
+	   than a colour tells fuel from charging. */
 	.cost-list {
 		list-style: none;
 		margin: 0.5rem 0 0;

@@ -9,7 +9,7 @@ import {
 
 describe("sparklineDirection", () => {
 	it("salīdzina pēdējo ar pirmo, ne ar iepriekšējo", () => {
-		// Cena pa vidu pakāpās, bet kopumā ir zemāka nekā sākumā.
+		// The price rose in the middle, but overall it is lower than at the start.
 		expect(sparklineDirection([1950, 1990, 1900])).toBe("down");
 	});
 	it("bez otrā novērojuma virziena nav", () => {
@@ -44,7 +44,7 @@ describe("buildSparklineArea", () => {
 	it("liek pēdējo punktu līnijas galā", () => {
 		const spark = buildSparklineArea([1900, 2000]);
 		expect(spark!.last.x).toBeCloseTo(SPARKLINE_WIDTH, 5);
-		// Augstākā cena - augšā, tātad maza y vērtība.
+		// The highest price is at the top, so a small y value.
 		expect(spark!.last.y).toBeLessThan(SPARKLINE_HEIGHT / 2);
 	});
 
@@ -71,7 +71,7 @@ describe("buildSparklineBars", () => {
 	});
 
 	it("krāso pēc iepriekšējās dienas, ne pēc sākuma", () => {
-		// Pēdējā vērtība ir augstāka par pirmo, bet zemāka par iepriekšējo.
+		// The last value is higher than the first but lower than the previous one.
 		const bars = buildSparklineBars([1900, 2000, 1950]);
 		expect(bars.map((b) => b.direction)).toEqual(["flat", "up", "down"]);
 	});

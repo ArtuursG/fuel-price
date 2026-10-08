@@ -39,7 +39,7 @@ describe("number formatting", () => {
     it("rounds money to cents and groups thousands", () => {
         expect(formatMoney(13118)).toBe("13,12");
         expect(formatMoney(110191)).toBe("110,19");
-        // lv-LV grupē ar nedalāmo atstarpi, sākot no piecciparu skaitļiem.
+        // lv-LV groups with a non-breaking space, starting from five-digit numbers.
         expect(formatMoney(1234567)).toBe("1234,57");
         expect(formatMoney(12345678).replace(/\s/g, " ")).toBe("12 345,68");
     });

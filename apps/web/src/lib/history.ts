@@ -1,13 +1,13 @@
-// Cenu vēsture 30 dienām.
+// 30-day price history.
 //
-// ADR-004: rinda fuel_prices tabulā top TIKAI tad, kad cena mainās. Tas
-// nozīmē, ka dienā bez izmaiņām datu nav vispār - bet cena tajā dienā
-// bija spēkā, vienkārši tā pati, kas iepriekš. Tāpēc dienas rinda te tiek
-// aizpildīta uz priekšu no pēdējā novērojuma; bez tā grafiks rādītu
-// pārrāvumus tur, kur patiesībā cena bija stabila.
+// ADR-004: a row is written to fuel_prices ONLY when the price changes. That
+// means a day without a change has no data at all - but a price was in force
+// that day, simply the same one as before. So the daily series is filled
+// forward from the last observation here; without that the chart would show
+// gaps where the price was in fact stable.
 //
-// Pirms pirmā novērojuma vērtības nav - tur paliek null, nevis izdomāts
-// skaitlis.
+// Before the first observation there is no value - it stays null rather than
+// an invented number.
 
 export interface HistoryRow {
 	networkId: string;
@@ -48,7 +48,7 @@ export function buildDailySeries(rows: HistoryRow[], days: string[]): NetworkSer
 		let cursor = 0;
 		let current: number | null = null;
 		for (const day of days) {
-			// Vairākas izmaiņas vienā dienā - ņemam pēdējo.
+			// Several changes on one day - take the last one.
 			while (cursor < sorted.length && sorted[cursor].localDate <= day) {
 				current = sorted[cursor].priceMilli;
 				cursor += 1;
@@ -65,7 +65,7 @@ export function buildDailySeries(rows: HistoryRow[], days: string[]): NetworkSer
 		});
 	}
 
-	// Lētākais šodien - augšā.
+	// Cheapest today first.
 	series.sort((a, b) => (a.lastMilli ?? Infinity) - (b.lastMilli ?? Infinity));
 	return series;
 }
@@ -73,16 +73,16 @@ export function buildDailySeries(rows: HistoryRow[], days: string[]): NetworkSer
 export interface ChartDomain {
 	min: number;
 	max: number;
-	/** Horizontālo palīglīniju vērtības (milli), no apakšas uz augšu. */
+	/** Values of the horizontal gridlines (milli), bottom to top. */
 	ticks: number[];
 }
 
-// Soļi, kas lasās kā apaļi centi: 0,005 €, 0,01 €, 0,02 € ...
+// Steps that read as round cents: 0,005 €, 0,01 €, 0,02 € ...
 const TICK_STEPS = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
 
 /**
- * Ass robežas, noapaļotas līdz apaļam solim, ar 3-6 palīglīnijām. Agrāk
- * grafikā bija tikai min un max, un starpvērtības bija jāmin.
+ * Axis bounds rounded to a round step, with 3-6 gridlines. The chart used to
+ * show only the min and max, and the values in between had to be guessed.
  */
 export function chartDomain(series: NetworkSeries[], maxTicks = 5): ChartDomain | null {
 	const all = series.flatMap((s) => s.points).filter((p): p is number => p !== null);
@@ -90,7 +90,7 @@ export function chartDomain(series: NetworkSeries[], maxTicks = 5): ChartDomain 
 	let low = Math.min(...all);
 	let high = Math.max(...all);
 	if (low === high) {
-		// Viena vienīga cena - citādi ass būtu nulles augstumā.
+		// A single price - otherwise the axis would have zero height.
 		low -= 10;
 		high += 10;
 	}
@@ -102,17 +102,18 @@ export function chartDomain(series: NetworkSeries[], maxTicks = 5): ChartDomain 
 	return { min, max, ticks };
 }
 
-/** X ass atzīmes katru nedēļu, skaitot atpakaļ no šodienas. */
+/** X axis ticks every week, counting back from today. */
 export function weekTicks(days: string[]): { index: number; day: string }[] {
 	const ticks: { index: number; day: string }[] = [];
 	for (let i = days.length - 1; i >= 0; i -= 7) ticks.unshift({ index: i, day: days[i] });
 	return ticks;
 }
 
-// Krāsa seko tīklam, nevis tā vietai sarakstā: agrāk krāsu ņēma pēc
-// kārtas cenu sarakstā, tāpēc tīkls, pārslēdzot degvielu, mainīja krāsu.
-// Secība ir pārbaudīta krāsu akluma simulācijā; sarkanā un zaļā apzināti
-// nav, jo tās lapā nozīmē "cena kāpa" un "cena kritās".
+// The colour follows the network, not its position in the list: colours used
+// to be assigned in price order, so a network changed colour when switching
+// fuel. The order has been checked in a colour-blindness simulation; red and
+// green are deliberately left out, since on this site they mean "price rose"
+// and "price fell".
 const SERIES_COLORS: Record<string, string> = {
 	straujupite: "#2a78d6",
 	circlek: "#eb6834",
@@ -124,7 +125,7 @@ const SERIES_COLORS: Record<string, string> = {
 const SPARE_COLORS = ["#4a3aa7", "#eda100", "#e87ba4"];
 export const OTHER_SERIES_COLOR = "#8a949c";
 
-/** Krāsa katram tīklam grafikā; nezināmiem - brīvā krāsa vai pelēka. */
+/** A colour per network in the chart; unknown ones get a spare colour or grey. */
 export function seriesColors(networkIds: string[]): Map<string, string> {
 	const used = new Set(networkIds.map((id) => SERIES_COLORS[id]).filter(Boolean));
 	const spare = SPARE_COLORS.filter((c) => !used.has(c));
@@ -141,7 +142,7 @@ export interface ChartGeometry {
 	paths: { networkId: string; networkName: string; d: string }[];
 }
 
-// Visām līnijām viena mēroga ass - citādi tīklus nevar salīdzināt.
+// One axis scale for all lines - otherwise the networks cannot be compared.
 export function buildChartPaths(
 	series: NetworkSeries[],
 	width: number,
@@ -154,7 +155,7 @@ export function buildChartPaths(
 	let min = domain?.min ?? Math.min(...all);
 	let max = domain?.max ?? Math.max(...all);
 	if (min === max) {
-		// Viena vienīga cena - citādi dalītu ar nulli un līnija pazustu.
+		// A single price - otherwise this divides by zero and the line disappears.
 		min -= 10;
 		max += 10;
 	}
@@ -188,8 +189,8 @@ interface HistoryQueryRow {
 	price_milli: number;
 }
 
-// Ņemam arī rindas pirms loga sākuma: pēdējā cena pirms 30 dienām ir tā,
-// kas bija spēkā loga pirmajā dienā.
+// Rows from before the window are included too: the last price before the
+// 30 days is the one in force on the window's first day.
 const PRODUCT_HISTORY_QUERY = `
 	SELECT f.network_id, n.name AS network_name, f.local_date, f.price_milli
 	FROM fuel_prices f

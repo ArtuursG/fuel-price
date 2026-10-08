@@ -1,10 +1,11 @@
-// "Cik maksā nobraukt 100 km?" kalkulatora tīrās aprēķinu funkcijas (sk.
-// docs/IZPETE.md 9.2, docs/PLAN.md 6. fāze). Atdalītas no lapas/UI koda, lai
-// tās var vienības testēt bez Astro/DOM - tas ir 6. fāzes "gatavs, kad"
-// kritērijs ("kalkulators ar vienības testiem aprēķiniem").
+// Pure calculation functions for the "What does 100 km cost?" calculator (see
+// docs/IZPETE.md 9.2, docs/PLAN.md phase 6). Kept apart from the page/UI code
+// so they can be unit tested without Astro/DOM - that is the phase 6
+// "done when" criterion ("calculator with unit-tested calculations").
 //
-// Visur cenas ir milli-EUR (sk. price_milli konvenciju), tāpat arī rezultāts
-// - lapa formatē ar to pašu formatPrice() kā pārējā vietne.
+// Prices are milli-EUR everywhere (see the price_milli convention), and so is
+// the result - the page formats it with the same formatPrice() as the rest of
+// the site.
 
 export function fuelCostPer100km(priceMilliPerLiter: number, consumptionLPer100km: number): number {
 	return priceMilliPerLiter * consumptionLPer100km;
@@ -14,8 +15,8 @@ export function evEnergyCostPer100km(priceMilliPerKwh: number, consumptionKwhPer
 	return priceMilliPerKwh * consumptionKwhPer100km;
 }
 
-// Laika tarifam (€/min) vajag jaudu (kW), lai zinātu, cik ilgi uzlāde ņem
-// - bez tās €/min nevar pārvērst par €/100km.
+// A time-based tariff (€/min) needs the power (kW) to know how long charging
+// takes - without it €/min cannot be converted to €/100km.
 export function evTimeCostPer100km(
 	priceMilliPerMin: number,
 	powerKw: number,
@@ -28,9 +29,9 @@ export function evTimeCostPer100km(
 	return priceMilliPerMin * minutesNeeded;
 }
 
-// --- Brauciena kalkulators ------------------------------------------------
-// Atsevišķi no "uz 100 km" salīdzinājuma: te lietotājs zina konkrētu
-// attālumu un grib zināt, cik tas maksās.
+// --- Trip calculator ------------------------------------------------------
+// Separate from the "per 100 km" comparison: here the user knows a specific
+// distance and wants to know what it will cost.
 
 export function litersForTrip(distanceKm: number, consumptionLPer100km: number): number {
 	return (distanceKm * consumptionLPer100km) / 100;
@@ -49,8 +50,8 @@ export function costPerKmMilli(distanceKm: number, totalCostMilli: number): numb
 	return totalCostMilli / distanceKm;
 }
 
-// Otrs režīms: lietotājs zina nobraukumu un uzpildītos litrus, bet ne
-// patēriņu. Atgriež l/100 km.
+// Second mode: the user knows the distance driven and the litres filled, but
+// not the consumption. Returns l/100 km.
 export function consumptionFromLiters(distanceKm: number, liters: number): number {
 	if (distanceKm <= 0) return 0;
 	return (liters / distanceKm) * 100;
@@ -61,8 +62,8 @@ export function rangeKm(tankLiters: number, consumptionLPer100km: number): numbe
 	return (tankLiters / consumptionLPer100km) * 100;
 }
 
-// Izpūtēja CO2 uz litru. Vērtības ir vispārpieņemtie degvielas oglekļa
-// koeficienti, nevis konkrēta auto mērījumi, tāpēc rezultāts ir aptuvens.
+// Tailpipe CO2 per litre. The values are commonly used fuel carbon factors,
+// not measurements of a specific car, so the result is approximate.
 const CO2_KG_PER_LITER: Record<string, number> = {
 	P95: 2.31,
 	P98: 2.31,
@@ -88,20 +89,20 @@ export function periodCostMilli(
 	return tripCostMilli(dailyKm * days, consumptionLPer100km, priceMilliPerLiter);
 }
 
-// --- Salīdzinājuma saraksts ------------------------------------------------
+// --- Comparison list -------------------------------------------------------
 
 export interface CostRow {
 	kind: "fuel" | "ev" | "home";
-	/** Degviela vai tīkls. */
+	/** Fuel or network. */
 	name: string;
-	/** Savienotājs(-i) vai cits precizējums. */
+	/** Connector(s) or another qualifier. */
 	detail: string | null;
 	costMilli: number;
 }
 
-// Viena tīkla savienotāji ar vienādām izmaksām kļūst par vienu rindu
-// ("CCS2, CHAdeMO") - citādi saraksts bija 19 rindas garš, un puse no tām
-// atkārtoja to pašu skaitli. Rezultāts sakārtots no lētākā.
+// A network's connectors with the same cost become one row ("CCS2, CHAdeMO")
+// - otherwise the list was 19 rows long and half of them repeated the same
+// figure. The result is sorted from the cheapest.
 export function mergeSameCost(rows: CostRow[]): CostRow[] {
 	const merged = new Map<string, CostRow>();
 	for (const row of rows) {

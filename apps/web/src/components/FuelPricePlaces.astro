@@ -1,9 +1,9 @@
 ---
-// Vietas, kur cena ir spēkā. Katra adrese savā rindā ar saiti uz Google Maps
-// un pogu, kas adresi ieliek starpliktuvē.
+// The places where a price applies. Each address on its own row with a link
+// to Google Maps and a button that copies the address to the clipboard.
 //
-// Teksta sadalīšana notiek lib/places.ts - tur ir arī paskaidrojums, kāpēc
-// ne visu var sadalīt pēc komata.
+// The text is split in lib/places.ts - which also explains why not
+// everything can be split on commas.
 import { parseFuelPlaces, placeSearchUrl, placeWazeUrl, type FuelPlace } from "../lib/places";
 import type { NetworkPrice } from "../lib/prices";
 
@@ -14,7 +14,7 @@ interface Props {
 const { price } = Astro.props as Props;
 
 const parsed = parseFuelPlaces(price.networkId, price.whereText);
-// Ja formāts nav atpazīts, rādām tekstu vienā rindā - nokopēt var arī to.
+// If the format is not recognised, the text is shown on one row - it can be copied too.
 const places: FuelPlace[] =
 	parsed.length > 0 ? parsed : price.whereText ? [{ name: null, address: price.whereText }] : [];
 ---
@@ -79,12 +79,12 @@ const places: FuelPlace[] =
 }
 
 <script>
-	// Viens klausītājs uz visu lapu - šis komponents lapā ir desmitiem reižu,
-	// bet Astro skriptu iekļauj tikai vienreiz.
+	// One listener for the whole page - this component appears dozens of times
+	// on a page, but Astro includes the script only once.
 	const clipboard = navigator.clipboard;
 	if (clipboard) {
-		// Pogas ir paslēptas servera pusē, lai tās neparādītos tur, kur
-		// kopēšana nestrādā (piem., bez HTTPS).
+		// The buttons are hidden on the server side so they do not show where
+		// copying does not work (e.g. without HTTPS).
 		for (const button of document.querySelectorAll<HTMLButtonElement>(".price-places__copy")) {
 			button.hidden = false;
 		}
@@ -138,8 +138,8 @@ const places: FuelPlace[] =
 		min-width: 0;
 	}
 
-	/* Navigācijas pogas: tīri glifi mūsu pašu krāsās, nevis svešas
-	   preču zīmes. Lietotni nosauc aria-label un title. */
+	/* Navigation buttons: plain glyphs in our own colours, not someone
+	   else's trademarks. aria-label and title name the app. */
 	.price-places__nav {
 		flex: none;
 		display: inline-grid;

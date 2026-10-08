@@ -5,13 +5,13 @@ import { getLatestFuelPrices } from "../../lib/prices";
 import { buildCityOrigins } from "../../lib/detour";
 import fuelData from "../../../public/data/fuel-stations.json";
 
-// Tikai tīkli, kuriem IR gan reāla OSM staciju atrašanās vieta, GAN reāli
-// nolasīta cena - droši, apstiprināti nosaukumu sakritumi starp OSM "brand"
-// tagiem un mūsu iekšējiem tīklu id, NEVIS uzminēti (sk. lib/detour.ts
-// piezīmi par formulu). Neste/KOOL/Astarte/Gotika ir OSM datos, bet cenu
-// mums nav (nepublicē vai avots vēl nav ieviests), tāpēc nav iekļauti -
-// neskaidri nosaukumu varianti (piem. "Virāža A") apzināti nav mēģināti
-// piesaistīt nevienam tīklam.
+// Only networks that have BOTH real OSM station locations AND a real
+// collected price - safe, confirmed name matches between OSM "brand" tags and
+// our internal network ids, NOT guesses (see the formula note in
+// lib/detour.ts). Neste/KOOL/Astarte/Gotika are in the OSM data but we have
+// no price for them (not published, or the source is not implemented yet),
+// so they are left out - unclear name variants (e.g. "Virāža A") are
+// deliberately not mapped to any network.
 const OSM_NETWORK_TO_ID: Record<string, string> = {
 	"Circle K": "circlek",
 	Viada: "viada",
@@ -33,8 +33,8 @@ for (const station of fuelData.stations as { network: string; lat: number; lon: 
 	stationsByNetwork.set(networkId, list);
 }
 
-// Produkti, kuriem VISMAZ 2 izsekotajiem tīkliem ir zināma cena - tikai
-// tad ir jēga "tuvākais pret lētāko" salīdzinājumam.
+// Products with a known price for AT LEAST 2 tracked networks - only then does
+// a "nearest vs cheapest" comparison make sense.
 const comparableProducts = products
 	.map((row) => {
 		const prices = new Map<string, number>();
@@ -53,9 +53,9 @@ const payload = {
 		prices: Object.fromEntries(row.prices),
 	})),
 	stations: Object.fromEntries(stationsByNetwork),
-	// Ģeolokāciju lietotājs var liegt vai pārlūks bloķēt; bez alternatīvas
-	// lapa tad nedara neko. Pilsētas centrs ir gana precīzs, lai salīdzinātu,
-	// cik tālu jābrauc.
+	// The user can deny geolocation or the browser can block it; without an
+	// alternative the page would then do nothing. A city centre is accurate
+	// enough to compare how far one has to drive.
 	cities: buildCityOrigins(fuelData.stations as {address?: string | null; lat: number; lon: number}[]),
 };
 const hasData = payload.products.length > 0;
@@ -75,7 +75,7 @@ const hasData = payload.products.length > 0;
 			</p>
 
 			<form id="detour-form" class="detour-form">
-				{/* Sākumpunkts pirmais: bez tā nekas netiek rēķināts. */}
+				{/* The starting point comes first: nothing is calculated without it. */}
 				<fieldset class="detour-origin">
 					<legend>No kurienes brauksi?</legend>
 					<div class="detour-origin__row">
@@ -131,7 +131,7 @@ const hasData = payload.products.length > 0;
 					cities: { name: string; lat: number; lon: number }[];
 				}
 
-				// Attālumi ar komatu, kā pārējā lapā ("1,1 km", nevis "1.1 km").
+				// Distances with a decimal comma, like the rest of the site ("1,1 km", not "1.1 km").
 				const kmFormat = new Intl.NumberFormat("lv-LV", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 				const km = (value: number) => kmFormat.format(value);
 
@@ -187,7 +187,7 @@ const hasData = payload.products.length > 0;
 					const breakEven = breakEvenExtraKm(nearest.priceMilli, cheapest.priceMilli, liters, consumption);
 					const worth = savings > 0;
 
-					// Atbilde vispirms un liela; aprēķina rindas - zem tās.
+					// The answer first and large; the calculation rows below it.
 					result.innerHTML = `
 						<div class="verdict" data-positive="${worth}">
 							<p class="verdict__label">${worth ? "Ir vērts pabraukt" : "Nav vērts pabraukt"}</p>

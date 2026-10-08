@@ -1,5 +1,5 @@
-// Avotu statusa lapas datu slānis. Reāli dati no `sources` + katra avota
-// jaunākais `scrape_runs` ieraksts - nekādi izdomāti/placeholder statusi.
+// Data layer for the source status page. Real data from `sources` plus each
+// source's latest `scrape_runs` entry - no invented or placeholder statuses.
 
 export type SourceStatus = "todo" | "investigate" | "active" | "blocked" | "unpublished" | "disabled";
 export type RunStatus = "ok" | "not_modified" | "partial" | "error" | "blocked" | "unpublished";
@@ -68,7 +68,7 @@ export const STATUS_LABELS: Record<SourceStatus, string> = {
 	disabled: "izslēgts",
 };
 
-// `sources.kind` ir iekšējs identifikators; lapā to rāda šādi.
+// `sources.kind` is an internal identifier; this is how the page shows it.
 export const KIND_LABELS: Record<string, string> = {
 	fuel: "Degvielas cenas",
 	ev: "EV uzlādes tarifi",

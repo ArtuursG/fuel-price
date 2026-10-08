@@ -11,8 +11,8 @@ describe("dayKeys", () => {
 
 describe("buildDailySeries", () => {
 	it("aizpilda uz priekšu dienas bez izmaiņām", () => {
-		// ADR-004: rinda top tikai pie izmaiņas, tāpēc 19. un 20. datu nav,
-		// bet cena tajās dienās bija spēkā.
+		// ADR-004: a row is only written on a change, so the 19th and 20th have no
+		// data, but the price was in force on those days.
 		const series = buildDailySeries(
 			[{ networkId: "kool", networkName: "KOOL", localDate: "2026-09-18", priceMilli: 1947 }],
 			DAYS,
@@ -73,7 +73,7 @@ describe("buildChartPaths", () => {
 			100,
 			50,
 		);
-		// Divi atsevišķi "M" - līnija netiek novilkta pāri tukšumam.
+		// Two separate "M"s - the line is not drawn across the gap.
 		expect(geometry!.paths[0].d.match(/M/g)).toHaveLength(2);
 	});
 });

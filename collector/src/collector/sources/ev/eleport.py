@@ -24,7 +24,8 @@ EU convention without evidence from this specific source.
 
 Payment: "adhoc", per this page's own text ("Autorizējieties ar sev
 vēlamo metodi -- mobilo lietotni, RFID karti VAI maksājumu BEZ
-REĢISTRĀCIJAS") -- it explicitly offers no-signup payment, unlike
+REĢISTRĀCIJAS", i.e. authorise with the app, an RFID card OR payment
+without signing up) -- it explicitly offers no-signup payment, unlike
 e-mobi/Elektrum/Ignitis where app-based was the only option mentioned.
 """
 

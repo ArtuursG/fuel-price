@@ -1,11 +1,12 @@
-// MapLibre nāk no CDN kā globāls skripts (sk. karte/index.astro), NEVIS caur
-// bundli. Iemesls: sapakota v6 karte klusi uzkārās - konstruktors izdevās,
-// neviena kļūda netika izmesta, bet "load" nekad nenotika, kas ir tipiska
-// pazīme, ka MapLibre Web Worker (ko bundleris ieliek kā blob) nomirst, un
-// worker kļūdas neizplatās līdz kartes "error" notikumam. Tā pati versija
-// un piegādes veids jau strādā blakus projektā ev-charge-lv.
-// Tipi joprojām nāk no npm pakotnes (tikai devDependency), tāpēc pārbaude
-// paliek pilnvērtīga.
+// MapLibre comes from a CDN as a global script (see karte/index.astro), NOT
+// through the bundle. Reason: the bundled v6 map hung silently - the
+// constructor succeeded and no error was thrown, but "load" never fired,
+// which is the typical sign of the MapLibre Web Worker (which the bundler
+// inlines as a blob) dying, and worker errors do not reach the map's "error"
+// event. The same version and delivery already work in the sibling project
+// ev-charge-lv.
+// The types still come from the npm package (devDependency only), so type
+// checking stays complete.
 import type {GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker} from "maplibre-gl";
 import type {FeatureCollection, Point} from "geojson";
 import {cheapestMatchingTariff, filterStations, euro, connectorLabel, routeUrl, wazeUrl, safeSourceUrl, tariffText, canonicalNetwork, type MapStation, type StationFilters} from "../lib/station-map";
@@ -58,13 +59,13 @@ function link(text: string, url: string): HTMLAnchorElement {
   return node;
 }
 
-// Navigācijas pogas ar ikonām, nevis teksta saitēm.
+// Navigation buttons with icons instead of text links.
 //
-// Ikonas ir mūsu pašu zīmētas (kartes pilons un navigācijas bulta) lietotņu
-// firmas krāsās - APZINĀTI nav pārzīmēts Google Maps vai Waze oriģinālais
-// logotips, jo tās ir preču zīmes ar savām lietošanas prasībām. Nosaukums
-// paliek pieejams ar aria-label un title, tāpēc ekrānlasītājs un kursora
-// palīgteksts joprojām pasaka, uz kurieni saite ved.
+// The icons are our own drawings (a map pin and a navigation arrow) in the
+// apps' brand colours - the original Google Maps or Waze logos are
+// DELIBERATELY not redrawn, since they are trademarks with their own usage
+// rules. The name stays available through aria-label and title, so screen
+// readers and the hover tooltip still say where the link goes.
 const NAV_ICONS: Record<string, string> = {
   google:
     '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
@@ -117,9 +118,9 @@ function badge(station: MapStation) {
   return mark;
 }
 
-// Kartes marķieriem logo jābūt reģistrētam MapLibre attēlu reģistrā. PNG un
-// SVG abus ielasām caur <img> un uzzīmējam uz audekla, lai iegūtu pikseļus;
-// map.loadImage() ar SVG nestrādā.
+// For map markers a logo must be registered in MapLibre's image registry. Both
+// PNG and SVG are loaded through <img> and drawn onto a canvas to get the
+// pixels; map.loadImage() does not work with SVG.
 const MARKER_PX = 64;
 async function registerLogoImages(target: MapLibreMap): Promise<void> {
   const names = [...new Set(stations.map(station => canonicalNetwork(station.network)))];
@@ -131,12 +132,13 @@ async function registerLogoImages(target: MapLibreMap): Promise<void> {
       const bitmap = await loadBitmap(url);
       if (!target.hasImage(id)) target.addImage(id, bitmap, {pixelRatio: 2});
     } catch {
-      // Logo neielādējās - marķieris paliek ar burtiem, karte strādā tālāk.
+      // The logo did not load - the marker keeps its letters and the map carries on.
     }
   }));
 }
-// Vai stacijai ir zemākā zināmā cena izvēlētajam produktam. Saraksts nāk
-// no servera (sk. lib/cheapest.ts) - klienta pusē neko nesaskaņojam.
+// Whether a station has the lowest known price for the selected product. The
+// list comes from the server (see lib/cheapest.ts) - nothing is matched on
+// the client.
 function isCheapest(station: MapStation): boolean {
   const product = cheapest?.value;
   if (!product) return false;
@@ -155,7 +157,7 @@ function loadBitmap(url: string): Promise<ImageData> {
       canvas.width = MARKER_PX; canvas.height = MARKER_PX;
       const ctx = canvas.getContext("2d");
       if (!ctx) { reject(new Error("nav 2d konteksta")); return; }
-      // Ietilpinām kvadrātā, saglabājot proporcijas - logo ir dažādu formu.
+      // Fit into the square, keeping proportions - logos come in different shapes.
       const scale = Math.min(MARKER_PX / img.width, MARKER_PX / img.height);
       const w = img.width * scale, h = img.height * scale;
       ctx.drawImage(img, (MARKER_PX - w) / 2, (MARKER_PX - h) / 2, w, h);
@@ -226,9 +228,10 @@ function showStation(station: MapStation, move = true) {
     if(station.products.length) extra.appendChild(element("p", `Degviela: ${station.products.join(", ")}`));
     extra.appendChild(element("p", `OpenStreetMap vietu dati: ${dateLabel(station.updatedAt)}. Tīkla zemākā cena nav katras stacijas cena.`));
   } else extra.appendChild(element("p", "Norādīts cenas novērojuma laiks, nevis garantēts operatora cenas maiņas brīdis. Uzlādes vietu aizņemtība nav pieejama."));
-  // Degvielas stacijām šeit vairs nav atsevišķas OpenStreetMap saites -
-  // ODbL prasītā atsauce paliek lapas kājenē, kur tā attiecas uz visu datu
-  // kopu. EV stacijām operatora avots paliek: tā ir cenas izcelsme.
+  // Fuel stations no longer get a separate OpenStreetMap link here - the
+  // attribution ODbL requires stays in the page footer, where it covers the
+  // whole dataset. EV stations keep the operator source: it is where the
+  // price comes from.
   const source = safeSourceUrl(station.sourceUrl);
   if(source && station.kind !== "fuel") extra.appendChild(link("Operatora avots ↗",source));
   detail.appendChild(extra);
@@ -250,8 +253,9 @@ function renderList() {
     appendAll(names, button, element("p", `${station.network} · ${station.kind === "ev" ? "EV" : "DUS"}`));
     appendAll(title, badge(station), names); row.appendChild(title);
     if (station.address && station.address !== station.name) row.appendChild(element("p", station.address));
-    // Lētākais atbilstošais tarifs ar "no", ja to ir vairāki - agrāk te bija
-    // "Piem., " un pirmais tarifs pēc kārtas, kas lasījās kā "piemēram".
+    // The cheapest matching tariff, prefixed "no" (from) when there are
+    // several - this used to say "Piem., " with the first tariff in order,
+    // which read as "for example".
     const match = cheapestMatchingTariff(station.tariffs, connector.value, Number(power.value));
     if (match) {
       const {tariff, matches} = match;
@@ -273,8 +277,9 @@ function geojson(): FeatureCollection<Point> {
   return {type:"FeatureCollection",features:filtered.map((station) => ({type:"Feature",geometry:{type:"Point",coordinates:[station.lon,station.lat]},properties:{id:station.id,kind:station.kind,hl:isCheapest(station)?1:0,dim:(cheapest?.value && !isCheapest(station))?1:0,mark:networkMark(station),logo:logoForNetworkName(canonicalNetwork(station.network))?markerImageId(canonicalNetwork(station.network)):""}}))};
 }
 
-// Šaurā ekrānā filtri (izņemot meklēšanu) ir salocīti zem pogas "Filtri";
-// poga rāda, cik filtru ir ieslēgts, lai salocīti tie nepazūd no prāta.
+// On a narrow screen the filters (except the search) are folded behind the
+// "Filtri" button; the button shows how many are active, so folded filters
+// are not forgotten.
 const filtersToggle = document.getElementById("filters-toggle") as unknown as HTMLButtonElement | null;
 const filterFields = document.getElementById("filter-fields") as unknown as HTMLElement | null;
 const filtersCount = document.getElementById("filters-count") as unknown as HTMLElement | null;
@@ -308,7 +313,7 @@ function applyFilters() {
 input<HTMLFormElement>("map-filters").addEventListener("submit", (event) => event.preventDefault());
 search.addEventListener("input",applyFilters);
 network.addEventListener("change",applyFilters);
-// Paskaidro, kas tieši izcelts: tīkls, cena un vai tā tiešām ir zemākā.
+// Explains what exactly is highlighted: the network, the price and whether it really is the lowest.
 const highlightNotes: Record<string,{text:string;caveat:string|null}> =
   JSON.parse(document.getElementById("highlight-notes")?.textContent ?? "{}");
 const cheapestNote = document.getElementById("cheapest-note") as unknown as HTMLElement | null;
@@ -356,10 +361,10 @@ input<HTMLButtonElement>("locate-me").addEventListener("click", () => {
   }, (error) => {button.disabled=false;message.textContent=error.code===1 ? "Atrašanās vietas piekļuve nav atļauta. Ieraksti pilsētu vai adresi meklēšanā." : "Atrašanās vietu neizdevās noteikt. Izmanto meklēšanu.";}, {timeout:12000,maximumAge:60000,enableHighAccuracy:false});
 });
 
-// Karte lasa krāsas TIEŠI no global.css mainīgajiem, nevis dublē tās kā
-// atsevišķas hex vērtības - tā karte automātiski seko lapas paletei, ja tā
-// mainās, nevis paliek nesalāgota (kā notika ar EV punktu violeto krāsu,
-// kas nebija daļa no lapas paletes vispār).
+// The map reads its colours DIRECTLY from the global.css variables instead of
+// duplicating them as separate hex values - so the map follows the site
+// palette automatically if it changes, rather than drifting out of step (as
+// happened with the purple EV dots, which were not part of the palette at all).
 const rootStyle = getComputedStyle(document.documentElement);
 const cssColor = (name: string, fallback: string) => rootStyle.getPropertyValue(name).trim() || fallback;
 const COLOR_FUEL = cssColor("--color-pylon", "#245779");
@@ -367,10 +372,10 @@ const COLOR_EV = cssColor("--color-down", "#296448");
 const COLOR_CHEAPEST = cssColor("--color-cheapest-border", "#296448");
 const COLOR_INK = cssColor("--color-ink", "#202b35");
 
-// Diagnostika: kartes "load" var nenotikt pilnīgi klusi (apstājies Web
-// Worker vai nulles izmēra audekls, kas nekad netiek zīmēts), un tad ne
-// catch, ne "error" notikums neko nepasaka. Šie skaitītāji ļauj 15 sekunžu
-// pārbaudei pateikt, KURĀ vietā ķēde pārtrūkst, nevis tikai ka pārtrūka.
+// Diagnostics: the map's "load" can fail to fire completely silently (a
+// stalled Web Worker or a zero-size canvas that never gets drawn), and then
+// neither catch nor the "error" event says anything. These counters let the
+// 15-second check tell WHERE the chain breaks, not just that it broke.
 const diagnostics = {requested:0, styleData:0, sourceData:0, workerErrors:[] as string[]};
 addEventListener("error", (event) => {
   if (event.filename?.startsWith("blob:") || event.message?.includes("worker")) {
@@ -394,9 +399,9 @@ try {
     map.addSource("stations",{type:"geojson",data:geojson(),cluster:true,clusterMaxZoom:12,clusterRadius:40});
     map.addLayer({id:"clusters",type:"circle",source:"stations",filter:["has","point_count"],paint:{"circle-color":COLOR_INK,"circle-radius":["step",["get","point_count"],17,25,22,100,28],"circle-stroke-color":"#fff","circle-stroke-width":2}});
     map.addLayer({id:"cluster-count",type:"symbol",source:"stations",filter:["has","point_count"],layout:{"text-field":["get","point_count_abbreviated"],"text-font":["Noto Sans Regular"],"text-size":12},paint:{"text-color":"#fff"}});
-    // Ar logo aplis ir balts (krāsains fons logo nomāktu), un tīkla krāsa
-    // pāriet uz apmali; bez logo viss paliek kā bijis.
-    // Izcēluma gredzens zīmējas ZEM staciju apļa, tāpēc pievienots pirms tā.
+    // With a logo the circle is white (a coloured fill would drown the logo)
+    // and the network colour moves to the outline; without a logo nothing changes.
+    // The highlight ring is drawn UNDER the station circle, so it is added first.
     map.addLayer({id:"cheapest-ring",type:"circle",source:"stations",filter:["all",["!",["has","point_count"]],["==",["get","hl"],1]],paint:{"circle-color":COLOR_CHEAPEST,"circle-radius":["interpolate",["linear"],["zoom"],10,22,14,27],"circle-opacity":0.9}});
     map.addLayer({id:"stations",type:"circle",source:"stations",filter:["!",["has","point_count"]],paint:{"circle-color":["case",["!=",["get","logo"],""],"#ffffff",["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL]],"circle-radius":["interpolate",["linear"],["zoom"],10,15,14,19],"circle-stroke-color":["case",["!=",["get","logo"],""],["match",["get","kind"],"ev",COLOR_EV,COLOR_FUEL],"#ffffff"],"circle-stroke-width":3,"circle-opacity":["case",["==",["get","dim"],1],0.35,1],"circle-stroke-opacity":["case",["==",["get","dim"],1],0.35,1]}});
     map.addLayer({id:"station-logos",type:"symbol",source:"stations",filter:["all",["!",["has","point_count"]],["!=",["get","logo"],""]],layout:{"icon-image":["get","logo"],"icon-size":["interpolate",["linear"],["zoom"],10,0.62,14,0.82],"icon-allow-overlap":true,"icon-ignore-placement":true}});
@@ -413,16 +418,16 @@ try {
     map.on("mouseenter",layer,() => {if(map)map.getCanvas().style.cursor="pointer";});
     map.on("mouseleave",layer,() => {if(map)map.getCanvas().style.cursor="";});
   }
-  // Kļūdas TIEK parādītas ar iemeslu, nevis noklusētas: iepriekš gan šis
-  // handleris, gan catch zemāk tikai nomainīja tekstu, tāpēc reālais cēlonis
-  // (WebGL, tīkls, stila fails) nekad nebija redzams ne lietotājam, ne konsolē.
+  // Errors ARE shown with their reason, not swallowed: both this handler and
+  // the catch below used to just change the text, so the real cause (WebGL,
+  // network, style file) was never visible to the user or in the console.
   map.on("error",(event) => {
     const reason = event?.error?.message ?? "nezināms iemesls";
     console.error("Kartes kļūda:", event?.error ?? event);
     message.textContent=`Daļu kartes neizdevās ielādēt (${reason}). Staciju saraksts un filtri joprojām ir pieejami.`;
   });
-  // Ja stils nekad neielādējas, "load" nenotiek un lietotājs paliek ar tukšu
-  // pelēku lauku un mūžīgu "Karte ielādējas" - pasakām to skaidri.
+  // If the style never loads, "load" never fires and the user is left with an
+  // empty grey box and an endless "Karte ielādējas" - say so plainly.
   setTimeout(() => {
     if (mapReady) return;
     const container = document.getElementById("station-map");

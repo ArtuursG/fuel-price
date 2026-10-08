@@ -75,7 +75,7 @@ describe("brauciena kalkulators", () => {
 	});
 
 	it("rēķina brauciena izmaksas milli-EUR", () => {
-		// 250 km pie 7 l/100km = 17.5 l; 17.5 * 1947 = 34072.5
+		// 250 km at 7 l/100km = 17.5 l; 17.5 * 1947 = 34072.5
 		expect(tripCostMilli(250, 7, 1947)).toBeCloseTo(34072.5);
 	});
 
@@ -101,7 +101,7 @@ describe("brauciena kalkulators", () => {
 	});
 
 	it("rēķina perioda izmaksas", () => {
-		// 40 km dienā * 21 diena = 840 km
+		// 40 km a day * 21 days = 840 km
 		expect(periodCostMilli(40, 21, 7, 1947)).toBeCloseTo(tripCostMilli(840, 7, 1947));
 	});
 });

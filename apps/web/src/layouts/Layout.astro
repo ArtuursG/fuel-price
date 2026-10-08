@@ -8,8 +8,8 @@ interface Props {
 
 const { title } = Astro.props;
 
-// Galvenajā rindā tikai tas, ko lieto ikdienā; Tīkli, Avoti un Par ir
-// kājenē. Agrāk desmit saites telefonā aizņēma četras rindas virs satura.
+// The header row holds only what is used day to day; Tīkli, Avoti and Par are
+// in the footer. Ten links used to take four rows above the content on a phone.
 const NAV = [
 	{ href: "/", label: "Šodien" },
 	{ href: "/karte/", label: "Karte" },
@@ -57,7 +57,7 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 					))}
 				</nav>
 				<script is:inline>
-					// Šaurā ekrānā rinda ritinās; aktīvo lapu pabīdām redzamā vietā.
+					// On a narrow screen the row scrolls; bring the current page into view.
 					(() => {
 						const nav = document.currentScript?.previousElementSibling;
 						const current = nav?.querySelector('[aria-current="page"]');
@@ -123,7 +123,7 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 		gap: 1.25rem;
 		font-size: 0.95rem;
 	}
-	/* Aktīvā lapa: tinte un josla pie galvenes apakšmalas. */
+	/* Current page: ink colour and a bar along the header's bottom edge. */
 	.site-header__nav a {
 		display: flex;
 		align-items: center;
@@ -140,9 +140,9 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 		font-weight: 600;
 		box-shadow: inset 0 -2px 0 var(--color-pylon);
 	}
-	/* Šaurā ekrānā saites ir viena horizontāli ritināma rinda zem zīmes,
-	   nevis vairākas aplauztas rindas. Labajā malā izbalējums rāda, ka
-	   rindai ir turpinājums. */
+	/* On a narrow screen the links are one horizontally scrolling row under
+	   the mark instead of several wrapped rows. A fade at the right edge
+	   shows that the row continues. */
 	@media (max-width: 60rem) {
 		.site-header__inner {
 			padding: 0;

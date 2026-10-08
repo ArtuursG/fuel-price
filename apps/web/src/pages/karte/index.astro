@@ -18,14 +18,15 @@ try { fuelWithPrices = attachFuelPrices(fuel, await getLatestFuelPrices(env.DB))
 catch (error) { console.error("DUS cenas nav pieejamas", error); }
 const stations = [...ev, ...fuelWithPrices];
 const networks = [...new Set(stations.map((station) => station.network))].sort((a,b) => a.localeCompare(b,"lv"));
-// Kurās stacijās ir zemākā zināmā cena. Cena nāk no tīkla lapas, stacija no
-// OSM, tāpēc daļa sakritību neizdodas - tās nonāk `unlocated` un lapa par
-// tām pasaka skaidri, nevis izceļ nepareizo staciju (sk. lib/cheapest.ts).
+// Which stations have the lowest known price. The price comes from the
+// network's site and the station from OSM, so some matches fail - those end
+// up `unlocated` and the page says so plainly instead of highlighting the
+// wrong station (see lib/cheapest.ts).
 let cheapestFor = new Map<string, string[]>();
 let cheapestHighlights: import("../../lib/cheapest").Highlight[] = [];
 try {
-  // DSL_AGRO NAV ceļiem legāla (sk. lib/prices.ts), un AdBlue nav degviela,
-  // ar ko brauc - ne viena, ne otra nedrīkst nonākt izcelšanas izvēlnē.
+  // DSL_AGRO is NOT road-legal (see lib/prices.ts), and AdBlue is not a fuel
+  // you drive on - neither may end up in the highlight dropdown.
   const HIGHLIGHT_PRODUCTS = new Set(["P95", "P98", "DSL", "DSL_PLUS", "HVO", "E85", "LPG", "CNG"]);
   const rows = (await getLatestFuelPrices(env.DB)).filter((row) => HIGHLIGHT_PRODUCTS.has(row.product));
   const marks = markCheapestStations(stations, rows, canonicalNetwork);
@@ -37,16 +38,16 @@ const stationsWithCheapest = stations.map((station) => {
   const products = cheapestFor.get(station.id);
   return products ? {...station, cheapestFor: products} : station;
 });
-// Tikai tie produkti, kuriem tiešām ir ko izcelt.
+// Only the products that actually have something to highlight.
 const cheapestProducts = [...cheapestHighlights]
   .sort((a,b) => (PRODUCT_FULL_LABELS[a.product] ?? a.product).localeCompare(PRODUCT_FULL_LABELS[b.product] ?? b.product, "lv"));
-// Skripts paziņo, kas tieši izcelts, kad izvēle mainās.
+// The script announces what exactly is highlighted when the choice changes.
 const highlightNotes = Object.fromEntries(cheapestHighlights.map((h) => [h.product, {
   text: `${h.networkName} ${formatPrice(h.priceMilli)} EUR/l - ${h.stationCount === 1 ? "1 stacija" : `${h.stationCount} stacijas`}`,
   caveat: h.isAbsoluteCheapest ? null
     : `Zemākā cena ir ${h.cheaperNetworkName} ${formatPrice(h.cheaperPriceMilli ?? 0)} EUR/l, bet avots nenorāda ielu, tāpēc to kartē novietot nevar.`,
 }]));
-// Degvielas filtra izvēles (tikai tās, ko OSM stacijas mēdz norādīt).
+// Fuel filter options (only those OSM stations tend to list).
 const FILTER_PRODUCTS = ["P95", "P98", "DSL", "LPG", "CNG", "E85"];
 const payload = JSON.stringify(stationsWithCheapest).replace(/</g, "\\u003c");
 const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZone:"Europe/Riga"});
@@ -58,9 +59,9 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
     <div class="map-legend"><span><b class="fuel-key">D</b> {fuel.length} degvielas vietas</span><span><b class="ev-key">E</b> {ev.length} EV vietas</span></div>
   </header>
   {evUnavailable && <p role="alert" class="map-warning">EV datus pašlaik nevar ielādēt. Degvielas staciju karte ir pieejama. Mēģini pārlādēt lapu vēlāk.</p>}
-  {/* Šaurā ekrānā redzama tikai meklēšana; pārējie filtri ir zem pogas
-      "Filtri", lai karte nesāktos ~900px zemāk (sk. scripts/station-map.ts).
-      Bez JS viss paliek atvērts. */}
+  {/* On a narrow screen only the search is visible; the other filters sit
+      behind the "Filtri" button so the map does not start ~900px further
+      down (see scripts/station-map.ts). Without JS everything stays open. */}
   <form id="map-filters" class="map-filters" role="search" aria-label="Staciju filtri">
     <label class="field map-filters__search">Meklēt vietu vai adresi<input id="station-search" type="search" placeholder="Piemēram, Rīga vai Brīvības" autocomplete="off" /></label>
     <button type="button" id="filters-toggle" class="button map-filters__toggle" aria-expanded="true" aria-controls="filter-fields" hidden>Filtri <span id="filters-count" class="filters-count" hidden></span></button>
@@ -99,8 +100,8 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
     <p>EV stacijas un tarifi: kolektoru nolasītie operatoru dati; avots un laiks pie katras stacijas. Produktu filtri rāda tikai vietas, kur šī informācija zināma; kartes pārklājums nav pilnīgs. <a href="/avoti/">Avotu stāvoklis</a>.</p>
   </footer>
   <script id="map-stations" type="application/json" is:inline set:html={payload} />
-  <!-- MapLibre no CDN, nevis caur bundli -- sk. skaidrojumu scripts/station-map.ts.
-       Versija piesaistīta tieši tai, kas jau strādā ev-charge-lv projektā. -->
+  <!-- MapLibre from a CDN, not through the bundle -- see scripts/station-map.ts for why.
+       The version is pinned to exactly the one already working in the ev-charge-lv project. -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css" />
   <script is:inline src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
   <script>import "../../scripts/station-map";</script>
@@ -116,12 +117,11 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   .map-note,.map-attribution { font-size:0.8rem; color:var(--color-ink-muted); }
   #map-message { margin:0.75rem 0; }
   .map-warning { border-left:3px solid var(--color-up); padding:0.75rem; background:var(--color-surface); }
-  /* auto-fit, nevis fiksēts kolonnu skaits: lauku skaits mainās (izcelšana
-     ir tikai tad, ja ir ko izcelt; EV/degvielas lauki slēpjas pēc veida). */
-  /* auto-fit, nevis fiksēts kolonnu skaits: lauku skaits mainās (izcelšana
-     ir tikai tad, ja ir ko izcelt; EV/degvielas lauki slēpjas pēc veida).
-     Lauku konteiners platā ekrānā ir "display: contents", lai lauki būtu
-     tajā pašā režģī, kur meklēšana. */
+  /* auto-fit rather than a fixed column count: the number of fields varies
+     (the highlight field exists only when there is something to highlight;
+     EV/fuel fields hide depending on the station type). On a wide screen
+     the fields container is "display: contents" so the fields sit in the
+     same grid as the search. */
   .map-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr)); gap:0.7rem; border-top:2px solid var(--color-ink); padding-top:1rem; margin-top:1.25rem; }
   .map-filters__search { grid-column:span 2; }
   .map-filters__fields { display:contents; }
@@ -149,17 +149,17 @@ const osmDate = new Date(fuelData.fetchedAt).toLocaleDateString("lv-LV", {timeZo
   .station-title>div { min-width:0; }
   .network-mark { display:inline-grid; place-items:center; flex:0 0 2.4rem; height:2.4rem; background:var(--color-pylon); color:white; font:bold 0.8rem var(--font-body); border-radius:4px; letter-spacing:-0.03em; }
   .network-mark--ev { background:var(--color-down); border-radius:50%; }
-  /* Logo ir savās krāsās, tāpēc fons ir balts ar apmali, nevis tīkla krāsa. */
   .cheapest-note { max-width:48rem; margin:0 0 1rem; padding:0.6rem 0.8rem; border:1px solid var(--color-border); border-left:3px solid var(--color-cheapest-border); background:var(--color-surface); font-size:0.85rem; }
   .cheapest-note b { font-family:var(--font-mono); }
   .cheapest-note small { display:block; margin-top:0.3rem; color:var(--color-ink-muted); }
+  /* Logos come in their own colours, so the background is white with a border, not the network colour. */
   .network-mark--logo { width:2.4rem; background:#fff; border:1px solid var(--color-border); object-fit:contain; padding:0.2rem; border-radius:4px; }
   .network-mark--logo.network-mark--ev { border-radius:50%; }
   .station-subtitle { color:var(--color-ink-muted); font-size:0.75rem; }
   #station-detail .station-title h2 { margin:0 0 0.25rem; font-size:1rem; }
   .detail-close { display:block; margin-left:auto; font-size:0.75rem; padding:0.3rem 0.5rem; }
-  /* Navigācijas pogas. Krāsas ir lietotņu atpazīstamās krāsas, bet ikonas ir
-     mūsu pašu zīmētas - oriģinālie logotipi ir preču zīmes (sk. station-map.ts). */
+  /* Navigation buttons. The colours are the apps' recognisable colours, but the
+     icons are our own drawings - the original logos are trademarks (see station-map.ts). */
   .nav-buttons { display:flex; gap:0.3rem; margin:0.4rem 0 0.15rem; }
   .nav-button { display:inline-grid; place-items:center; width:1.7rem; height:1.7rem; border-radius:5px; color:white; text-decoration:none; transition:transform 0.1s ease, filter 0.1s ease; }
   .nav-button svg { width:13px; height:13px; }
