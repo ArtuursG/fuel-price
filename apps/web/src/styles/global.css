@@ -1,4 +1,5 @@
-/* Data overview: white background, ink text, blue accent. */
+/* Data overview: white background, ink text, blue accent. A dark variant
+   follows the system setting (see the media query below). */
 :root {
   --color-bg: #ffffff;
   --color-surface: #f3f5f7;
@@ -16,6 +17,19 @@
   --color-down: #296448;
   --color-up: #a13838;
   --color-neutral: #65737f;
+  --color-pylon-hover: #1c4663;
+  --color-selection: #dbe8f1;
+  --shadow-popup: 0 6px 18px rgb(32 43 53 / 0.14);
+  --shadow-edge: rgb(32 43 53 / 0.16);
+  /* Network logos are drawn for a white page; in the dark theme they get a
+     white tile so dark lettering does not disappear. */
+  --logo-tile: transparent;
+
+  /* Map markers sit on a light basemap in both themes, so their colours do
+     not switch with the page. */
+  --color-mark-fuel: #245779;
+  --color-mark-ev: #296448;
+  --color-mark-ink: #202b35;
 
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, monospace;
@@ -25,6 +39,33 @@
   --radius: 4px;
 
   color-scheme: light;
+}
+
+/* Same roles, lighter ink on a dark blue-grey. Every text pair keeps at least
+   6:1 contrast; the accent colours are lighter so they still read on dark. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #14191e;
+    --color-surface: #1c242b;
+    --color-ink: #e4eaef;
+    --color-ink-muted: #9eacb8;
+    --color-border: #33404b;
+    --color-pylon: #7db4dc;
+    --color-pylon-ink: #0d1a24;
+    --color-pylon-hover: #a3cbe8;
+    --color-cheapest-bg: #173426;
+    --color-cheapest-border: #62c690;
+    --color-cheapest-ink: #93d9ad;
+    --color-down: #62c690;
+    --color-up: #f28b8b;
+    --color-neutral: #8d9aa5;
+    --color-selection: #2b4a63;
+    --shadow-popup: 0 6px 18px rgb(0 0 0 / 0.45);
+    --shadow-edge: rgb(0 0 0 / 0.55);
+    --logo-tile: #ffffff;
+
+    color-scheme: dark;
+  }
 }
 
 * {
@@ -89,7 +130,7 @@ table {
 }
 
 body { font-variant-numeric: tabular-nums; }
-::selection { background: #dbe8f1; }
+::selection { background: var(--color-selection); }
 
 .sr-only {
   position: absolute;
@@ -125,8 +166,8 @@ body { font-variant-numeric: tabular-nums; }
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background:
-    linear-gradient(to left, var(--color-bg) 40%, rgb(255 255 255 / 0)) right / 2.5rem 100% no-repeat local,
-    radial-gradient(farthest-side at 100% 50%, rgb(32 43 53 / 0.16), transparent) right / 0.9rem 100% no-repeat scroll,
+    linear-gradient(to left, var(--color-bg) 40%, transparent) right / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, var(--shadow-edge), transparent) right / 0.9rem 100% no-repeat scroll,
     var(--color-bg);
 }
 .table-wrap table {
@@ -264,5 +305,6 @@ body { font-variant-numeric: tabular-nums; }
   color: var(--color-pylon-ink);
 }
 .button--primary:hover {
-  background: #1c4663;
+  border-color: var(--color-pylon-hover);
+  background: var(--color-pylon-hover);
 }

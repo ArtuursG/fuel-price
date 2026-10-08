@@ -47,6 +47,8 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#14191e" media="(prefers-color-scheme: dark)" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 		<meta name="description" content={description} />
@@ -102,7 +104,7 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 
 <style>
 	.preview-notice { border-bottom: 1px solid var(--color-border); padding: 0.75rem 0; font-size: 0.8rem; color: var(--color-ink-muted); }
-	.skip-link { position: absolute; top: -5rem; left: 1rem; padding: 0.75rem; background: white; z-index: 10; }
+	.skip-link { position: absolute; top: -5rem; left: 1rem; padding: 0.75rem; background: var(--color-bg); z-index: 10; }
 	.skip-link:focus { top: 0.5rem; }
 
 	.site-header {

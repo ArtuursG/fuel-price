@@ -125,6 +125,16 @@ const SERIES_COLORS: Record<string, string> = {
 const SPARE_COLORS = ["#4a3aa7", "#eda100", "#e87ba4"];
 export const OTHER_SERIES_COLOR = "#8a949c";
 
+// On the dark background a few of these are too dark to see (under 3:1);
+// they get a lighter tone of the same hue there, so a network keeps its colour.
+const DARK_VARIANTS: Record<string, string> = {
+	"#4a3aa7": "#8c7ae6",
+};
+
+export function darkVariant(color: string): string {
+	return DARK_VARIANTS[color] ?? color;
+}
+
 /** A colour per network in the chart; unknown ones get a spare colour or grey. */
 export function seriesColors(networkIds: string[]): Map<string, string> {
 	const used = new Set(networkIds.map((id) => SERIES_COLORS[id]).filter(Boolean));

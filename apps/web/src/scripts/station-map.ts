@@ -384,10 +384,10 @@ input<HTMLButtonElement>("locate-me").addEventListener("click", () => {
 // happened with the purple EV dots, which were not part of the palette at all).
 const rootStyle = getComputedStyle(document.documentElement);
 const cssColor = (name: string, fallback: string) => rootStyle.getPropertyValue(name).trim() || fallback;
-const COLOR_FUEL = cssColor("--color-pylon", "#245779");
-const COLOR_EV = cssColor("--color-down", "#296448");
-const COLOR_CHEAPEST = cssColor("--color-cheapest-border", "#296448");
-const COLOR_INK = cssColor("--color-ink", "#202b35");
+const COLOR_FUEL = cssColor("--color-mark-fuel", "#245779");
+const COLOR_EV = cssColor("--color-mark-ev", "#296448");
+const COLOR_CHEAPEST = cssColor("--color-mark-ev", "#296448");
+const COLOR_INK = cssColor("--color-mark-ink", "#202b35");
 
 applyFilters();
 try {
