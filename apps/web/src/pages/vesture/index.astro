@@ -41,7 +41,7 @@ const withData = charts.filter((c) => c.series.length > 0);
 			<div id="product-tabs" class="product-tabs" hidden>
 				<label class="field">
 					Degviela
-					<select id="product-select">
+					<select id="product-select" data-remember="product">
 						{withData.map((chart) => (
 							<option value={chart.product}>{chart.label}</option>
 						))}
@@ -59,6 +59,8 @@ const withData = charts.filter((c) => c.series.length > 0);
 	)}
 
 	<script>
+		import { rememberFields } from "../../scripts/remember-fields";
+
 		// Without JS all charts stay stacked one under another - they are complete.
 		// With JS they become one chart with a fuel selector, and the heading is
 		// kept for screen readers only, since the selector already says the same.
@@ -71,6 +73,8 @@ const withData = charts.filter((c) => c.series.length > 0);
 		if (tabs && select && panels.length > 1) {
 			tabs.hidden = false;
 			for (const panel of panels) panel.querySelector("h2")?.classList.add("sr-only");
+			// Opens on the driver's own fuel, if the calculator already knows it.
+			rememberFields();
 
 			const show = (product: string) => {
 				for (const panel of panels) {

@@ -93,17 +93,17 @@ const hasData = payload.products.length > 0;
 				<div class="detour-params">
 					<label class="field">
 						Degviela
-						<select id="detour-product">
+						<select id="detour-product" data-remember="product">
 							{payload.products.map((p) => <option value={p.product}>{p.label}</option>)}
 						</select>
 					</label>
 					<label class="field">
 						Uzpildīsi (l)
-						<input id="detour-liters" type="number" value="40" min="1" step="1" inputmode="decimal" />
+						<input id="detour-liters" type="number" value="40" min="1" step="1" inputmode="decimal" data-remember="fillLiters" />
 					</label>
 					<label class="field">
 						Patēriņš (l/100 km)
-						<input id="detour-consumption" type="number" value="7" min="0.1" step="0.1" inputmode="decimal" />
+						<input id="detour-consumption" type="number" value="7" min="0.1" step="0.1" inputmode="decimal" data-remember="consumption" />
 					</label>
 				</div>
 			</form>
@@ -124,6 +124,7 @@ const hasData = payload.products.length > 0;
 					roadDistanceEstimateKm,
 				} from "../../lib/detour";
 				import { formatMoney, formatPrice } from "../../lib/prices";
+				import { rememberFields } from "../../scripts/remember-fields";
 
 				interface Payload {
 					products: { product: string; label: string; prices: Record<string, number> }[];
@@ -151,6 +152,7 @@ const hasData = payload.products.length > 0;
 				const result = document.getElementById("detour-result") as HTMLDivElement;
 
 				let origin: { lat: number; lon: number } | null = null;
+				rememberFields();
 
 				function render() {
 					if (!origin) return;
