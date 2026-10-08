@@ -39,6 +39,8 @@ const FOOTER_NAV = [
 ];
 
 const path = Astro.url.pathname;
+// Link previews need an absolute address for the image.
+const ogImage = new URL("/og.png", Astro.url).href;
 const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 ---
 
@@ -46,6 +48,8 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="manifest" href="/manifest.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 		<meta name="theme-color" content="#14191e" media="(prefers-color-scheme: dark)" />
@@ -57,6 +61,11 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 		<meta property="og:locale" content="lv_LV" />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="degvielas cenas: degvielas un EV uzlādes cenas Latvijā" />
+		<meta name="twitter:card" content="summary_large_image" />
 	</head>
 	<body>
 		<a class="skip-link" href="#saturs">Pāriet uz saturu</a>
@@ -83,6 +92,9 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 				</script>
 			</div>
 		</header>
+		<p class="offline-notice" id="offline-notice" role="status" hidden>
+			Nav savienojuma ar lapu. Redzama pēdējā saglabātā kopija; cenas var būt novecojušas.
+		</p>
 		<main id="saturs">
 			{import.meta.env.DEV && <p class="preview-notice">Lokālais dizaina priekšskatījums. Cenas no saglabātajiem avotu paraugiem; tās nav aktuāls nolasījums.</p>}
 			<slot />
@@ -99,10 +111,38 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 				</p>
 			</div>
 		</footer>
+		<script>
+			// Shown when the connection drops, and on a saved copy served while the
+			// site could not be reached (public/sw.js marks those).
+			const notice = document.getElementById("offline-notice");
+			const savedCopy = document.documentElement.hasAttribute("data-saved-copy");
+			const update = () => {
+				if (notice) notice.hidden = navigator.onLine && !savedCopy;
+			};
+			addEventListener("online", update);
+			addEventListener("offline", update);
+			update();
+		</script>
+		{import.meta.env.PROD && (
+			<script is:inline>
+				if ("serviceWorker" in navigator) {
+					addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+				}
+			</script>
+		)}
 	</body>
 </html>
 
 <style>
+	.offline-notice {
+		margin: 0;
+		padding: 0.6rem 1.25rem;
+		background: var(--color-surface);
+		border-bottom: 1px solid var(--color-border);
+		border-left: 3px solid var(--color-up);
+		font-size: 0.85rem;
+		text-align: center;
+	}
 	.preview-notice { border-bottom: 1px solid var(--color-border); padding: 0.75rem 0; font-size: 0.8rem; color: var(--color-ink-muted); }
 	.skip-link { position: absolute; top: -5rem; left: 1rem; padding: 0.75rem; background: var(--color-bg); z-index: 10; }
 	.skip-link:focus { top: 0.5rem; }
