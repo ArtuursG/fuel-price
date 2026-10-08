@@ -1,0 +1,48 @@
+name: Deploy
+
+# Publishes the site (the fuel-price-web Worker) to Cloudflare after every
+# change to main that touches it, and on demand from the Actions tab.
+# Needs two repository secrets: CLOUDFLARE_API_TOKEN (Workers edit rights)
+# and CLOUDFLARE_ACCOUNT_ID. D1 migrations are not applied here; they stay a
+# deliberate manual step (`wrangler d1 migrations apply fuel-price-db --remote`).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch: {}
+
+# One deploy at a time; a newer push waits instead of racing the older one.
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: apps/web
+        run: pnpm run build
+
+      # The Cloudflare adapter writes the deploy config during the build, so
+      # wrangler deploy must run after it, from apps/web (see wrangler.toml).
+      - name: Deploy to Cloudflare
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler deploy
