@@ -14,7 +14,7 @@ type Bindings = {
 	INGEST_SECRET: string;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+export const app = new Hono<{ Bindings: Bindings }>();
 
 app.get("/", (c) => c.json({ ok: true, service: "fuel-price-ingest" }));
 
@@ -93,23 +93,37 @@ app.post("/ingest", async (c) => {
 	const today = localDate(new Date());
 	const writes: D1PreparedStatement[] = [];
 
+	let fuelChanged = 0;
 	for (const price of batch.fuel) {
 		const last = await c.env.DB.prepare(
-			`SELECT price_milli FROM fuel_prices
+			`SELECT id, price_milli FROM fuel_prices
 			 WHERE network_id = ? AND scope = ? AND product = ?
 			 ORDER BY observed_at DESC LIMIT 1`,
 		)
 			.bind(price.network_id, price.scope, price.product)
-			.first<{ price_milli: number }>();
+			.first<{ id: number; price_milli: number }>();
 
 		const decision = decidePriceUpdate(last?.price_milli ?? null, price.price_milli);
-		if (decision.action === "no_change") continue;
+		if (decision.action === "no_change") {
+			// Same price again: no new row (ADR-004), but the existing one records
+			// that this run saw it, so the site can say it was checked today.
+			if (last) {
+				writes.push(
+					c.env.DB.prepare(
+						"UPDATE fuel_prices SET confirmed_at = ?, confirmed_valid_from = ? WHERE id = ?",
+					).bind(observedAt, price.valid_from ?? null, last.id),
+				);
+			}
+			continue;
+		}
+		fuelChanged++;
 
 		writes.push(
 			c.env.DB.prepare(
 				`INSERT INTO fuel_prices
-					(network_id, scope, station_id, product, price_milli, where_text, valid_from, observed_at, local_date, run_id, flags)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					(network_id, scope, station_id, product, price_milli, where_text, valid_from, observed_at, local_date, run_id, flags,
+					 confirmed_at, confirmed_valid_from)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			).bind(
 				price.network_id,
 				price.scope,
@@ -122,11 +136,11 @@ app.post("/ingest", async (c) => {
 				today,
 				runId,
 				decision.flags,
+				observedAt,
+				price.valid_from ?? null,
 			),
 		);
 	}
-
-	const fuelChanged = writes.length;
 
 	for (const weekly of batch.official_weekly) {
 		writes.push(

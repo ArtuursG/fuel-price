@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageBucket, formatMoney, formatPrice, getLatestFuelPrices } from "./prices";
+import { ageBucket, formatDayMonth, formatMoney, formatPrice, getLatestFuelPrices, priceFreshness } from "./prices";
 
 describe("price age in Riga calendar days", () => {
     it.each([
@@ -27,9 +27,36 @@ it("keeps missing provenance unknown and uses the full observation timestamp", a
     }] }) }) } as unknown as D1Database;
     const rows = await getLatestFuelPrices(db, new Date("2026-09-20T09:00:00Z"));
     expect(rows[0].prices[0]).toMatchObject({
-        age: "today", origin: null, sourceUrl: null, observedAt: "2026-09-19T21:30:00Z",
+        age: "today", origin: null, sourceUrl: null, observedAt: "2026-09-19T21:30:00Z", checkedAt: "2026-09-19T21:30:00Z",
         priceMilli: 1700, changeMilli: null,
     });
+});
+
+describe("priceFreshness", () => {
+    const now = new Date("2026-10-08T09:00:00Z");
+    // Circle K HVO: 2,490 since 18 September, still listed on a page dated 6 October.
+    const unchanged = { observed_at: "2026-09-18T07:00:00Z", valid_from: "2026-09-18" };
+
+    it("keeps the old rule for a row no run has confirmed yet", () => {
+        expect(priceFreshness({ ...unchanged, confirmed_at: null, confirmed_valid_from: null }, now)).toEqual({
+            age: "older", checkedAt: "2026-09-18T07:00:00Z",
+        });
+    });
+    it("follows the date the source gave when the price was last seen", () => {
+        expect(priceFreshness({ ...unchanged, confirmed_at: "2026-10-08T07:57:00Z", confirmed_valid_from: "2026-10-06" }, now)).toEqual({
+            age: "1-2d", checkedAt: "2026-10-08T07:57:00Z",
+        });
+    });
+    it("uses the check itself when the source gives no date", () => {
+        expect(priceFreshness({ observed_at: "2026-09-18T07:00:00Z", valid_from: null, confirmed_at: "2026-10-08T07:57:00Z", confirmed_valid_from: null }, now).age).toBe("today");
+    });
+    it("goes stale again when runs stop seeing the price", () => {
+        expect(priceFreshness({ ...unchanged, confirmed_at: "2026-09-25T07:57:00Z", confirmed_valid_from: null }, now).age).toBe("older");
+    });
+});
+
+it("formats a short day and month in Riga time", () => {
+    expect(formatDayMonth("2026-09-17T22:30:00Z")).toBe("18.09.");
 });
 
 describe("number formatting", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import app from "./index";
+import { app } from "./index";
 import { computeSignature } from "./ingest-logic";
 
 // These cover everything reachable BEFORE the route touches c.env.DB, using
