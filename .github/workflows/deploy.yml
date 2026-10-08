@@ -1,28 +1,35 @@
 name: Deploy
 
-# Publishes the site (the fuel-price-web Worker) to Cloudflare after every
-# change to main that touches it, and on demand from the Actions tab.
-# Needs two repository secrets: CLOUDFLARE_API_TOKEN (Workers edit rights)
-# and CLOUDFLARE_ACCOUNT_ID. D1 migrations are not applied here; they stay a
-# deliberate manual step (`wrangler d1 migrations apply fuel-price-db --remote`).
+# Publishes to Cloudflare after every change to main that touches the site,
+# the ingest Worker, the database migrations, the lockfile or this workflow,
+# and on demand from the Actions tab. In order, stopping at the first failure:
+# pending D1 migrations, then the ingest Worker, then the site, so new code
+# never runs against a database that lacks its columns.
+# Needs two repository secrets: CLOUDFLARE_API_TOKEN (Workers and D1 edit
+# rights) and CLOUDFLARE_ACCOUNT_ID.
 
 on:
   push:
     branches: [main]
     paths:
       - "apps/web/**"
+      - "apps/ingest/**"
+      - "db/migrations/**"
       - "pnpm-lock.yaml"
       - ".github/workflows/deploy.yml"
   workflow_dispatch: {}
 
 # One deploy at a time; a newer push waits instead of racing the older one.
 concurrency:
-  group: deploy-web
+  group: deploy
   cancel-in-progress: false
 
 jobs:
-  web:
+  deploy:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -34,15 +41,32 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - name: Build
+      # If the first migration shows as pending, the production database was
+      # set up outside wrangler's migration tracking, and applying would try to
+      # run every old migration again. Stop and leave that to a person.
+      - name: Check D1 migrations
+        working-directory: apps/ingest
+        run: |
+          pnpm exec wrangler d1 migrations list fuel-price-db --remote | tee migrations.txt
+          if grep -q "0001_init.sql" migrations.txt; then
+            echo "::error::0001_init.sql is listed as pending: migration tracking does not match the production database. Not applying anything."
+            exit 1
+          fi
+
+      - name: Apply D1 migrations
+        working-directory: apps/ingest
+        run: pnpm exec wrangler d1 migrations apply fuel-price-db --remote
+
+      - name: Deploy the ingest Worker
+        working-directory: apps/ingest
+        run: pnpm exec wrangler deploy
+
+      - name: Build the site
         working-directory: apps/web
         run: pnpm run build
 
       # The Cloudflare adapter writes the deploy config during the build, so
       # wrangler deploy must run after it, from apps/web (see wrangler.toml).
-      - name: Deploy to Cloudflare
+      - name: Deploy the site
         working-directory: apps/web
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm exec wrangler deploy
