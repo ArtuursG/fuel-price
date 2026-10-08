@@ -61,7 +61,10 @@ const payload = {
 const hasData = payload.products.length > 0;
 ---
 
-<Layout title="Vai ir vērts pabraukt? - degvielas cenas">
+<Layout
+	title="Vai ir vērts pabraukt? - degvielas cenas"
+	description="Vai atmaksājas aizbraukt līdz lētākai degvielas stacijai, ieskaitot papildu ceļa izmaksas."
+>
 	<h1>Vai ir vērts pabraukt?</h1>
 
 	{!hasData ? (

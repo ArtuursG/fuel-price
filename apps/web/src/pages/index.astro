@@ -16,9 +16,19 @@ const otherProducts = products.filter((row) => !mainProducts.includes(row));
 
 const networkCount = new Set(products.flatMap((row) => row.prices.map((p) => p.networkId))).size;
 
-function formatUpdatedAt(iso: string): string {
+// "pirms 12 min" or "šodien 09:37" says at a glance how fresh the prices are;
+// a full date and time is only needed for older checks.
+function formatUpdatedAt(iso: string, now: Date = new Date()): string {
 	if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return new Date(`${iso}T00:00:00Z`).toLocaleDateString("lv-LV");
-	return new Date(iso).toLocaleString("lv-LV", { timeZone: "Europe/Riga", dateStyle: "short", timeStyle: "short" });
+	const date = new Date(iso);
+	const minutes = Math.floor((now.getTime() - date.getTime()) / 60_000);
+	if (minutes >= 0 && minutes < 2) return "tikko";
+	if (minutes >= 0 && minutes < 60) return `pirms ${minutes} min`;
+	const rigaDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/Riga" });
+	if (rigaDay(date) === rigaDay(now)) {
+		return `šodien ${date.toLocaleTimeString("lv-LV", { timeZone: "Europe/Riga", hour: "2-digit", minute: "2-digit" })}`;
+	}
+	return date.toLocaleString("lv-LV", { timeZone: "Europe/Riga", dateStyle: "short", timeStyle: "short" });
 }
 
 const datasetJsonLd = {
@@ -32,7 +42,10 @@ const datasetJsonLd = {
 };
 ---
 
-<Layout title="Degvielas cenas šodien - degvielas cenas">
+<Layout
+	title="Degvielas cenas šodien - degvielas cenas"
+	description="Lētākā degvielas cena šodien Latvijas tīklos: benzīns 95 un 98, dīzelis, LPG un citas, salīdzinātas pa tīkliem."
+>
 	<script type="application/ld+json" set:html={JSON.stringify(datasetJsonLd)} />
 
 	{products.length === 0 ? (
@@ -46,7 +59,7 @@ const datasetJsonLd = {
 				<h1 id="today-heading">Degvielas cenas šodien</h1>
 				<p class="hero__meta">
 					Lētākā novērotā cena katrai degvielai {networkCount} tīklos.
-					{lastUpdated && <>{" "}Pēdējā pārbaude {formatUpdatedAt(lastUpdated)}.</>}
+					{lastUpdated && <>{" "}Pēdējā pārbaude <time datetime={lastUpdated}>{formatUpdatedAt(lastUpdated)}</time>.</>}
 					{" "}Vietu, cenas vecumu un avotu rāda <span class="hero__i" aria-hidden="true">i</span>.
 				</p>
 				<div class="pylon-grid">

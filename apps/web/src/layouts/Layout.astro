@@ -4,9 +4,14 @@ import Logo from "../components/Logo.astro";
 
 interface Props {
 	title: string;
+	/** Shown by search engines and in link previews (messengers, social media). */
+	description?: string;
 }
 
-const { title } = Astro.props;
+const {
+	title,
+	description = "Latvijas degvielas un EV uzlādes cenas vienuviet: lētākā cena šodien, cenu vēsture, staciju karte un kalkulatori.",
+} = Astro.props;
 
 // The header row holds only what is used day to day; Tīkli, Avoti and Par are
 // in the footer. Ten links used to take four rows above the content on a phone.
@@ -36,6 +41,12 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
+		<meta name="description" content={description} />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="degvielas cenas" />
+		<meta property="og:locale" content="lv_LV" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link

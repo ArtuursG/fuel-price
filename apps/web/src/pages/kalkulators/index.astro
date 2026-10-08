@@ -34,7 +34,10 @@ const calcData = {
 const hasData = calcData.fuel.length > 0 || calcData.ev.length > 0;
 ---
 
-<Layout title="Kalkulators - degvielas cenas">
+<Layout
+	title="Kalkulators - degvielas cenas"
+	description="Cik maksās brauciens un cik maksā nobraukt 100 km ar degvielu vai elektroauto pēc šodienas cenām."
+>
 	<h1>Degvielas kalkulators</h1>
 
 	{!hasData ? (
