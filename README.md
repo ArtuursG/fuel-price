@@ -2,6 +2,8 @@
 
 Latvijas degvielas un elektroauto uzlādes cenu salīdzinājums: lētākā cena šodien, cenu vēsture, staciju karte un kalkulatori.
 
+**Lapa: [fuel-price-web.jkedainis.workers.dev](https://fuel-price-web.jkedainis.workers.dev)**
+
 | Mape | Saturs |
 | --- | --- |
 | `collector/` | Python kolektors, kas nolasa tīklu cenas |
