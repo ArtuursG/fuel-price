@@ -11,6 +11,7 @@ import type {GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker} from "
 import type {FeatureCollection, Point} from "geojson";
 import {cheapestMatchingTariff, filterStations, euro, connectorLabel, routeUrl, wazeUrl, safeSourceUrl, tariffText, canonicalNetwork, type MapStation, type StationFilters} from "../lib/station-map";
 import {logoForNetworkName} from "../lib/logos";
+import {haversineKm} from "../lib/detour";
 
 declare const maplibregl: typeof import("maplibre-gl");
 
@@ -35,6 +36,9 @@ let filtered = stations;
 let limit = 50;
 let selectedId: string | null = null;
 let locationMarker: MapLibreMarker | null = null;
+// Set by "Man tuvumā"; from then on the list is sorted by distance from it.
+let userPosition: {lat: number; lon: number} | null = null;
+const kmFormat = new Intl.NumberFormat("lv-LV", {maximumFractionDigits: 1});
 
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, className?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -167,6 +171,12 @@ function loadBitmap(url: string): Promise<ImageData> {
     img.src = url;
   });
 }
+// Straight-line distance, so it is marked as approximate; whole km beyond 10.
+function distanceText(station: MapStation): string {
+  if (!userPosition) return "";
+  const km = haversineKm(userPosition, station);
+  return ` · ~${kmFormat.format(km < 10 ? km : Math.round(km))} km`;
+}
 function priceLabel(tariff: MapStation["tariffs"][number]): string {
   const parts = [];
   if (tariff.energy !== null) parts.push(`${euro(tariff.energy)} €/kWh`);
@@ -180,7 +190,7 @@ function showStation(station: MapStation, move = true) {
   close.addEventListener("click", () => { detail.hidden = true; selectedId = null; });
   const title = element("div", undefined, "station-title");
   const names = element("div");
-  appendAll(names, element("h2", station.name), element("span", `${station.network} · ${station.kind === "ev" ? "EV" : "DUS"}`, "station-subtitle"));
+  appendAll(names, element("h2", station.name), element("span", `${station.network} · ${station.kind === "ev" ? "EV" : "DUS"}${distanceText(station)}`, "station-subtitle"));
   appendAll(title, badge(station), names);
   appendAll(detail, close, title);
   if (station.address) detail.appendChild(element("p", station.address, "station-address"));
@@ -235,6 +245,7 @@ function showStation(station: MapStation, move = true) {
   const source = safeSourceUrl(station.sourceUrl);
   if(source && station.kind !== "fuel") extra.appendChild(link("Operatora avots ↗",source));
   detail.appendChild(extra);
+  detail.onkeydown = (event) => { if (event.key === "Escape") close.click(); };
   detail.scrollIntoView({block:"nearest",behavior:"instant"}); close.focus({preventScroll:true});
   if(move && map) map.easeTo({center:[station.lon,station.lat],zoom:Math.max(map.getZoom(),13),duration:matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 350});
 }
@@ -242,6 +253,11 @@ function showStation(station: MapStation, move = true) {
 function renderList() {
   const bounds = mapReady && map && visibleOnly.checked ? map.getBounds() : null;
   const shown = filtered.filter((station) => !bounds || bounds.contains([station.lon,station.lat]));
+  if (userPosition) {
+    const origin = userPosition;
+    const distance = new Map(shown.map((station) => [station.id, haversineKm(origin, station)]));
+    shown.sort((a, b) => (distance.get(a.id) ?? 0) - (distance.get(b.id) ?? 0));
+  }
   input("result-count").textContent = `${shown.length} stacijas${bounds ? " kartes apgabalā" : ""} / ${filtered.length} atlasītas`;
   const fragment = document.createDocumentFragment();
   for (const station of shown.slice(0,limit)) {
@@ -250,7 +266,7 @@ function renderList() {
     button.addEventListener("click",() => showStation(station));
     const title = element("div", undefined, "station-title");
     const names = element("div");
-    appendAll(names, button, element("p", `${station.network} · ${station.kind === "ev" ? "EV" : "DUS"}`));
+    appendAll(names, button, element("p", `${station.network} · ${station.kind === "ev" ? "EV" : "DUS"}${distanceText(station)}`));
     appendAll(title, badge(station), names); row.appendChild(title);
     if (station.address && station.address !== station.name) row.appendChild(element("p", station.address));
     // The cheapest matching tariff, prefixed "no" (from) when there are
@@ -356,8 +372,10 @@ input<HTMLButtonElement>("locate-me").addEventListener("click", () => {
   navigator.geolocation.getCurrentPosition((position) => {
     button.disabled=false;
     const coordinates:[number,number]=[position.coords.longitude,position.coords.latitude];
+    userPosition={lat:position.coords.latitude,lon:position.coords.longitude};
     if(map) { locationMarker?.remove();locationMarker=new maplibregl.Marker({color:COLOR_INK}).setLngLat(coordinates).addTo(map);map.easeTo({center:coordinates,zoom:12,duration:0}); }
-    message.textContent="Karte centrēta uz aptuveno atrašanās vietu. Tuvums negarantē īsāko braukšanas maršrutu.";
+    renderList();
+    message.textContent="Saraksts sakārtots no tuvākās stacijas; attālums ir taisnā līnijā, ne pa ceļu.";
   }, (error) => {button.disabled=false;message.textContent=error.code===1 ? "Atrašanās vietas piekļuve nav atļauta. Ieraksti pilsētu vai adresi meklēšanā." : "Atrašanās vietu neizdevās noteikt. Izmanto meklēšanu.";}, {timeout:12000,maximumAge:60000,enableHighAccuracy:false});
 });
 
