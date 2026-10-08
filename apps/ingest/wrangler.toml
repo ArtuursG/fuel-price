@@ -2,6 +2,12 @@ name = "fuel-price-ingest"
 main = "src/index.ts"
 compatibility_date = "2026-09-18"
 
+# Starts the GitHub "Collect" workflow every 30 minutes (src/collect-trigger.ts).
+# One cron for both kinds of run: the 04:07 UTC run also collects EV tariffs
+# and the EU bulletin.
+[triggers]
+crons = ["7,37 * * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "fuel-price-db"

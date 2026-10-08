@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { triggerCollect } from "./collect-trigger";
 import {
 	IngestBatchSchema,
 	computeTariffHash,
@@ -12,6 +13,8 @@ import {
 type Bindings = {
 	DB: D1Database;
 	INGEST_SECRET: string;
+	/** Fine-grained GitHub token with Actions write access to this repository. */
+	GITHUB_DISPATCH_TOKEN?: string;
 };
 
 export const app = new Hono<{ Bindings: Bindings }>();
@@ -296,4 +299,10 @@ app.post("/ingest", async (c) => {
 	});
 });
 
-export default app;
+export default {
+	fetch: app.fetch,
+	// Cron Trigger (wrangler.toml): start the GitHub collection run on time.
+	scheduled(controller, env, ctx) {
+		ctx.waitUntil(triggerCollect(controller.scheduledTime, env.GITHUB_DISPATCH_TOKEN));
+	},
+} satisfies ExportedHandler<Bindings>;

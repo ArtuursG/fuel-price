@@ -1,7 +1,18 @@
 name: Collect
 
 on:
-  workflow_dispatch: {}
+  # The fuel-price-ingest Worker starts this every 30 minutes through the API
+  # (apps/ingest/src/collect-trigger.ts): scope "fuel", or "all" once a day.
+  # A manual run from the Actions tab collects everything by default.
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "What to collect"
+        type: choice
+        options: [all, fuel]
+        default: all
+  # GitHub's own schedule is only a fallback: for this repository it fires
+  # every few hours instead of every 30 minutes.
   schedule:
     # Fuel prices: 7,37 * * * * per docs/PROMPT_START.md. Enabled on
     # 2026-09-20, once INGEST_URL pointed at the real ingest Worker and all
@@ -17,6 +28,11 @@ on:
     # on other people's servers; tariffs do not change that often.
     - cron: "17 4 * * *"
 
+# Never two collections at once; a new one waits for the running one.
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
 jobs:
   collect:
     runs-on: ubuntu-latest
@@ -29,8 +45,8 @@ jobs:
         working-directory: collector
         run: uv sync
 
-      # A manual run (workflow_dispatch) runs ALL sources; a scheduled run
-      # only runs the part that belongs to its cron entry.
+      # A dispatched run follows its scope input; a scheduled run only runs the
+      # part that belongs to its cron entry.
       - name: Run all fuel sources and push
         if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7,37 * * * *'
         working-directory: collector
@@ -40,7 +56,7 @@ jobs:
         run: uv run python -m collector run --all --push
 
       - name: Run EU weekly oil bulletin and push
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
+        if: (github.event_name == 'workflow_dispatch' && inputs.scope != 'fuel') || github.event.schedule == '17 4 * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
@@ -48,7 +64,7 @@ jobs:
         run: uv run python -m collector official-weekly --push
 
       - name: Run e-mobi EV stations/tariffs and push
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
+        if: (github.event_name == 'workflow_dispatch' && inputs.scope != 'fuel') || github.event.schedule == '17 4 * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
@@ -56,7 +72,7 @@ jobs:
         run: uv run python -m collector emobi-ev --push
 
       - name: Run Ignitis ON EV stations/tariffs and push
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
+        if: (github.event_name == 'workflow_dispatch' && inputs.scope != 'fuel') || github.event.schedule == '17 4 * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
@@ -64,7 +80,7 @@ jobs:
         run: uv run python -m collector ignitis-ev --push
 
       - name: Run Eleport EV tariffs and push
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
+        if: (github.event_name == 'workflow_dispatch' && inputs.scope != 'fuel') || github.event.schedule == '17 4 * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
@@ -72,7 +88,7 @@ jobs:
         run: uv run python -m collector eleport-ev --push
 
       - name: Run Virsi EV tariffs and push
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 4 * * *'
+        if: (github.event_name == 'workflow_dispatch' && inputs.scope != 'fuel') || github.event.schedule == '17 4 * * *'
         working-directory: collector
         env:
           INGEST_URL: ${{ secrets.INGEST_URL }}
