@@ -37,6 +37,24 @@ DATASETS = [
 PRICE_HINT = re.compile(r"price|tariff|cost|fee|amount|currency|eur|cena|tarif|maksa|valuta", re.I)
 
 
+NAP_HOST = "https://transportdata.gov.lv"
+
+
+def normalize(raw: str) -> str:
+    """Portāls rāda tikai ceļu (/api/v1/dataset/<id>/download), ne pilnu adresi.
+
+    Kopējot mēdz pielipt arī lieki simboli ("h" no https), tāpēc ņemam no
+    pirmā "/api/" un hostu pieliekam paši. Pilnu adresi atstājam, kā ir.
+    """
+    raw = raw.strip()
+    if raw.lower().startswith(("http://", "https://")):
+        return raw
+    index = raw.find("/api/")
+    if index != -1:
+        return NAP_HOST + raw[index:]
+    return raw
+
+
 def fetch(url: str, key: str | None) -> httpx.Response:
     """Mēģina galvenē, tad vaicājuma parametros -- NAP abus variantus lieto."""
     with httpx.Client(timeout=60.0, follow_redirects=True) as client:
@@ -74,7 +92,7 @@ def walk_fields(
 
 
 def describe(title: str, var: str) -> None:
-    url = os.environ.get(f"{var}_URL", "").strip()
+    url = normalize(os.environ.get(f"{var}_URL", ""))
     key = os.environ.get(f"{var}_KEY", "").strip() or None
 
     print(f"\n=== {title} ===")
