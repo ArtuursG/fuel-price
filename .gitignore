@@ -4,11 +4,12 @@
 
 # Internal planning, research and working notes stay local and are not
 # pushed to the public repo (competitor analysis, source research, decision
-# history, development conventions). README.md is the only published
-# Markdown file at the root.
+# history, development conventions). Root Markdown is therefore ignored by
+# default, and the genuinely public files are listed as exceptions.
 docs/
 /*.md
 !/README.md
+!/SECURITY.md
 
 # Python
 __pycache__/
