@@ -81,6 +81,13 @@ def describe(title: str, var: str) -> None:
     if not url:
         print(f"  izlaists: {var}_URL nav aizpildīts .dev.vars")
         return
+    if not url.lower().startswith(("http://", "https://")):
+        # Biezaka klude neka izskatas: lapa blakus radis gan API atslegu, gan
+        # MQTT temu, un ne viena, ne otra nav adrese, uz kuru var aiziet.
+        print(f"  {var}_URL nav adrese ({len(url)} zīmes, nesākas ar https://).")
+        print("  Vajag to, ko kopē ķēdes poga ailē 'API atslēga & Endpoint'")
+        print("  (parādās 'Piekļuves saite nokopēta!'), nevis atslēgu vai MQTT tēmu.")
+        return
 
     try:
         response = fetch(url, key)
