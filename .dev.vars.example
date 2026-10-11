@@ -14,3 +14,16 @@ TELEGRAM_CHAT_ID=
 # sources from the existing EV project, if they are carried over in phase 6 (see ev-charge-lv/.env.example)
 TRANSPORTDATA_API_KEY=
 OCM_API_KEY=
+
+# NAP (transportdata.gov.lv) EV datu kopas. Katrai abonetai datu kopai lapa
+# dod savu API atslegu un piekluves saiti (poga ar kedes ikonu).
+# Ielime seit, failā .dev.vars -- NE sarakste un NE repozitorija.
+# Ja piekluves saite jau satur atslegu, pietiek ar _URL rindu.
+NAP_EV_INFRA_URL=
+NAP_EV_INFRA_KEY=
+
+NAP_EV_STATUS_URL=
+NAP_EV_STATUS_KEY=
+
+NAP_EV_INFRA_ECO_URL=
+NAP_EV_INFRA_ECO_KEY=
