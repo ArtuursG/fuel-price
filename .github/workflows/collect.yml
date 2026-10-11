@@ -67,36 +67,6 @@ jobs:
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector official-weekly --push
 
-      - name: Run e-mobi EV stations/tariffs and push
-        id: emobi
-        continue-on-error: true
-        if: (github.event_name == 'workflow_dispatch' && inputs.scope != 'fuel') || github.event.schedule == '17 4 * * *'
-        working-directory: collector
-        env:
-          INGEST_URL: ${{ secrets.INGEST_URL }}
-          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
-        run: uv run python -m collector emobi-ev --push
-
-      - name: Run Ignitis ON EV stations/tariffs and push
-        id: ignitis
-        continue-on-error: true
-        if: (github.event_name == 'workflow_dispatch' && inputs.scope != 'fuel') || github.event.schedule == '17 4 * * *'
-        working-directory: collector
-        env:
-          INGEST_URL: ${{ secrets.INGEST_URL }}
-          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
-        run: uv run python -m collector ignitis-ev --push
-
-      - name: Run Eleport EV tariffs and push
-        id: eleport
-        continue-on-error: true
-        if: (github.event_name == 'workflow_dispatch' && inputs.scope != 'fuel') || github.event.schedule == '17 4 * * *'
-        working-directory: collector
-        env:
-          INGEST_URL: ${{ secrets.INGEST_URL }}
-          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
-        run: uv run python -m collector eleport-ev --push
-
       - name: Run Virsi EV tariffs and push
         id: virsi
         continue-on-error: true
@@ -119,6 +89,11 @@ jobs:
           NAP_EV_STATUS_KEY: ${{ secrets.NAP_EV_STATUS_KEY }}
         run: uv run python -m collector nap-ev --push
 
+      # e-mobi, Ignitis un Eleport soļu te vairs nav. NAP (nap-ev) dod
+      # Ignitis un Eleport tarifus ar plašāku pārklājumu, tāpēc to lapu
+      # nolasīšana būtu lieka slodze svešiem serveriem. e-mobi no 2026-10-02
+      # atbild 403 GitHub skrējēja adresēm, un to mēs neapejam; avots D1 ir
+      # atzīmēts kā blocked, un lapa to parāda.
       # Avotu soļi ir continue-on-error, lai viens kritiens neatņemtu
       # pārējiem kārtu: 2026-10-02 e-mobi sāka atbildēt 403, un tas klusi
       # apturēja Ignitis, Eleport un Viršus uz desmit dienām. Darbs tomēr
@@ -131,9 +106,6 @@ jobs:
           failed=""
           if [ "${{ steps.fuel.outcome }}" = "failure" ]; then failed="$failed fuel"; fi
           if [ "${{ steps.bulletin.outcome }}" = "failure" ]; then failed="$failed bulletin"; fi
-          if [ "${{ steps.emobi.outcome }}" = "failure" ]; then failed="$failed emobi"; fi
-          if [ "${{ steps.ignitis.outcome }}" = "failure" ]; then failed="$failed ignitis"; fi
-          if [ "${{ steps.eleport.outcome }}" = "failure" ]; then failed="$failed eleport"; fi
           if [ "${{ steps.virsi.outcome }}" = "failure" ]; then failed="$failed virsi"; fi
           if [ "${{ steps.nap.outcome }}" = "failure" ]; then failed="$failed nap"; fi
           if [ -n "$failed" ]; then
