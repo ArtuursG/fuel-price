@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure" xmlns:fac="http://datex2.eu/schema/3/facilities" xmlns:locx="http://datex2.eu/schema/3/locationExtension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd                       http://datex2.eu/schema/3/common DATEXII_3_Common.xsd                       http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd                       http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd                       http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd                       http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd                       http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd                       http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd" xsi:type="egi:EnergyInfrastructureTablePublication" lang="en-US" modelBaseVersion="3">
+    <com:publicationTime>2026-10-11T05:59:40+00:00</com:publicationTime>
+    <com:publicationCreator>
+        <com:country>NL</com:country>
+        <com:nationalIdentifier>Eco-Movement</com:nationalIdentifier>
+    </com:publicationCreator>
+    <egi:energyInfrastructureTable id="1" version="3.4">
+    <egi:energyInfrastructureSite id="Virsi-LOC003" version="1">
+        <fac:name>
+            <com:values>
+                <com:value lang="en">DUS Ādaži</com:value>
+            </com:values>
+        </fac:name>
+        <fac:operatingHours xsi:type="fac:UnknownOperatingHours"/><fac:locationReference xsi:type="loc:PointLocation">
+            <loc:pointByCoordinates>
+                <loc:pointCoordinates>
+                    <loc:latitude>57.07869769</loc:latitude>
+                    <loc:longitude>24.3176056</loc:longitude>
+                </loc:pointCoordinates>
+            </loc:pointByCoordinates>
+            <loc:_pointLocationExtension>
+                <locx:facilityLocation>
+                    <locx:address>
+                        <locx:postcode>LV-2164</locx:postcode>
+                        <locx:city>Ādaži</locx:city>
+                        <locx:countryCode>LV</locx:countryCode>
+                        <locx:addressLine order="0">
+                            <locx:type>street</locx:type>
+                            <locx:text>Ādaži, Rīgas gatve 45</locx:text>
+                        </locx:addressLine>
+                    </locx:address>
+                    <locx:timeZone>Europe/Riga</locx:timeZone>
+                </locx:facilityLocation>
+            </loc:_pointLocationExtension>
+        </fac:locationReference>
+        <fac:operator xsi:type="fac:OrganisationSpecification" id="1" version="1">
+            <fac:name>
+                <com:values>
+                    <com:value lang="en">Virsi</com:value>
+                </com:values>
+            </fac:name>
+            <fac:organisationUnit>
+                <fac:contactInformation>
+                    <fac:telephoneNumber>n.a.</fac:telephoneNumber>
+                </fac:contactInformation>
+            </fac:organisationUnit>
+        </fac:operator>
+    <egi:energyInfrastructureStation id="1" version="1"><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="121_2" version="1"><fac:externalIdentifier>LV*SET*000301212</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>40000</egi:maxPowerAtSocket></egi:connector><egi:connector><egi:connectorType>chademo</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>40000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="121_1" version="1"><fac:externalIdentifier>LV*SET*000301211</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>160000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint></egi:energyInfrastructureStation></egi:energyInfrastructureSite><egi:energyInfrastructureSite id="Elektrum Drive-2a9bfe1e-bb5e-4a56-9bf4-d6bb0bac2322" version="1">
+        <fac:name>
+            <com:values>
+                <com:value lang="en">PLVRIXPB12_EDLV-52</com:value>
+            </com:values>
+        </fac:name>
+        <fac:operatingHours xsi:type="fac:OperatingHoursSpecification" id="1" version="1"><fac:overallPeriod><com:overallStartTime>2026-10-11T05:59:41+00:00</com:overallStartTime><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>monday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>tuesday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>wednesday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>thursday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>friday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>saturday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>sunday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod></fac:overallPeriod></fac:operatingHours><fac:locationReference xsi:type="loc:PointLocation">
+            <loc:pointByCoordinates>
+                <loc:pointCoordinates>
+                    <loc:latitude>56.96133033</loc:latitude>
+                    <loc:longitude>24.10622022</loc:longitude>
+                </loc:pointCoordinates>
+            </loc:pointByCoordinates>
+            <loc:_pointLocationExtension>
+                <locx:facilityLocation>
+                    <locx:address>
+                        <locx:postcode>LV-1010</locx:postcode>
+                        <locx:city>Rīga</locx:city>
+                        <locx:countryCode>LV</locx:countryCode>
+                        <locx:addressLine order="0">
+                            <locx:type>street</locx:type>
+                            <locx:text>Pulkveža Brieža iela 12</locx:text>
+                        </locx:addressLine>
+                    </locx:address>
+                    <locx:timeZone>Europe/Riga</locx:timeZone>
+                </locx:facilityLocation>
+            </loc:_pointLocationExtension>
+        </fac:locationReference>
+        <fac:operator xsi:type="fac:OrganisationSpecification" id="1" version="1">
+            <fac:name>
+                <com:values>
+                    <com:value lang="en">Elektrum Drive</com:value>
+                </com:values>
+            </fac:name>
+            <fac:organisationUnit>
+                <fac:contactInformation>
+                    <fac:telephoneNumber>+(372)-(711)-5555</fac:telephoneNumber>
+                </fac:contactInformation>
+            </fac:organisationUnit>
+        </fac:operator>
+    <egi:energyInfrastructureStation id="1" version="1"><egi:authenticationAndIdentificationMethods>apps</egi:authenticationAndIdentificationMethods><egi:authenticationAndIdentificationMethods>rfid</egi:authenticationAndIdentificationMethods><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="e19a51a5-c01a-4139-a349-b1e07db073e9" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXPB12012CHA</fac:externalIdentifier><egi:connector><egi:connectorType>chademo</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>100000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="6cbc1ffa-dd93-452a-8ab8-f2b9d3cb9ca5" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXPB12011CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>150000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="695f5dc1-a061-4d6c-a111-133dd15137d3" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXPB12009CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>150000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="42a4f2ab-ea99-4a32-a80f-6fc4a25a5365" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXPB12010CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>150000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="46d58eb7-56e1-4337-890a-b9ed9fa67e99" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXPB12015CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>60000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="45a1772c-9fcb-47ec-a092-74e4cf68242a" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXPB12014CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>60000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint></egi:energyInfrastructureStation></egi:energyInfrastructureSite><egi:energyInfrastructureSite id="Elektrum Drive-c5ede890-0e1f-49c8-ad0f-f1ddf27a2636" version="1">
+        <fac:name>
+            <com:values>
+                <com:value lang="en">Elektrum, DC 50kW</com:value>
+            </com:values>
+        </fac:name>
+        <fac:operatingHours xsi:type="fac:OperatingHoursSpecification" id="1" version="1"><fac:overallPeriod><com:overallStartTime>2026-10-11T05:59:41+00:00</com:overallStartTime><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>monday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>tuesday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>wednesday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>thursday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>friday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>saturday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>sunday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod></fac:overallPeriod></fac:operatingHours><fac:locationReference xsi:type="loc:PointLocation">
+            <loc:pointByCoordinates>
+                <loc:pointCoordinates>
+                    <loc:latitude>57.54732632</loc:latitude>
+                    <loc:longitude>25.4227057</loc:longitude>
+                </loc:pointCoordinates>
+            </loc:pointByCoordinates>
+            <loc:_pointLocationExtension>
+                <locx:facilityLocation>
+                    <locx:address>
+                        <locx:postcode>LV-4201</locx:postcode>
+                        <locx:city>Valmiera</locx:city>
+                        <locx:countryCode>LV</locx:countryCode>
+                        <locx:addressLine order="0">
+                            <locx:type>street</locx:type>
+                            <locx:text>Raiņa iela 12</locx:text>
+                        </locx:addressLine>
+                    </locx:address>
+                    <locx:timeZone>Europe/Riga</locx:timeZone>
+                </locx:facilityLocation>
+            </loc:_pointLocationExtension>
+        </fac:locationReference>
+        <fac:operator xsi:type="fac:OrganisationSpecification" id="1" version="1">
+            <fac:name>
+                <com:values>
+                    <com:value lang="en">Elektrum Drive</com:value>
+                </com:values>
+            </fac:name>
+            <fac:organisationUnit>
+                <fac:contactInformation>
+                    <fac:telephoneNumber>+(372)-(711)-5555</fac:telephoneNumber>
+                </fac:contactInformation>
+            </fac:organisationUnit>
+        </fac:operator>
+    <egi:energyInfrastructureStation id="1" version="1"><egi:authenticationAndIdentificationMethods>apps</egi:authenticationAndIdentificationMethods><egi:authenticationAndIdentificationMethods>rfid</egi:authenticationAndIdentificationMethods><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="dada360f-a831-4c23-8770-c76b8c24f6c1" version="1"><fac:externalIdentifier>LV*ELR*EPLVVALRA12006CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>50000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="fff66712-bbf8-4978-9eb7-12614fe63b1e" version="1"><fac:externalIdentifier>LV*ELR*EPLVVALRA12005CHA</fac:externalIdentifier><egi:connector><egi:connectorType>chademo</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>50000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint></egi:energyInfrastructureStation></egi:energyInfrastructureSite><egi:energyInfrastructureSite id="Elektrum Drive-767c4ffc-937b-4cae-8d73-61ad6c2cb831" version="1">
+        <fac:name>
+            <com:values>
+                <com:value lang="en">PLVRIXUZB7_EDLV-279</com:value>
+            </com:values>
+        </fac:name>
+        <fac:operatingHours xsi:type="fac:OperatingHoursSpecification" id="1" version="1"><fac:overallPeriod><com:overallStartTime>2026-10-11T05:59:41+00:00</com:overallStartTime><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>monday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>tuesday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>wednesday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>thursday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>friday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>saturday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>sunday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod></fac:overallPeriod></fac:operatingHours><fac:locationReference xsi:type="loc:PointLocation">
+            <loc:pointByCoordinates>
+                <loc:pointCoordinates>
+                    <loc:latitude>56.94124424</loc:latitude>
+                    <loc:longitude>24.09378778</loc:longitude>
+                </loc:pointCoordinates>
+            </loc:pointByCoordinates>
+            <loc:_pointLocationExtension>
+                <locx:facilityLocation>
+                    <locx:address>
+                        <locx:postcode>LV-1048</locx:postcode>
+                        <locx:city>Rīga</locx:city>
+                        <locx:countryCode>LV</locx:countryCode>
+                        <locx:addressLine order="0">
+                            <locx:type>street</locx:type>
+                            <locx:text>Uzvaras bulvāris 7</locx:text>
+                        </locx:addressLine>
+                    </locx:address>
+                    <locx:timeZone>Europe/Riga</locx:timeZone>
+                </locx:facilityLocation>
+            </loc:_pointLocationExtension>
+        </fac:locationReference>
+        <fac:operator xsi:type="fac:OrganisationSpecification" id="1" version="1">
+            <fac:name>
+                <com:values>
+                    <com:value lang="en">Elektrum Drive</com:value>
+                </com:values>
+            </fac:name>
+            <fac:organisationUnit>
+                <fac:contactInformation>
+                    <fac:telephoneNumber>+(372)-(711)-5555</fac:telephoneNumber>
+                </fac:contactInformation>
+            </fac:organisationUnit>
+        </fac:operator>
+    <egi:energyInfrastructureStation id="1" version="1"><egi:authenticationAndIdentificationMethods>apps</egi:authenticationAndIdentificationMethods><egi:authenticationAndIdentificationMethods>rfid</egi:authenticationAndIdentificationMethods><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="d4d5a33b-8f66-4d2c-b41f-9f919e30f700" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXUZB7004TP2</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2</egi:connectorType><egi:chargingMode>mode3AC3p</egi:chargingMode><egi:maxPowerAtSocket>22000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="c201d754-8e67-4d6f-b5e6-1d8211ff49e3" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXUZB7003TP2</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2</egi:connectorType><egi:chargingMode>mode3AC3p</egi:chargingMode><egi:maxPowerAtSocket>22000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="71e4e14f-c162-42cf-a3f9-d0d23b4223c4" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXUZB7005CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>25000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="070a1b33-0091-468d-9fdd-e2a8e8d3fd57" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXUZB7002CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>50000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="5d2a7dfc-9c8c-4d58-befa-973b00490ae7" version="1"><fac:externalIdentifier>LV*ELR*EPLVRIXUZB7001CHA</fac:externalIdentifier><egi:connector><egi:connectorType>chademo</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>50000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint></egi:energyInfrastructureStation></egi:energyInfrastructureSite><egi:energyInfrastructureSite id="Elektrum Drive-c8779093-33b9-4c14-86b6-0bc44451f65f" version="1">
+        <fac:name>
+            <com:values>
+                <com:value lang="en">PLVAIZENE2_EDLV-163</com:value>
+            </com:values>
+        </fac:name>
+        <fac:operatingHours xsi:type="fac:OperatingHoursSpecification" id="1" version="1"><fac:overallPeriod><com:overallStartTime>2026-10-11T05:59:41+00:00</com:overallStartTime><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>monday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>tuesday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>wednesday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>thursday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>friday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>saturday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod><com:validPeriod><com:recurringTimePeriodOfDay><com:startTimeOfPeriod>00:00:00</com:startTimeOfPeriod><com:endTimeOfPeriod>23:59:00</com:endTimeOfPeriod></com:recurringTimePeriodOfDay><com:recurringDayWeekMonthPeriod><com:applicableDay>sunday</com:applicableDay></com:recurringDayWeekMonthPeriod></com:validPeriod></fac:overallPeriod></fac:operatingHours><fac:locationReference xsi:type="loc:PointLocation">
+            <loc:pointByCoordinates>
+                <loc:pointCoordinates>
+                    <loc:latitude>56.58483283</loc:latitude>
+                    <loc:longitude>25.23982382</loc:longitude>
+                </loc:pointCoordinates>
+            </loc:pointByCoordinates>
+            <loc:_pointLocationExtension>
+                <locx:facilityLocation>
+                    <locx:address>
+                        <locx:postcode>LV-5101</locx:postcode>
+                        <locx:city>Aizkraukle</locx:city>
+                        <locx:countryCode>LV</locx:countryCode>
+                        <locx:addressLine order="0">
+                            <locx:type>street</locx:type>
+                            <locx:text>Enerģētiķu iela 2</locx:text>
+                        </locx:addressLine>
+                    </locx:address>
+                    <locx:timeZone>Europe/Riga</locx:timeZone>
+                </locx:facilityLocation>
+            </loc:_pointLocationExtension>
+        </fac:locationReference>
+        <fac:operator xsi:type="fac:OrganisationSpecification" id="1" version="1">
+            <fac:name>
+                <com:values>
+                    <com:value lang="en">Elektrum Drive</com:value>
+                </com:values>
+            </fac:name>
+            <fac:organisationUnit>
+                <fac:contactInformation>
+                    <fac:telephoneNumber>+(372)-(711)-5555</fac:telephoneNumber>
+                </fac:contactInformation>
+            </fac:organisationUnit>
+        </fac:operator>
+    <egi:energyInfrastructureStation id="1" version="1"><egi:authenticationAndIdentificationMethods>apps</egi:authenticationAndIdentificationMethods><egi:authenticationAndIdentificationMethods>rfid</egi:authenticationAndIdentificationMethods><egi:authenticationAndIdentificationMethods>creditCard</egi:authenticationAndIdentificationMethods><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="c8ff5064-9d3a-41da-a78e-53e2e6a79b18" version="1"><fac:externalIdentifier>LV*ELR*EPLVAIZENE2003TP2</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2</egi:connectorType><egi:chargingMode>mode3AC3p</egi:chargingMode><egi:maxPowerAtSocket>22000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="375af07e-01d4-486c-b2ad-97baee566168" version="1"><fac:externalIdentifier>LV*ELR*EPLVAIZENE2001CHA</fac:externalIdentifier><egi:connector><egi:connectorType>chademo</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>20000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="7df61ae8-9adb-4022-abda-6fd6fa8b712b" version="1"><fac:externalIdentifier>LV*ELR*EPLVAIZENE2002CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>22000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint></egi:energyInfrastructureStation></egi:energyInfrastructureSite><egi:energyInfrastructureSite id="Elektrum Drive-b444c255-0b4d-4d2a-a537-0141384a1d1c" version="1">
+        <fac:name>
+            <com:values>
+                <com:value lang="en">Elektrum, Brekši Pinki, DC 50kW</com:value>
+            </com:values>
+        </fac:name>
+        <fac:operatingHours xsi:type="fac:OpenAllHours"/><fac:locationReference xsi:type="loc:PointLocation">
+            <loc:pointByCoordinates>
+                <loc:pointCoordinates>
+                    <loc:latitude>56.9557007</loc:latitude>
+                    <loc:longitude>23.91928028</loc:longitude>
+                </loc:pointCoordinates>
+            </loc:pointByCoordinates>
+            <loc:_pointLocationExtension>
+                <locx:facilityLocation>
+                    <locx:address>
+                        <locx:postcode>LV-2107</locx:postcode>
+                        <locx:city>Piņķi, Babītes pag., Mārupes nov.</locx:city>
+                        <locx:countryCode>LV</locx:countryCode>
+                        <locx:addressLine order="0">
+                            <locx:type>street</locx:type>
+                            <locx:text>Brekši</locx:text>
+                        </locx:addressLine>
+                    </locx:address>
+                    <locx:timeZone>Europe/Riga</locx:timeZone>
+                </locx:facilityLocation>
+            </loc:_pointLocationExtension>
+        </fac:locationReference>
+        <fac:operator xsi:type="fac:OrganisationSpecification" id="1" version="1">
+            <fac:name>
+                <com:values>
+                    <com:value lang="en">Elektrum Drive</com:value>
+                </com:values>
+            </fac:name>
+            <fac:organisationUnit>
+                <fac:contactInformation>
+                    <fac:telephoneNumber>+(372)-(711)-5555</fac:telephoneNumber>
+                </fac:contactInformation>
+            </fac:organisationUnit>
+        </fac:operator>
+    <egi:energyInfrastructureStation id="1" version="1"><egi:authenticationAndIdentificationMethods>apps</egi:authenticationAndIdentificationMethods><egi:authenticationAndIdentificationMethods>rfid</egi:authenticationAndIdentificationMethods><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="07db5f41-59df-4483-a481-b136a2147e86" version="1"><fac:externalIdentifier>LV*ELR*EPLVPINBREK002CCS</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2COMBO</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>50000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="26a3e73e-991e-4ca5-834c-e17589ca8b86" version="1"><fac:externalIdentifier>LV*ELR*EPLVPINBREK003TP2</fac:externalIdentifier><egi:connector><egi:connectorType>iec62196T2</egi:connectorType><egi:chargingMode>mode3AC3p</egi:chargingMode><egi:maxPowerAtSocket>22000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint><egi:refillPoint xsi:type="egi:ElectricChargingPoint" id="641229f7-f491-49d9-8a04-a69704a81162" version="1"><fac:externalIdentifier>LV*ELR*EPLVPINBREK001CHA</fac:externalIdentifier><egi:connector><egi:connectorType>chademo</egi:connectorType><egi:chargingMode>mode4DC</egi:chargingMode><egi:maxPowerAtSocket>50000</egi:maxPowerAtSocket></egi:connector></egi:refillPoint></egi:energyInfrastructureStation></egi:energyInfrastructureSite></egi:energyInfrastructureTable>
+</d2:payload>

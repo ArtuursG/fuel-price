@@ -107,6 +107,18 @@ jobs:
           INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
         run: uv run python -m collector virsi-ev --push
 
+      - name: Run NAP charging stations and prices and push
+        id: nap
+        continue-on-error: true
+        if: (github.event_name == 'workflow_dispatch' && inputs.scope != 'fuel') || github.event.schedule == '17 4 * * *'
+        working-directory: collector
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          NAP_EV_INFRA_ECO_KEY: ${{ secrets.NAP_EV_INFRA_ECO_KEY }}
+          NAP_EV_STATUS_KEY: ${{ secrets.NAP_EV_STATUS_KEY }}
+        run: uv run python -m collector nap-ev --push
+
       # Avotu soļi ir continue-on-error, lai viens kritiens neatņemtu
       # pārējiem kārtu: 2026-10-02 e-mobi sāka atbildēt 403, un tas klusi
       # apturēja Ignitis, Eleport un Viršus uz desmit dienām. Darbs tomēr
@@ -123,6 +135,7 @@ jobs:
           if [ "${{ steps.ignitis.outcome }}" = "failure" ]; then failed="$failed ignitis"; fi
           if [ "${{ steps.eleport.outcome }}" = "failure" ]; then failed="$failed eleport"; fi
           if [ "${{ steps.virsi.outcome }}" = "failure" ]; then failed="$failed virsi"; fi
+          if [ "${{ steps.nap.outcome }}" = "failure" ]; then failed="$failed nap"; fi
           if [ -n "$failed" ]; then
             echo "Neizdevās:$failed"
             exit 1

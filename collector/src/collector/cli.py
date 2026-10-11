@@ -4,17 +4,21 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
+
 import collector.sources.fuel  # noqa: F401 -- import side effect: registers sources
 from collector.core import http, robots
+from collector.core.env import load_dev_vars
 from collector.core.models import IngestBatch, RunReport
 from collector.core.push import PushConfigError, push_batch
 from collector.core.registry import get_source, list_sources
 from collector.core.runner import check_fuel_source, run_fuel_source, snapshot_fuel_source
-from collector.sources.ev import eleport, emobi, ignitis
+from collector.sources.ev import eleport, emobi, ignitis, nap
 from collector.sources.ev import virsi as virsi_ev
 from collector.sources.official import eu_weekly_oil_bulletin
 
@@ -76,6 +80,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     virsi_ev_p.add_argument("--dry-run", action="store_true", help="Neko nesūta, tikai izvada JSON")
     virsi_ev_p.add_argument("--push", action="store_true", help="Sūta uz INGEST_URL (3. fāze)")
+
+    nap_p = sub.add_parser(
+        "nap-ev",
+        help="Nolasa NAP uzlādes datu kopas (stacijas + cenas, sk. sources/ev/nap.py)",
+    )
+    nap_p.add_argument("--dry-run", action="store_true", help="Neko nesūta, tikai izvada JSON")
+    nap_p.add_argument("--push", action="store_true", help="Sūta uz INGEST_URL (3. fāze)")
 
     return parser
 
@@ -502,6 +513,104 @@ def _cmd_virsi_ev(args: argparse.Namespace) -> int:
     return exit_code
 
 
+def _nap_fetch(client: httpx.Client, api_key: str) -> bytes:
+    """Lejupiela vienas NAP datu kopas failu.
+
+    Divos sojos, ka NAP piemeros: vispirms failu saraksts, tad lejupielade
+    pec file_id. Saraksts parasti satur vienu failu; nemam jaunako.
+    """
+    headers = {"User-Agent": http.DEFAULT_USER_AGENT, "x-api-key": api_key}
+    info = client.get(nap.FILE_INFO_URL, headers=headers, timeout=60.0)
+    info.raise_for_status()
+    files = info.json().get("files") or []
+    if not files:
+        raise RuntimeError("NAP datu kopai nav neviena faila")
+    file_id = str(files[-1]["file_id"])
+
+    data = client.post(nap.DOWNLOAD_URL, headers=headers, json={"file_id": file_id}, timeout=180.0)
+    data.raise_for_status()
+    return data.content
+
+
+def _cmd_nap_ev(args: argparse.Namespace) -> int:
+    if not args.dry_run and not args.push:
+        print("Norādi --dry-run (izvadīt JSON) vai --push (sūtīt uz INGEST_URL).", file=sys.stderr)
+        return 1
+
+    load_dev_vars()
+    infra_key = os.environ.get("NAP_EV_INFRA_ECO_KEY", "").strip()
+    status_key = os.environ.get("NAP_EV_STATUS_KEY", "").strip()
+    if not infra_key or not status_key:
+        print(
+            "Trūkst NAP_EV_INFRA_ECO_KEY vai NAP_EV_STATUS_KEY (.dev.vars vai secrets).",
+            file=sys.stderr,
+        )
+        return 1
+
+    started_at = datetime.now(UTC)
+    client = http.make_client()
+    stations: list = []
+    tariffs: list = []
+    try:
+        # robots.txt attiecas uz lapu, ne uz abonementa API, bet parbaudam
+        # tapat -- ja tas kadreiz aizliegs, apstasimies.
+        if not robots.check_allowed(nap.FILE_INFO_URL, http.DEFAULT_USER_AGENT, client):
+            report = RunReport(
+                source_id=nap.SOURCE_ID,
+                started_at=started_at,
+                finished_at=datetime.now(UTC),
+                status="blocked",
+                error="robots.txt disallows this path",
+            )
+        else:
+            infrastructure = _nap_fetch(client, infra_key)
+            status_xml = _nap_fetch(client, status_key)
+            stations, tariffs = nap.build(infrastructure, status_xml)
+            report = RunReport(
+                source_id=nap.SOURCE_ID,
+                started_at=started_at,
+                finished_at=datetime.now(UTC),
+                status="ok" if tariffs else "partial",
+                http_status=200,
+                items=len(tariffs),
+                content_sha256=hashlib.sha256(infrastructure + status_xml).hexdigest(),
+                parser_version="nap@1",
+            )
+    except Exception as exc:  # noqa: BLE001 -- jebkura kļūda jāpaliek atskaitē
+        report = RunReport(
+            source_id=nap.SOURCE_ID,
+            started_at=started_at,
+            finished_at=datetime.now(UTC),
+            status="error",
+            error=f"{type(exc).__name__}: {exc}"[:300],
+        )
+    finally:
+        client.close()
+
+    exit_code = 1 if report.status in ("error", "blocked") else 0
+    batch = IngestBatch(run=report, fuel=[], ev=tariffs, stations=stations)
+
+    if args.dry_run:
+        print(batch.model_dump_json(indent=2))
+
+    if args.push:
+        try:
+            response = push_batch(batch)
+        except PushConfigError as exc:
+            print(f"{nap.SOURCE_ID}: {exc}", file=sys.stderr)
+            return 1
+        if response.status_code >= 400:
+            print(
+                f"{nap.SOURCE_ID}: ingest atbildēja {response.status_code}: {response.text}",
+                file=sys.stderr,
+            )
+            exit_code = 1
+        else:
+            print(f"{nap.SOURCE_ID}: pushots (HTTP {response.status_code})")
+
+    return exit_code
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -518,6 +627,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_emobi_ev(args)
     if args.command == "ignitis-ev":
         return _cmd_ignitis_ev(args)
+    if args.command == "nap-ev":
+        return _cmd_nap_ev(args)
     if args.command == "virsi-ev":
         return _cmd_virsi_ev(args)
     if args.command == "eleport-ev":
