@@ -91,6 +91,21 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _report_failure(source_id: str, message: str) -> None:
+    """Print a source failure to stderr and, in GitHub Actions, as an annotation.
+
+    The collect workflow runs sources with continue-on-error, so a failing
+    source otherwise shows only as a generic "exit code 1" on the final step.
+    An ::error:: line puts the source and the reason in the run summary,
+    which can be read without downloading the log.
+    """
+    print(f"{source_id}: {message}", file=sys.stderr)
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        # Workflow commands end at a newline; %, CR and LF must be escaped.
+        text = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+        print(f"::error title={source_id}::{text}")
+
+
 def _resolve_source_ids(source: str | None, use_all: bool) -> list[str]:
     if use_all:
         return list_sources()
@@ -119,6 +134,10 @@ def _cmd_run(args: argparse.Namespace) -> int:
         report, prices = run_fuel_source(source)
         if report.status in ("error", "blocked"):
             exit_code = 1
+            detail = f"HTTP {report.http_status}" if report.http_status else "bez HTTP atbildes"
+            _report_failure(
+                source_id, f"{report.status} ({detail}): {report.error or 'bez apraksta'}"
+            )
         batch = IngestBatch(run=report, fuel=prices, ev=[])
 
         if args.dry_run:
@@ -128,13 +147,16 @@ def _cmd_run(args: argparse.Namespace) -> int:
             try:
                 response = push_batch(batch)
             except PushConfigError as exc:
-                print(f"{source_id}: {exc}", file=sys.stderr)
+                _report_failure(source_id, str(exc))
+                exit_code = 1
+                continue
+            except httpx.HTTPError as exc:
+                _report_failure(source_id, f"ingest nav sasniedzams: {exc!r}")
                 exit_code = 1
                 continue
             if response.status_code >= 400:
-                print(
-                    f"{source_id}: ingest atbildēja {response.status_code}: {response.text}",
-                    file=sys.stderr,
+                _report_failure(
+                    source_id, f"ingest atbildēja {response.status_code}: {response.text[:500]}"
                 )
                 exit_code = 1
             else:
